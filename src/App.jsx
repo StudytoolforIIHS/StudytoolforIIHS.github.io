@@ -1,0 +1,880 @@
+import { useState, useEffect, useRef } from 'react';
+import { games as gamesData } from './data/games';
+import { 
+  School, 
+  Search, 
+  Play, 
+  ExternalLink, 
+  RotateCcw, 
+  Maximize2, 
+  Minimize2, 
+  Plus, 
+  Minus, 
+  Heart, 
+  ShieldAlert, 
+  Gamepad2, 
+  Users, 
+  Layers,
+  Sparkles,
+  ArrowLeft,
+  Volume2,
+  Tv,
+  MessageSquare,
+  Globe,
+  Dribbble,
+  BookOpen,
+  Github,
+  Compass,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Lock,
+  Unlock
+} from 'lucide-react';
+
+export default function App() {
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('unblocked-theme');
+    return saved && ['cyborg', 'violet', 'ice', 'rose-pine', 'none'].includes(saved) ? saved : 'violet';
+  });
+  const [mode, setMode] = useState(() => {
+    return localStorage.getItem('unblocked-mode') || 'dark';
+  });
+  const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const stored = localStorage.getItem('unblocked-favorites');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState(() => {
+    return localStorage.getItem('classroom-passcode-unlocked') === 'true';
+  });
+  const [passcode, setPasscode] = useState('');
+  const [isShake, setIsShake] = useState(false);
+  const [errorCount, setErrorCount] = useState(0);
+
+  const handleDigitInput = (digit) => {
+    if (isPasscodeUnlocked || passcode.length >= 4) return;
+    const nextPasscode = passcode + digit;
+    setPasscode(nextPasscode);
+
+    if (nextPasscode === '5432') {
+      setTimeout(() => {
+        setIsPasscodeUnlocked(true);
+        localStorage.setItem('classroom-passcode-unlocked', 'true');
+        setPasscode('');
+      }, 150);
+    } else if (nextPasscode.length === 4) {
+      setTimeout(() => {
+        setIsShake(true);
+        setErrorCount(prev => prev + 1);
+        setTimeout(() => {
+          setIsShake(false);
+          setPasscode('');
+        }, 500);
+      }, 200);
+    }
+  };
+
+  useEffect(() => {
+    if (isPasscodeUnlocked) return;
+    
+    const handleKeyDown = (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleDigitInput(e.key);
+      } else if (e.key === 'Backspace') {
+        setPasscode(prev => prev.slice(0, -1));
+      } else if (e.key === 'Escape') {
+        setPasscode('');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [passcode, isPasscodeUnlocked]);
+
+
+
+  // Set LocalStorage theme and mode on change
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-mode', mode);
+    localStorage.setItem('unblocked-theme', theme);
+    localStorage.setItem('unblocked-mode', mode);
+  }, [theme, mode]);
+
+  // Set LocalStorage favorites on change
+  useEffect(() => {
+    localStorage.setItem('unblocked-favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  // List of Alt links configuration
+  const altLinks = [
+    { name: 'Google Classroom', url: 'https://classroom.google.com' },
+    { name: 'Google Drive', url: 'https://drive.google.com' },
+    { name: 'Wolfram Alpha', url: 'https://www.wolframalpha.com' },
+    { name: 'PhET Science', url: 'https://phet.colorado.edu' },
+    { name: 'Google Docs', url: 'https://docs.google.com' }
+  ];
+
+  // Handle addition/removal of favorites
+  const toggleFavorite = (e, gameId) => {
+    e.stopPropagation();
+    if (favorites.includes(gameId)) {
+      setFavorites(favorites.filter(id => id !== gameId));
+    } else {
+      setFavorites([...favorites, gameId]);
+    }
+  };
+
+  // Helper method to draw beautiful game art based on game title / id
+  const renderGameArt = (game) => {
+    const iconSize = 48;
+    switch (game.id) {
+      case 1: // Slope
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            {/* Grid background effect */}
+            <div className="absolute inset-0 opacity-15 overflow-hidden">
+              <div className="w-full h-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:16px_16px]" />
+              <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-emerald-500/30 to-transparent" />
+            </div>
+            {/* Geometric rolling sphere illustration */}
+            <div className="relative">
+              <div className="absolute -inset-4 rounded-full bg-emerald-500/20 blur-md animate-pulse" />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 border-2 border-white flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)] transform hover:rotate-45 transition-transform duration-500" />
+            </div>
+            {/* Grid Line going down */}
+            <div className="absolute bottom-3 w-1/2 h-[3px] bg-emerald-400/50 rounded transform rotate-12" />
+          </div>
+        );
+      case 2: // 2048
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="grid grid-cols-2 gap-1 bg-amber-950/20 p-2 rounded">
+              <div className="w-8 h-8 rounded bg-amber-500 flex items-center justify-center text-xs font-black text-black">2</div>
+              <div className="w-8 h-8 rounded bg-orange-500 flex items-center justify-center text-xs font-black text-white">0</div>
+              <div className="w-8 h-8 rounded bg-yellow-500 flex items-center justify-center text-xs font-black text-white">4</div>
+              <div className="w-8 h-8 rounded bg-amber-600 flex items-center justify-center text-xs font-black text-white animate-bounce">8</div>
+            </div>
+          </div>
+        );
+      case 3: // Retro Bowl
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="absolute top-2 left-2 text-[10px] font-mono text-blue-400 opacity-60">QUARTERBACK</div>
+            <div className="relative w-14 h-8 bg-amber-800 rounded-full border-y-[3px] border-white/60 flex items-center justify-center shadow-lg transform -rotate-12">
+              <div className="w-1 h-6 bg-white/80 absolute" />
+              <div className="w-3 h-[2px] bg-white translate-x-2 absolute" />
+              <div className="w-3 h-[2px] bg-white -translate-x-2 absolute" />
+            </div>
+          </div>
+        );
+      case 4: // Flappy Bird
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="absolute inset-y-0 right-6 w-5 h-full flex flex-col justify-between py-2">
+              <div className="w-full h-8 bg-green-500 rounded-b border-2 border-white/40" />
+              <div className="w-full h-12 bg-green-500 rounded-t border-2 border-white/40" />
+            </div>
+            <div className="relative w-10 h-8 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white flex items-center justify-center shadow-md animate-bounce">
+              <div className="absolute right-1 w-3 h-3 bg-white rounded-full border border-black flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-black rounded-full" />
+              </div>
+              <div className="absolute left-1 w-3 h-2 bg-orange-500 rounded-lg" />
+              <div className="absolute bottom-1 w-4 h-2 bg-white/80 rounded-full border border-black/40 rotate-12" />
+            </div>
+          </div>
+        );
+      case 5: // Pacman Retro
+        return (
+          <div className="relative w-full h-full flex items-center justify-center gap-2">
+            <div className="w-10 h-10 bg-yellow-400 rounded-full border-r-4 border-transparent rotate-45 animate-pulse" />
+            <div className="w-2 h-2 bg-white rounded-full" />
+            <div className="w-2 h-2 bg-white/60 rounded-full" />
+            <div className="w-2 h-2 bg-white/30 rounded-full" />
+          </div>
+        );
+      case 6: // Tunnel rush
+        return (
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            <div className="absolute w-24 h-24 border-2 border-dashed border-purple-500/40 rounded-full animate-spin" />
+            <div className="absolute w-16 h-16 border border-purple-500/30 rounded-full animate-ping" />
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border border-white" />
+          </div>
+        );
+      case 7: // Chess
+        return (
+          <div className="relative w-full h-full flex items-center justify-center bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.05)_0%,transparent_70%)]">
+            <div className="border border-white/20 p-1 bg-black/40 rounded flex flex-col gap-0.5">
+              <div className="flex gap-0.5">
+                <div className="w-4 h-4 bg-white" />
+                <div className="w-4 h-4 bg-stone-700" />
+              </div>
+              <div className="flex gap-0.5">
+                <div className="w-4 h-4 bg-stone-700" />
+                <div className="w-4 h-4 bg-white" />
+              </div>
+            </div>
+            <div className="absolute text-2xl font-semibold transform hover:scale-110 duration-200">♟️</div>
+          </div>
+        );
+      case 8: // Bubble shooter
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="absolute top-3 flex gap-2">
+              <div className="w-4 h-4 bg-cyan-400 rounded-full shadow-[0_0_8px_cyan]" />
+              <div className="w-4 h-4 bg-red-400 rounded-full shadow-[0_0_8px_red]" />
+              <div className="w-4 h-4 bg-yellow-400 rounded-full shadow-[0_0_8px_yellow]" />
+            </div>
+            <div className="absolute bottom-2 w-2 h-8 bg-zinc-400 rounded-full origin-bottom rotate-45 animate-pulse" />
+          </div>
+        );
+      case 9: // Crossy Road
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="absolute inset-x-0 h-4 bg-neutral-800/80 border-y border-neutral-700" />
+            <div className="w-8 h-8 bg-white border border-neutral-300 rounded flex flex-col items-center justify-center transform hover:translate-y-[-6px] transition-transform shadow-lg">
+              <div className="w-2 h-2 bg-red-500 rounded-full mt-1" />
+              <div className="w-3 h-1.5 bg-yellow-500 rounded-b mt-0.5" />
+            </div>
+          </div>
+        );
+      case 10: // Solitaire
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="w-9 h-14 bg-white border border-neutral-200 rounded-md shadow-md flex flex-col justify-between p-1 text-red-600 transform hover:-translate-y-2 hover:rotate-6 duration-300">
+              <span className="text-[9px] font-black leading-none">A</span>
+              <span className="text-sm self-center">♥️</span>
+              <span className="text-[9px] font-black leading-none self-end scale-y-[-1]">A</span>
+            </div>
+            <div className="absolute w-9 h-14 bg-red-600 border border-white rounded-md shadow-md flex flex-col justify-between p-1 text-white -translate-x-3 translate-y-1 transform hover:rotate-12 duration-300">
+              <div className="w-full h-full border border-white/20 rounded flex items-center justify-center text-xs">✨</div>
+            </div>
+          </div>
+        );
+      case 11: // Doodle jump
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="absolute w-8 h-1.5 bg-green-500 rounded bottom-6" />
+            <div className="w-8 h-10 bg-lime-400 rounded-t-full border border-green-600 flex flex-col items-center relative animate-bounce shadow">
+              <div className="w-4 h-1.5 bg-lime-500 rounded absolute -bottom-1" />
+              <div className="flex gap-1 mt-2">
+                <div className="w-1.5 h-1.5 bg-black rounded-full" />
+                <div className="w-1.5 h-1.5 bg-black rounded-full" />
+              </div>
+              <div className="w-1.5 h-4 bg-lime-600 rounded-full mt-1" />
+            </div>
+          </div>
+        );
+      case 12: // Classroom portal
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="bg-sky-500/10 p-3 rounded-full border border-sky-400/20">
+              <MessageSquare className="text-sky-400 w-10 h-10 animate-pulse" />
+            </div>
+          </div>
+        );
+      case 13: // Youtube stealth
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="w-14 h-10 bg-red-600 rounded-lg flex items-center justify-center shadow-lg relative cursor-pointer transform hover:scale-105 duration-200">
+              <Play className="fill-white text-white w-5 h-5 ml-0.5" />
+            </div>
+          </div>
+        );
+      case 14: // Stealth proxy frame
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="bg-zinc-800 p-3 rounded-lg border-2 border-zinc-700 flex flex-col items-center gap-1 shadow-md">
+              <Globe className="text-zinc-300 w-8 h-8 animate-spin" style={{ animationDuration: '8s' }} />
+            </div>
+          </div>
+        );
+      case 15: // Sim Life
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="bg-pink-500/10 p-4 rounded-full border border-pink-400/30">
+              <Users className="text-pink-400 w-8 h-8 hover:rotate-12 duration-200" />
+            </div>
+          </div>
+        );
+      case 16: // Sandbox Island
+        return (
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950 to-amber-950 opacity-40" />
+            <div className="relative w-12 h-12 bg-amber-800 rounded-md border-t-[8px] border-emerald-500 shadow-xl flex items-center justify-center font-mono font-bold text-white/50 text-[10px]">
+              3D
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <Gamepad2 className="text-neutral-400 w-12 h-12" />
+          </div>
+        );
+    }
+  };
+
+  const isSinglePlayerCategory = (cat) => {
+    if (!cat) return true;
+    const c = cat.toLowerCase().trim();
+    return ['solo', 'single', 'platformer', 'skill', 'science', 'driving', 'horror', 'creative', 'ai'].some(kw => c.includes(kw));
+  };
+
+  const isMultiplayerCategory = (cat) => {
+    if (!cat) return false;
+    const c = cat.toLowerCase().trim();
+    return ['social', 'sport', 'multiplayer', 'fast', 'party', 'puzzle', 'shooter'].some(kw => c.includes(kw)) || c.includes('or');
+  };
+
+  // Filter games based on category sidebar, matching search query
+  const filteredGames = gamesData.filter(game => {
+    // Left side filters
+    if (filter === 'single' && !isSinglePlayerCategory(game.category)) return false;
+    if (filter === 'multiplayer' && !isMultiplayerCategory(game.category)) return false;
+    if (filter === 'favorites' && !favorites.includes(game.id)) return false;
+
+    // Search query filter
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = (game.title || '').toLowerCase().includes(q);
+      const matchDesc = (game.description || '').toLowerCase().includes(q);
+      const matchCat = (game.category || '').toLowerCase().includes(q);
+      return matchTitle || matchDesc || matchCat;
+    }
+
+    return true;
+  });
+
+
+
+  if (!isPasscodeUnlocked) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-primary)] flex flex-col items-center justify-center p-4 transition-colors duration-350 relative select-none">
+        
+        {/* Floating Controls inside Lock Screen */}
+        <div className="absolute top-4 right-4 flex items-center gap-3">
+          
+          {/* Light/Dark Slider */}
+          <div className="flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] py-1.5 px-2.5 rounded-full shadow-sm">
+            <div 
+              onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+              className="relative w-[50px] h-6 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
+              title="Toggle Light/Dark Theme Mode"
+            >
+              <div 
+                className={`w-5 h-5 rounded-full bg-[var(--accent-color)] shadow-md transition-all duration-350 ease-out flex items-center justify-center text-[10px] transform ${
+                  mode === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              >
+                {mode === 'dark' ? '🌙' : '☀️'}
+              </div>
+            </div>
+          </div>
+
+          {/* Theme custom capsule */}
+          <div className="border border-[var(--card-border)] bg-[var(--bg-secondary)] px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
+            <div className="flex items-center gap-1.5">
+              {[
+                { key: 'cyborg', color: 'bg-green-500 border-green-300 shadow-[0_0_5px_green]', tooltip: 'Cyborg Theme' },
+                { key: 'violet', color: 'bg-indigo-600 border-indigo-400', tooltip: 'Violet Theme' },
+                { key: 'ice', color: 'bg-sky-400 border-sky-300', tooltip: 'Glacier Theme' },
+                { key: 'rose-pine', color: 'bg-rose-300 border-rose-200', tooltip: 'Rose Pine Theme' },
+                { key: 'none', color: 'bg-gradient-to-br from-neutral-300 to-neutral-700 border-neutral-400', tooltip: 'No Theme (Monochrome)' }
+              ].map((themeOpt) => (
+                <button
+                  key={themeOpt.key}
+                  title={themeOpt.tooltip}
+                  onClick={() => setTheme(themeOpt.key)}
+                  className={`w-3.5 h-3.5 rounded-full ${themeOpt.color} border transition-all duration-200 hover:scale-130 cursor-pointer ${
+                    theme === themeOpt.key ? 'ring-2 ring-offset-2 ring-[var(--accent-color)]' : 'opacity-80'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Lock Card Content Container */}
+        <div className={`w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 md:p-8 shadow-2xl transition-all duration-300 flex flex-col items-center gap-6 ${isShake ? 'animate-shake' : ''}`}>
+          
+          <div className="text-center">
+            <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Portal Secured</h2>
+            <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">Enter passcode to access unblocked school games</p>
+          </div>
+
+          {/* Indicators for passcode digits */}
+          <div className="flex justify-center gap-4 py-2">
+            {[0, 1, 2, 3].map((index) => {
+              const isFilled = passcode.length > index;
+              return (
+                <div 
+                  key={index}
+                  className={`w-4 h-4 rounded-full border-2 transition-all duration-150 transform ${
+                    isFilled 
+                      ? 'bg-[var(--accent-color)] border-[var(--accent-color)] scale-110 shadow-[0_0_8px_var(--accent-shadow)]' 
+                      : 'border-[var(--card-border)] bg-[var(--bg-secondary)]'
+                  }`}
+                />
+              );
+            })}
+          </div>
+
+          {/* Secure Pad Grid */}
+          <div className="grid grid-cols-3 gap-3.5 w-full max-w-[245px] mt-2">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
+              <button
+                key={num}
+                onClick={() => handleDigitInput(num)}
+                className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold border border-[var(--card-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-color)] hover:border-[var(--accent-color)] active:scale-95 hover:scale-105 transition-all duration-150 cursor-pointer shadow-sm mx-auto"
+              >
+                {num}
+              </button>
+            ))}
+            <button
+              onClick={() => setPasscode('')}
+              className="w-14 h-14 rounded-full flex items-center justify-center text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--card-border)] hover:bg-[var(--bg-secondary)] active:scale-90 transition-all duration-150 cursor-pointer mx-auto"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => handleDigitInput('0')}
+              className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold border border-[var(--card-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-color)] hover:border-[var(--accent-color)] active:scale-95 hover:scale-105 transition-all duration-150 cursor-pointer shadow-sm mx-auto"
+            >
+              0
+            </button>
+            <button
+              onClick={() => setPasscode(prev => prev.slice(0, -1))}
+              className="w-14 h-14 rounded-full flex items-center justify-center text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--card-border)] hover:bg-[var(--bg-secondary)] active:scale-90 transition-all duration-150 cursor-pointer mx-auto"
+            >
+              Del
+            </button>
+          </div>
+
+          {errorCount > 0 && (
+            <span className="text-[10.5px] text-red-500 font-medium font-mono animate-bounce mt-1">
+              Access Denied! Attempt #{errorCount}
+            </span>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col transition-colors duration-300">
+      {/* 🚀 CLASSROOM HEADER DECOY MOCKED SYSTEM */}
+      <nav className="border-b border-[var(--card-border)] bg-[var(--header-bg)] py-3.5 px-4 md:px-6 flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors duration-300 sticky top-0 z-50 shadow-sm">
+        
+        {/* Left Side: Decoy Classroom Title */}
+        <div className="flex items-center gap-3 self-stretch sm:self-auto justify-between">
+          <div 
+            onClick={() => { setFilter('all'); setSelectedGame(null); setSearchQuery(''); }}
+            className="flex items-center gap-2.5 cursor-pointer select-none group"
+            title="Go to Classroom homepage"
+          >
+            <div className="p-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-lg border border-[var(--card-border)] shadow-[0_2px_8.5px_var(--accent-shadow)] group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 transform">
+              <School className="w-5.5 h-5.5" />
+            </div>
+            <div>
+              <span className="text-xl font-bold tracking-tight text-[var(--text-primary)] block group-hover:text-[var(--accent-color)] transition-colors">Classroom</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Search Bar with Clean Pill Input */}
+        <div className="relative w-full max-w-sm sm:mx-4">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-muted)]">
+            <Search className="h-4 w-4" />
+          </span>
+          <input
+            type="text"
+            placeholder="Search school games..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full text-sm rounded-full py-2.5 pl-9 pr-4 border border-[var(--card-border)] bg-[var(--input-fill)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] placeholder:opacity-50 transition-all duration-300 shadow-inner"
+          />
+        </div>
+
+        {/* Right Side Controls: Credit text, Light-Dark Mode Slider, & Dynamic Visual Theme Capsule */}
+        <div className="flex items-center gap-3 md:gap-4 self-stretch sm:self-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
+          
+          {/* Credit Note as requested */}
+          <div className="text-[11px] font-mono select-none opacity-80 pl-1">
+            <span className="text-xs opacity-50 block sm:inline mr-1">made by</span>
+            <span className="font-bold text-[var(--accent-color)] tracking-wider">™ AND GRANDDIA2</span>
+          </div>
+
+          {/* 🌓 custom visual slider for dark-light mode transition */}
+          <div className="flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] py-1 md:py-1.5 px-2.5 rounded-full shadow-sm">
+            <div 
+              onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+              className="relative w-[50px] h-6 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
+              title="Slide to change Mode (Light / Dark)"
+            >
+              {/* Sliding Indicator Ball */}
+              <div 
+                className={`w-5 h-5 rounded-full bg-[var(--accent-color)] shadow-md transition-all duration-350 ease-out flex items-center justify-center text-[10px] transform ${
+                  mode === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              >
+                {mode === 'dark' ? '🌙' : '☀️'}
+              </div>
+            </div>
+          </div>
+
+          {/* Theme custom capsule (excluding black and white) */}
+          <div className="border border-[var(--card-border)] bg-[var(--bg-secondary)] px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
+            <div className="flex items-center gap-1.5">
+              {[
+                { key: 'cyborg', color: 'bg-green-500 border-green-300 shadow-[0_0_5px_green]', tooltip: 'Cyborg Theme' },
+                { key: 'violet', color: 'bg-indigo-600 border-indigo-400', tooltip: 'Violet Theme' },
+                { key: 'ice', color: 'bg-sky-400 border-sky-300', tooltip: 'Glacier Theme' },
+                { key: 'rose-pine', color: 'bg-rose-300 border-rose-200', tooltip: 'Rose Pine Theme' },
+                { key: 'none', color: 'bg-gradient-to-br from-neutral-300 to-neutral-700 border-neutral-400', tooltip: 'No Theme (Monochrome)' }
+              ].map((themeOpt) => (
+                <button
+                  key={themeOpt.key}
+                  title={themeOpt.tooltip}
+                  onClick={() => setTheme(themeOpt.key)}
+                  className={`w-3.5 h-3.5 rounded-full ${themeOpt.color} border transition-all duration-200 hover:scale-130 cursor-pointer ${
+                    theme === themeOpt.key ? 'ring-2 ring-offset-2 ring-[var(--accent-color)]' : 'opacity-80'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+      </nav>
+
+      {/* 📍 ALT LINKS BAR */}
+      <section className="bg-[var(--bg-secondary)] border-b border-[var(--card-border)] py-3 px-4 md:px-6 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center gap-3">
+          <div className="text-[10px] font-mono tracking-widest uppercase opacity-60 self-center">
+            ALT LINKS
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {altLinks.map((link, idx) => (
+              <a
+                key={idx}
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs bg-[var(--card-bg)] border border-[var(--card-border)] py-1.5 px-3 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-all duration-200 font-mono shadow-sm flex items-center gap-1 cursor-pointer"
+              >
+                <span>{idx + 1}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+
+      {/* MAIN CONTAINER: SIDEBAR + GAMES COMPONENT CONTAINER */}
+      <div className="flex-1 flex flex-col md:flex-row max-w-8xl w-full mx-auto p-4 md:p-6 gap-6 self-center">
+        
+        {/* LEFT NAV PANEL - CAT SIDEBAR */}
+        <aside className={`transition-all duration-300 ease-in-out shrink-0 flex flex-col gap-2 overflow-hidden ${
+          sidebarOpen ? 'w-full md:w-56' : 'w-full md:w-14'
+        }`}>
+          
+          <div className="flex items-center justify-between px-2 py-1 min-h-[36px]">
+            {sidebarOpen ? (
+              <span className="text-[10px] font-mono tracking-wider opacity-50 uppercase whitespace-nowrap">
+                Browse Portals
+              </span>
+            ) : (
+              <span className="hidden md:inline text-[9px] font-mono tracking-wider opacity-50 uppercase text-center mx-auto font-bold text-[var(--accent-color)]">
+                NAV
+              </span>
+            )}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-1.5 rounded-lg hover:bg-[var(--card-bg)] text-[var(--accent-color)] transition-all duration-250 cursor-pointer flex items-center justify-center ml-auto"
+              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4 animate-bounce" />}
+            </button>
+          </div>
+
+          <button
+            onClick={() => { setFilter('all'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'all' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+            }`}
+          >
+            <Layers className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>All Classrooms</span>
+          </button>
+
+          <button
+            onClick={() => { setFilter('single'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'single' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+            }`}
+          >
+            <Gamepad2 className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Single Player</span>
+          </button>
+
+          <button
+            onClick={() => { setFilter('multiplayer'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'multiplayer' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+            }`}
+          >
+            <Users className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
+          </button>
+
+        </aside>
+
+        {/* MAIN BODY DISPLAY */}
+        <main className="flex-1 min-w-0">
+          
+          {!selectedGame ? (
+            /* ========================================================
+               📚 LIBRARY LIST VIEW - MOCK CLASSROOMS SECTION
+               ======================================================== */
+            <div className="flex flex-col gap-6">
+              
+              {/* Count Banner and title */}
+              <div className="flex justify-between items-center border-l-4 border-[var(--accent-color)] pl-3">
+                <div>
+                  <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
+                    {filter === 'all' && 'Games Library'}
+                    {filter === 'single' && 'Singleplayer Arcades'}
+                    {filter === 'multiplayer' && 'Multiplayer Hub'}
+                    {filter === 'favorites' && 'Bookmarked Games'}
+                  </h2>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                    Showing {filteredGames.length} unblocked resources
+                  </p>
+                </div>
+              </div>
+
+              {/* Grid of equally-sized games */}
+              {filteredGames.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 border border-dashed border-[var(--card-border)] rounded-2xl bg-[var(--bg-secondary)]">
+                  <Gamepad2 className="w-16 h-16 text-[var(--text-muted)] stroke-1 opacity-40 animate-pulse" />
+                  <p className="text-sm font-semibold mt-4 text-[var(--text-primary)]">No games found matches filter</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">Try searching a different keyword or resetting filters.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredGames.map(game => {
+                    const isFav = favorites.includes(game.id);
+                    return (
+                      <div 
+                        key={game.id}
+                        onClick={() => { setSelectedGame(game); setZoom(1); }}
+                        className="custom-card flex flex-col rounded-xl overflow-hidden cursor-pointer h-[320px]"
+                        style={{ contentVisibility: 'auto' }}
+                      >
+                        {/* Artwork container */}
+                        <div className="relative h-36 bg-neutral-950 flex-shrink-0 flex items-center justify-center border-b border-[var(--card-border)] overflow-hidden">
+                          {game.thumbnail ? (
+                            <img 
+                              src={game.thumbnail} 
+                              alt={game.title} 
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
+                            />
+                          ) : (
+                            renderGameArt(game)
+                          )}
+
+                          {/* Category Tag on Top-Right */}
+                          <span className="absolute top-2.5 right-2.5 text-[8px] font-bold uppercase tracking-widest bg-black/75 backdrop-blur-sm text-white border border-white/10 px-2.5 py-0.5 rounded-full inline-block z-10">
+                            {game.category}
+                          </span>
+
+                          {/* Heart bookmark shortcut button on top-left */}
+                          <button
+                            onClick={(e) => toggleFavorite(e, game.id)}
+                            className="absolute top-2.5 left-2.5 p-1.5 rounded-full bg-black/40 hover:bg-black/80 text-white/90 border border-white/10 hover:text-rose-500 hover:scale-110 active:scale-95 transition-all duration-200"
+                            title={isFav ? "Remove Bookmark" : "Add Bookmark"}
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                          </button>
+                        </div>
+
+                        {/* Title and descriptions */}
+                        <div className="p-4 flex-1 flex flex-col justify-between">
+                          <div className="space-y-1.5">
+                            <h3 className="text-sm font-black text-[var(--text-primary)] line-clamp-1 group-hover:text-[var(--accent-color)] leading-snug">
+                              {game.title}
+                            </h3>
+                            <p className="text-xs text-[var(--text-muted)] line-clamp-3 leading-relaxed">
+                              {game.description}
+                            </p>
+                          </div>
+
+                          {/* Action Button */}
+                          <button
+                            onClick={() => { setSelectedGame(game); setZoom(1); }}
+                            className="w-full mt-3 border border-[var(--accent-color)] hover:bg-[var(--accent-color)] hover:text-black hover:font-bold hover:shadow-[0_0_12px_calc(var(--accent-color))] text-[11px] font-semibold tracking-wider text-[var(--accent-color)] py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 self-end"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            <span>LAUNCH PROGRAM</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+            </div>
+          ) : (
+            /* ========================================================
+               🎮 ACTIVE PLAY GAME SCREEN WITH ZOOM & ZOOM CONTROLS
+               ======================================================== */
+            <div className="flex flex-col gap-4 animate-fade-in">
+              
+              {/* Controls bar layout */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border border-[var(--card-border)] bg-[var(--bg-secondary)] rounded-xl py-3 px-4 gap-3 shadow-inner">
+                
+                {/* Back Button */}
+                <button
+                  onClick={() => setSelectedGame(null)}
+                  className="flex items-center gap-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] transition-all font-mono py-1.5 px-3.5 rounded-lg text-xs font-bold leading-normal cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>CLOSE WINDOW</span>
+                </button>
+
+                {/* Title & category badge info */}
+                <div className="flex items-center gap-2.5">
+                  <span className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    {selectedGame.title}
+                    <span className="text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded border border-[var(--card-border)] bg-[var(--bg-color)] text-[var(--accent-color)]">
+                      {selectedGame.category}
+                    </span>
+                  </span>
+                </div>
+
+                {/* Action Console: zoom control, reload, fullscreen, panic shortcut key */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  
+                  {/* Zoom controls */}
+                  <div className="flex items-center bg-[var(--bg-color)] border border-[var(--card-border)] rounded-lg overflow-hidden p-0.5">
+                    <button
+                      onClick={() => setZoom(z => Math.max(0.4, z - 0.1))}
+                      className="p-1 px-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)] rounded transition-colors"
+                      title="Zoom Out"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[10px] px-2 font-mono text-[var(--text-primary)] font-bold select-none">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                    <button
+                      onClick={() => setZoom(z => Math.min(1.8, z + 0.1))}
+                      className="p-1 px-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)] rounded transition-colors"
+                      title="Zoom In"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setZoom(1)}
+                      className="p-1 px-1.5 text-xs text-[var(--accent-color)] font-mono hover:bg-[var(--card-bg)] rounded transition-colors"
+                      title="Reset Zoom"
+                    >
+                      Res
+                    </button>
+                  </div>
+
+                  {/* Reload button */}
+                  <button
+                    onClick={() => {
+                      const iframe = document.getElementById('game-frame');
+                      if (iframe) iframe.src = iframe.src;
+                    }}
+                    className="p-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] rounded-lg text-[var(--text-primary)] transition-all cursor-pointer"
+                    title="Reload game frame session"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Maximize Frame Button */}
+                  <button
+                    onClick={() => {
+                      const container = document.getElementById('frame-viewport');
+                      if (container) {
+                        if (document.fullscreenElement) {
+                          document.exitFullscreen();
+                        } else {
+                          container.requestFullscreen();
+                        }
+                      }
+                    }}
+                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                    title="Toggle Fullscreen Arena"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline text-[10px] font-bold">FULLSCREEN</span>
+                  </button>
+
+                </div>
+
+              </div>
+
+              {/* Game Viewport Container with zoom styling */}
+              <div 
+                id="frame-viewport"
+                className="w-full h-[65vh] min-h-[420px] rounded-2xl border border-[var(--card-border)] bg-black overflow-hidden relative shadow-lg"
+              >
+                
+                {/* Embedded Frame */}
+                <div 
+                  className="w-full h-full duration-150 transition-transform origin-top-left"
+                  style={{ 
+                    transform: `scale(${zoom})`,
+                    width: `${100 / zoom}%`,
+                    height: `${100 / zoom}%`
+                  }}
+                >
+                  <iframe 
+                    id="game-frame"
+                    src={selectedGame.url} 
+                    className="w-full h-full border-none"
+                    title={selectedGame.title}
+                    allowFullScreen
+                    referrerPolicy="no-referrer"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  />
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+        </main>
+      </div>
+
+
+    </div>
+  );
+}
