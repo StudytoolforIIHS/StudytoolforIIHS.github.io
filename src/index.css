@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Base Transition of theme colors */
+html, body, #root {
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: var(--font-sans);
+}
+
+/* --- Theme Variable Definitions under [data-mode='dark'] and [data-mode='light'] --- */
+
+/* Fallback Defaults (Dark Violet) */
+:root {
+  --bg-color: #0b071e;
+  --bg-secondary: #120e2e;
+  --card-bg: #1a153b;
+  --card-border: #3b2c6f;
+  --text-primary: #ddd6fe;
+  --text-muted: #a78bfa;
+  --accent-color: #a78bfa;
+  --accent-hover: #c084fc;
+  --accent-shadow: rgba(167, 139, 250, 0.35);
+  --input-fill: #141033;
+  --header-bg: #09061a;
+}
+
+/* 🟢 CYBORG THEME */
+[data-theme='cyborg'][data-mode='dark'] {
+  --bg-color: #050505;
+  --bg-secondary: #0c0f0a;
+  --card-bg: #11140f;
+  --card-border: rgba(34, 197, 94, 0.2);
+  --text-primary: #22c55e;
+  --text-muted: #86efac;
+  --accent-color: #22c55e;
+  --accent-hover: #4ade80;
+  --accent-shadow: rgba(34, 197, 94, 0.3);
+  --input-fill: #141a10;
+  --header-bg: #070a06;
+}
+[data-theme='cyborg'][data-mode='light'] {
+  --bg-color: #f0fdf4;
+  --bg-secondary: #dcfce7;
+  --card-bg: #ffffff;
+  --card-border: #bbf7d0;
+  --text-primary: #15803d;
+  --text-muted: #166534;
+  --accent-color: #16a34a;
+  --accent-hover: #15803d;
+  --accent-shadow: rgba(22, 163, 74, 0.2);
+  --input-fill: #ffffff;
+  --header-bg: #dcfce7;
+}
+
+/* 🟣 VIOLET THEME */
+[data-theme='violet'][data-mode='dark'] {
+  --bg-color: #0b071e;
+  --bg-secondary: #120e2e;
+  --card-bg: #1a153b;
+  --card-border: #3b2c6f;
+  --text-primary: #ddd6fe;
+  --text-muted: #a78bfa;
+  --accent-color: #a78bfa;
+  --accent-hover: #c084fc;
+  --accent-shadow: rgba(167, 139, 250, 0.35);
+  --input-fill: #141033;
+  --header-bg: #09061a;
+}
+[data-theme='violet'][data-mode='light'] {
+  --bg-color: #f5f3ff;
+  --bg-secondary: #ede9fe;
+  --card-bg: #ffffff;
+  --card-border: #ddd6fe;
+  --text-primary: #5b21b6;
+  --text-muted: #7c3aed;
+  --accent-color: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-shadow: rgba(139, 92, 246, 0.2);
+  --input-fill: #ffffff;
+  --header-bg: #ede9fe;
+}
+
+/* ❄️ ICE THEME */
+[data-theme='ice'][data-mode='dark'] {
+  --bg-color: #031525;
+  --bg-secondary: #072238;
+  --card-bg: #0b2e4c;
+  --card-border: #1a4d70;
+  --text-primary: #e0f2fe;
+  --text-muted: #38bdf8;
+  --accent-color: #0ea5e9;
+  --accent-hover: #38bdf8;
+  --accent-shadow: rgba(14, 165, 233, 0.4);
+  --input-fill: #061d31;
+  --header-bg: #031525;
+}
+[data-theme='ice'][data-mode='light'] {
+  --bg-color: #f0f9ff;
+  --bg-secondary: #e0f2fe;
+  --card-bg: #ffffff;
+  --card-border: #bae6fd;
+  --text-primary: #0369a1;
+  --text-muted: #0c4a6e;
+  --accent-color: #0ea5e9;
+  --accent-hover: #38bdf8;
+  --accent-shadow: rgba(14, 165, 233, 0.2);
+  --input-fill: #ffffff;
+  --header-bg: #e0f2fe;
+}
+
+/* 🌹 ROSE PINE THEME */
+[data-theme='rose-pine'][data-mode='dark'] {
+  --bg-color: #191724;
+  --bg-secondary: #1f1d2e;
+  --card-bg: #26233a;
+  --card-border: #403d52;
+  --text-primary: #e0def4;
+  --text-muted: #908caa;
+  --accent-color: #ebbcba;
+  --accent-hover: #ecc1c0;
+  --accent-shadow: rgba(235, 188, 186, 0.25);
+  --input-fill: #1f1d2e;
+  --header-bg: #191724;
+}
+[data-theme='rose-pine'][data-mode='light'] {
+  --bg-color: #faf4ed;
+  --bg-secondary: #f2e9e1;
+  --card-bg: #fffaf3;
+  --card-border: #dfdad3;
+  --text-primary: #575279;
+  --text-muted: #797593;
+  --accent-color: #d7827e;
+  --accent-hover: #b4637a;
+  --accent-shadow: rgba(215, 130, 126, 0.25);
+  --input-fill: #ffffff;
+  --header-bg: #faf4ed;
+}
+
+/* ⚫ NO THEME (MONOCHROME BLACK / WHITE) */
+[data-theme='none'][data-mode='dark'] {
+  --bg-color: #000000;
+  --bg-secondary: #0a0a0a;
+  --card-bg: #121212;
+  --card-border: #262626;
+  --text-primary: #ffffff;
+  --text-muted: #a3a3a3;
+  --accent-color: #ffffff;
+  --accent-hover: #e5e5e5;
+  --accent-shadow: rgba(255, 255, 255, 0.15);
+  --input-fill: #000000;
+  --header-bg: #000000;
+}
+[data-theme='none'][data-mode='light'] {
+  --bg-color: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --card-bg: #fafafa;
+  --card-border: #e5e5e5;
+  --text-primary: #000000;
+  --text-muted: #525252;
+  --accent-color: #000000;
+  --accent-hover: #171717;
+  --accent-shadow: rgba(0, 0, 0, 0.08);
+  --input-fill: #ffffff;
+  --header-bg: #ffffff;
+}
+
+/* Apply Variables */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
+.custom-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-color);
+  box-shadow: 0 10px 20px -10px var(--accent-shadow);
+}
+
+.custom-badge {
+  background-color: var(--bg-secondary);
+  color: var(--accent-color);
+  border: 1px solid var(--card-border);
+}
+
+.custom-theme-option {
+  transition: transform 0.2s ease, outline 0.2s ease;
+}
+
+.custom-theme-option:hover {
+  transform: scale(1.2);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-color);
+}
+
+/* Pulse Glow & Shimmer effects */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-bg {
+  background: linear-gradient(90deg, var(--card-bg) 25%, var(--bg-secondary) 50%, var(--card-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
