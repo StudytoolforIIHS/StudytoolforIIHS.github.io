@@ -507,7 +507,7 @@ export default function App() {
               <School className="w-5.5 h-5.5" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight text-[var(--text-primary)] block group-hover:text-[var(--accent-color)] transition-colors">Classroom</span>
+              <span className="text-xl font-bold tracking-tight text-[var(--text-primary)] block group-hover:text-[var(--accent-color)] transition-colors"></span>
             </div>
           </div>
         </div>
