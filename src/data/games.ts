@@ -11,6 +11,14 @@ export const games: Game[] = [
     category: 'Socialize'
   },
   {
+    id: 'game-111',
+    title: 'Chatgpt',
+    description: 'CAN ADD IMAGES. Wait for a minute if you do not get a response. MUTIPLE AIS, INCLUDING CHATGPT.',
+    url: 'https://tharaniidaran-t.github.io/GroqAi/',
+    thumbnail: 'https://www.internetmatters.org/wp-content/uploads/2025/06/Chat-GPT-logo.webp',
+    category: 'AI'
+  },
+  {
     id: 'game-2',
     title: 'Gemini',
     description: 'CAN ADD IMAGES. Wait for a minute if you do not get a response.',
