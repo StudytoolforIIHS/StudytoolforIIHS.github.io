@@ -53,7 +53,7 @@ const safeStorage = {
 export default function App() {
   const [theme, setTheme] = useState(() => {
     const saved = safeStorage.getItem('unblocked-theme');
-    return saved && ['cyborg', 'violet', 'ice', 'rose-pine', 'none'].includes(saved) ? saved : 'violet';
+    return saved && ['cyborg', 'violet', 'ice', 'rose-pine', 'none'].includes(saved) ? saved : 'none';
   });
   const [mode, setMode] = useState(() => {
     return safeStorage.getItem('unblocked-mode') || 'dark';
