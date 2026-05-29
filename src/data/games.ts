@@ -231,7 +231,7 @@ export const games: Game[] = [
     id: 'game-53',
     title: 'Pokemon Platinum',
     description: 'yeah',
-    url: 'https://files.catbox.moe/of0kcu.html',
+    url: '/clpokeplatinum.html',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/en/c/ca/Pokemon_Platinum.png',
     category: 'solo'
   },
