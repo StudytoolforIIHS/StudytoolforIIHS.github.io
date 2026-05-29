@@ -710,7 +710,7 @@ export default function App() {
                         style={{ contentVisibility: 'auto' }}
                       >
                         {/* Artwork container */}
-                        <div className="relative h-48 bg-neutral-950 flex-shrink-0 flex items-center justify-center border-b border-[var(--card-border)] overflow-hidden">
+                        <div className="relative h-53 bg-neutral-950 flex-shrink-0 flex items-center justify-center border-b border-[var(--card-border)] overflow-hidden">
                           {game.thumbnail ? (
                             <img 
                               src={game.thumbnail} 
