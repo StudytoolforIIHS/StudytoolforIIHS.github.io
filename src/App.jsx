@@ -429,7 +429,7 @@ export default function App() {
           
           <div className="text-center">
             <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Portal Secured</h2>
-            <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">Enter passcode to access unblocked school games</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">This is a paid Science, Math, ELA, and Social Studies article website. Please enter a correct password to continue to the website.</p>
           </div>
 
           {/* Indicators for passcode digits */}
