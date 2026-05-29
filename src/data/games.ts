@@ -413,14 +413,6 @@ export const games: Game[] = [
     category: 'Multiplayer'
   },
   {
-    id: 'game-41',
-    title: 'Make it meme',
-    description: 'unblocked now',
-    url: 'https://doraedu52.github.io/g22/class-368',
-    thumbnail: 'https://makeitmeme.com/header.webp',
-    category: 'Multiplayer'
-  },
-  {
     id: 'game-38',
     title: 'Gartic Phone Copy',
     description: '',
