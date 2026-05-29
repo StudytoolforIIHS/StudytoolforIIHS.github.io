@@ -706,7 +706,7 @@ export default function App() {
                       <div 
                         key={game.id}
                         onClick={() => { setSelectedGame(game); setZoom(1); }}
-                        className="custom-card flex flex-col rounded-xl overflow-hidden cursor-pointer h-[320px]"
+                        className="custom-card flex flex-col rounded-xl overflow-hidden cursor-pointer h-[340px]"
                         style={{ contentVisibility: 'auto' }}
                       >
                         {/* Artwork container */}
