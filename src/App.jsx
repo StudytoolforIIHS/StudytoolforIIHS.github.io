@@ -779,7 +779,7 @@ export default function App() {
                   className="flex items-center gap-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] transition-all font-mono py-1.5 px-3.5 rounded-lg text-xs font-bold leading-normal cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>CLOSE WINDOW</span>
+                  <span>Go back</span>
                 </button>
 
                 {/* Title & category badge info */}
@@ -819,7 +819,7 @@ export default function App() {
                       className="p-1 px-1.5 text-xs text-[var(--accent-color)] font-mono hover:bg-[var(--card-bg)] rounded transition-colors"
                       title="Reset Zoom"
                     >
-                      Res
+                      Reset Zoom
                     </button>
                   </div>
 
