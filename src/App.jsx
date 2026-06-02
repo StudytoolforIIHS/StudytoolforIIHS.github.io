@@ -607,7 +607,7 @@ export default function App() {
         
         {/* LEFT NAV PANEL - CAT SIDEBAR */}
         <aside className={`transition-all duration-300 ease-in-out shrink-0 flex flex-col gap-2 overflow-hidden ${
-          sidebarOpen ? 'w-full md:w-56' : 'w-full md:w-14'
+          sidebarOpen ? 'w-full md:w-64' : 'w-full md:w-14'
         }`}>
           
           <div className="flex items-center justify-between px-2 py-1 min-h-[36px]">
