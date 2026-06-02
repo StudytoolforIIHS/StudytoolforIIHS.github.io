@@ -296,7 +296,7 @@ export const games: Game[] = [
     id: 'game-22',
     title: 'Imposter',
     description: '',
-    url: 'https://script.google.com/macros/s/AKfycbxcouwzwIrULxhM_6KgC3GOg7xZ7C0A3s4weEUQEtWdwb08Ma3PhJuLZVONJXKJG9DKaA font',
+    url: 'https://script.google.com/macros/s/AKfycbxcouwzwIrULxhM_6KgC3GOg7xZ7C0A3s4weEUQEtWdwb08Ma3PhJuLZVONJXKJG9DKaA/exec',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqnHES0vMhKA4ZN9RoVVmLKs__68g8gOUZOw&s',
     category: 'Party'
   },
@@ -312,7 +312,7 @@ export const games: Game[] = [
     id: 'game-24',
     title: 'Among Us',
     description: '',
-    url: 'https://script.google.com/macros/s/AKfycbwdYUtgs7kZjgJ5OG0WpNqc84LYICfZo0ezR1WfAYdjwqfkasZmB0Ad4MPFNVBfyKH-/',
+    url: 'https://script.google.com/macros/s/AKfycbwdYUtgs7kZjgJ5OG0WpNqc84LYICfZo0ezR1WfAYdjwqfkasZmB0Ad4MPFNVBfyKH-/exec',
     thumbnail: 'https://i.ytimg.com/vi/0YKjFoGxbec/maxresdefault.jpg',
     category: 'Party'
   },
