@@ -853,6 +853,19 @@ export default function App() {
                     <Maximize2 className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline text-[10px] font-bold">FULLSCREEN</span>
                   </button>
+                  {/* Open in New Tab Button */}
+                  <button
+                    onClick={() => {
+                      window.open(selectedGame.url, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                    title="Open Game in New Tab"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline text-[10px] font-bold">
+                      OPEN IN NEW TAB
+                    </span>
+                  </button>
 
                 </div>
 
