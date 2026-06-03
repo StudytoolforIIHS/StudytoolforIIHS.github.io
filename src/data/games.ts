@@ -4,11 +4,11 @@ export const games: Game[] = [
   // ── CHAT / AI ──
   {
     id: 'game-1',
-    title: 'Chat',
-    description: 'Fun to chat with your friends.',
-    url: 'https://tharaniidaran-t.github.io/chat/',
-    thumbnail: 'https://images.ctfassets.net/mrsnpomeucef/3BUijrF6jnsDbghL6sCF1/9c15892b4a259e619acd5aa7a4c3f698/Untitled_design__47_.png',
-    category: 'Socialize'
+    title: 'City Skyline copy',
+    description: 'I used ai to make some of the game.',
+    url: 'https://tharaniidaran-t.github.io/cityskylinesremake/',
+    thumbnail: 'https://upload.wikimedia.org/wikipedia/en/5/58/Cities_Skylines_cover_art.jpg',
+    category: 'Fun'
   },
   {
     id: 'game-1',
