@@ -3,7 +3,6 @@ import { Game } from '../types';
 export const games: Game[] = [
   // ── CHAT / AI ──
   {
-    id: 'game-1',
     title: 'City Skyline copy',
     description: 'I used ai to make some of the game.',
     url: 'https://tharaniidaran-t.github.io/cityskylinesremake/',
@@ -11,7 +10,6 @@ export const games: Game[] = [
     category: 'Fun'
   },
   {
-    id: 'game-1',
     title: 'The Final Earth 2',
     description: 'I love this game bro. Actually best game out there, please try atleast once!',
     url: 'clfinalearth2.html',
@@ -19,7 +17,6 @@ export const games: Game[] = [
     category: 'BEST GAME OUT THERE'
   },
   {
-    id: 'game-1',
     title: 'Shader Pilot',
     description: 'Game that TTM made and It looks good Ig and cool ig. ',
     url: 'https://tharaniidaran-t.github.io/shader-piolet/',
@@ -27,7 +24,6 @@ export const games: Game[] = [
     category: 'Game'
   },
   {
-    id: 'game-111',
     title: 'Chatgpt (GROQ API)',
     description: 'Go to the doc and get a API or swap your model if it says max token limit reached. ',
     url: 'https://tharaniidaran-t.github.io/GroqAI2/',
@@ -35,7 +31,6 @@ export const games: Game[] = [
     category: 'AI'
   },
   {
-    id: 'game-12',
     title: 'Youtube',
     description: 'Youtube unblocked, should allow you to paste videos into the URL thingy and watch it.',
     url: 'https://granddia2.github.io/old/yt.html',
@@ -43,7 +38,6 @@ export const games: Game[] = [
     category: 'Solo'
   },  
   {
-    id: 'game-13',
     title: 'Proxy',
     description: 'Allows you to scour the web unblocked',
     url: 'https://somany.gsxpress.com.my/',
@@ -52,7 +46,6 @@ export const games: Game[] = [
   },
   // ── SOLO ──
   {
-    id: 'game-3',
     title: 'Slope',
     description: 'This is just for the girls ig',
     url: 'https://ubg365.github.io/slope/play.html',
@@ -60,7 +53,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-4',
     title: 'Epilepsy game',
     description: 'This is just for the girls ig',
     url: 'https://ubg365.github.io/death-run-3d/',
@@ -68,7 +60,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-5',
     title: '2048',
     description: 'Girls.',
     url: 'https://ubg365.github.io/2048/play.html',
@@ -76,7 +67,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-6',
     title: 'Bitlife',
     description: 'Most fun to experiment by yourself.',
     url: 'https://ubg365.github.io/bitlife-life-simulator/play.html',
@@ -84,7 +74,6 @@ export const games: Game[] = [
     category: 'Single-Player'
   },
   {
-    id: 'game-7',
     title: 'OvO',
     description: 'Fun to play by yourself.',
     url: 'https://mc0825.github.io/g5/class-456',
@@ -92,7 +81,6 @@ export const games: Game[] = [
     category: 'Platformer'
   },
   {
-    id: 'game-8',
     title: 'Wordle Unlimited',
     description: '',
     url: 'https://bosorioo.github.io/wordle-unlimited/',
@@ -100,7 +88,6 @@ export const games: Game[] = [
     category: 'Skill'
   },
   {
-    id: 'game-9',
     title: 'Sandboxels',
     description: 'works now I think',
     url: 'https://mr-funkinguy.github.io/sandboxels/',
@@ -108,7 +95,6 @@ export const games: Game[] = [
     category: 'Science'
   },
   {
-    id: 'game-10',
     title: 'Tanuki Sunset',
     description: '',
     url: 'https://mc0825.github.io/g26/class-488/',
@@ -116,7 +102,6 @@ export const games: Game[] = [
     category: 'Driving'
   },
   {
-    id: 'game-15',
     title: 'Minecraft Launcher',
     description: 'Fun to play with your friends and by yourself.',
     url: 'https://irv77.github.io/AmplerLauncher/',
@@ -124,7 +109,6 @@ export const games: Game[] = [
     category: 'Creative'
   },
   {
-    id: 'game-16',
     title: 'Bloons TD6 copy',
     description: 'A knockoff',
     url: 'https://script.google.com/macros/s/AKfycbxGkuDci2OlaMQBNYG1oQGdZSyJ86D3D39ZmTx2JFsqpxUObjTShnMUX8ApzlVzDRAY/exec',
@@ -132,7 +116,6 @@ export const games: Game[] = [
     category: 'Solo or Multiplayer.'
   },
   {
-    id: 'game-35',
     title: 'Fnaf',
     description: 'Survive.',
     url: 'https://ubg365.github.io/fnaf/play.html',
@@ -140,7 +123,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-36',
     title: 'Fnaf 2',
     description: 'Survive.',
     url: 'https://ubg365.github.io/fnaf-2/',
@@ -148,7 +130,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-37',
     title: 'Fnaf 3',
     description: 'Survive.',
     url: 'https://ubg365.github.io/fnaf-3/',
@@ -156,7 +137,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-39',
     title: 'Tetris',
     description: 'Fun.',
     url: 'https://ubg365.github.io/flash-tetris/',
@@ -164,7 +144,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-42',
     title: 'Tomb of the Mask',
     description: 'Fun to play',
     url: 'https://doraedu52.github.io/g26/class-438',
@@ -172,7 +151,6 @@ export const games: Game[] = [
     category: 'solo' 
   },
   {
-    id: 'game-44',
     title: 'Crossy Road',
     description: '2nd one if first does not work. 1st one if 2nd one does not work',
     url: 'https://crossy-road-unblock.github.io/crossy-road/',
@@ -180,7 +158,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-45',
     title: 'Champion Island',
     description: 'Google Doodle',
     url: 'https://granddia2.github.io/championisland/',
@@ -188,7 +165,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-47',
     title: 'FIFA 11',
     description: 'yeah',
     url: '/clFIFA11.html',
@@ -196,7 +172,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-48',
     title: 'Madden 2002',
     description: 'yeah',
     url: '/clmaddennfl2002.html',
@@ -204,7 +179,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-49',
     title: 'Call of Duty 4',
     description: 'yeah',
     url: '/clcod4.html',
@@ -212,7 +186,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-50',
     title: 'GTA Advance',
     description: 'yeah',
     url: '/clgrandtheftautoadvance.html',
@@ -220,7 +193,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-51',
     title: 'NFS: Most Wanted',
     description: 'yeah',
     url: '/clnfsmostwanted.html',
@@ -228,7 +200,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-52',
     title: 'Suika Watermelon copy',
     description: 'yeah',
     url: 'https://tharaniidaran-t.github.io/suika-game/',
@@ -236,7 +207,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-53',
     title: 'Pokemon Platinum',
     description: 'yeah',
     url: '/clpokeplatinum.html',
@@ -244,7 +214,6 @@ export const games: Game[] = [
     category: 'solo'
   },
   {
-    id: 'game-54',
     title: 'Pokemon Black 2',
     description: 'yeah',
     url: '/clpokeblack2.html',
@@ -252,7 +221,6 @@ export const games: Game[] = [
     category: 'solo'
   },
    {
-    id: 'game-55',
     title: 'Tomodachi Collection',
     description: 'yeah',
     url: '/cltomodachicollection.html',
@@ -261,7 +229,6 @@ export const games: Game[] = [
   },
   // ── MULTIPLAYER ──
   {
-    id: 'game-17',
     title: 'Animals Volleyball',
     description: 'Probably the most fun game, also can play with friends.',
     url: 'https://mc0825.github.io/g66/class-847/',
@@ -269,7 +236,6 @@ export const games: Game[] = [
     category: 'Sports'
   },
   {
-    id: 'game-18',
     title: 'Tag',
     description: 'Fun to play with your friends.',
     url: 'https://mc0825.github.io/g69/class-633/',
@@ -277,7 +243,6 @@ export const games: Game[] = [
     category: 'Multiplayer'
   },
   {
-    id: 'game-19',
     title: 'Basket Random',
     description: '',
     url: 'https://mc0825.github.io/g26/class-436/',
@@ -285,7 +250,6 @@ export const games: Game[] = [
     category: 'Platformer'
   },
   {
-    id: 'game-20',
     title: 'Smash Karts',
     description: '',
     url: 'https://script.google.com/macros/s/AKfycbyE1C_kxeomVoOLjpaXc2uAI7JdNgVhdQdePTZu9Sizwzj_imhaWnNmPSXm4w1v-SFs/exec',
@@ -293,7 +257,6 @@ export const games: Game[] = [
     category: 'Shooter'
   },
   {
-    id: 'game-21',
     title: 'Leader Strike',
     description: '',
     url: 'https://inkyedu118.github.io/g97/class-542',
@@ -301,7 +264,6 @@ export const games: Game[] = [
     category: 'Shooter'
   },
   {
-    id: 'game-22',
     title: 'Imposter',
     description: '',
     url: 'https://script.google.com/macros/s/AKfycbxcouwzwIrULxhM_6KgC3GOg7xZ7C0A3s4weEUQEtWdwb08Ma3PhJuLZVONJXKJG9DKaA/exec',
@@ -309,7 +271,6 @@ export const games: Game[] = [
     category: 'Party'
   },
   {
-    id: 'game-23',
     title: 'Volley Random',
     description: 'Fun to play with your friends.',
     url: 'https://mc0825.github.io/g/class-811',
@@ -317,7 +278,6 @@ export const games: Game[] = [
     category: 'Fast Paced'
   },
   {
-    id: 'game-24',
     title: 'Among Us',
     description: '',
     url: 'https://script.google.com/macros/s/AKfycbwdYUtgs7kZjgJ5OG0WpNqc84LYICfZo0ezR1WfAYdjwqfkasZmB0Ad4MPFNVBfyKH-/exec',
@@ -325,7 +285,6 @@ export const games: Game[] = [
     category: 'Party'
   },
   {
-    id: 'game-25',
     title: 'Wavelength',
     description: 'Fun to play with your friends.',
     url: 'https://script.google.com/macros/s/AKfycbwq4d8v_dkz0sx64ODo_5y7FMAboBGGRLfoAk-Z_KwcOT1JGC7RO1EWHQh7b4xipEwn/exec',
@@ -333,7 +292,6 @@ export const games: Game[] = [
     category: 'Party'
   },
   {
-    id: 'game-26',
     title: 'Chess',
     description: 'Play chess with a friend online using a room code.',
     url: '/chess.html',
@@ -341,7 +299,6 @@ export const games: Game[] = [
     category: 'Multiplayer'
   },
   {
-    id: 'game-27',
     title: 'Wordle 1v1',
     description: 'Wordle but multiplayer',
     url: 'https://script.google.com/macros/s/AKfycbxgCfdpeZZi6jP7SOZcS3ZtBDRRRNEQX1ENPColTVrm2VHBcNBpKeOs87ddHC0xwr7_-A/exec',
@@ -349,7 +306,6 @@ export const games: Game[] = [
     category: 'Multiplayer'
   },
   {
-    id: 'game-28',
     title: 'Mafia',
     description: 'Game where an informed minority (the Mafia) against an uninformed majority (the Villagers).',
     url: 'https://script.google.com/macros/s/AKfycbxIJpXSuYYb5fem5sk7ihiqcfGBn3n_3AiqHzWyA5ivVxhI2-Zzk5kGmJM3ym5cLYmM/exec',
@@ -357,7 +313,6 @@ export const games: Game[] = [
     category: 'Party'
   },
   {
-    id: 'game-29',
     title: 'Rocket goal',
     description: 'Fun to play with your friends.',
     url: 'https://script.google.com/macros/s/AKfycbybZkVPGyvHUOZbwrJSn5fRQIFcGpoIEhp0r-yq2GWRtE_1G7YzP4t8kPZRfp6tutUN/exec',
@@ -365,7 +320,6 @@ export const games: Game[] = [
     category: 'Puzzle'
   },
   {
-    id: 'game-30',
     title: 'Wrassling',
     description: 'Fun to play with your friends.',
     url: 'https://mc0825.github.io/g69/class-651',
@@ -373,7 +327,6 @@ export const games: Game[] = [
     category: 'Multiplayer'
   },
   {
-    id: 'game-31',
     title: 'Soccer Random',
     description: 'Fun to play with your friends.',
     url: 'https://mc0825.github.io/g26/class-511',
@@ -381,7 +334,6 @@ export const games: Game[] = [
     category: 'Fast Paced'
   },
   {
-    id: 'game-32',
     title: 'Getaway Shootout',
     description: 'Fun to play with your friend.',
     url: 'https://mc0825.github.io/g9/class-479/',
@@ -389,7 +341,6 @@ export const games: Game[] = [
     category: 'Multiplayer'
   },
   {
-    id: 'game-33',
     title: 'Skribbl.io',
     description: 'Fun to play with your friend.',
     url: 'https://skribbl.io/',
@@ -397,15 +348,13 @@ export const games: Game[] = [
     category: 'Multiplayer'
   },
   {
-    id: 'game-34',
     title: 'Uno',
     description: 'Make sure to say Uno',
     url: 'https://script.google.com/macros/s/AKfycbyOGsDEwmKxazJAHOb9fXbJFZM0LwmZJPkmKdLKa1qPY6OWfKIP9GcqbnkRf0JbUWmERQ/exec',
-    thumbnail: 'https://assets.nintendo.com/image/upload/ar_16:9,c_lpad,w_1240/b_white/f_auto/q_auto/store/software/switch/70010000034088/ac97854c142c719f8ae843106d43511db61822eb9bdb78e2c1a98ea0ae3b6c08',
+    thumbnail: 'https://assets.nintendo.com/image/upload/ar_16:9,c_lpad,w_1240/b_white/f_auto/q_auto/store/software/switch/70010000034088/ac97854c142c719f8ae843106d43511db61822eb9bdb78e2c1a98ea0a[...]',
     category: 'Multiplayer'
   },
   {
-    id: 'game-38',
     title: 'Gartic Phone Copy',
     description: '',
     url: 'https://tharaniidaran-t.github.io/gartic-phone.github/',
@@ -413,7 +362,6 @@ export const games: Game[] = [
     category: 'Multiplayer'
   },
   {
-    id: 'game-112',
     title: 'Block Blast',
     description: '',
     url: 'clblockblastv2.html',
@@ -421,7 +369,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-112',
     title: 'yandere Simulator',
     description: 'totally requested by some1...',
     url: 'clyanderesimulator.html',
@@ -429,7 +376,6 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    id: 'game-112',
     title: 'ace att',
     description: '...',
     url: 'aceattorney.html',
