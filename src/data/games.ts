@@ -210,14 +210,14 @@ export const games: Game[] = [
     title: 'Pokemon Platinum',
     description: 'yeah',
     url: '/clpokeplatinum.html',
-    thumbnail: 'https://upload.wikimedia.org/wikipedia/en/c/ca/Pokemon_Platinum.png',
+    thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQt28qRa0-4kRzGsgiZ76XHYAhuNG6jYlt-Ud40owAzpJrXl4dHHRDHcavTsyQYjsBmvXu1Sw&s=10',
     category: 'solo'
   },
   {
     title: 'Pokemon Black 2',
     description: 'yeah',
     url: '/clpokeblack2.html',
-    thumbnail: 'https://www.nintendo.com/eu/media/images/10_share_images/games_15/nintendo_ds_22/SI_NDS_PokemonBlackAndWhite2_Black_enGB_image1600w.jpg',
+    thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuOhDpOLhmmSUkCuI-aDpmhwF7iygOrqUqeg&s',
     category: 'solo'
   },
    {
@@ -351,7 +351,7 @@ export const games: Game[] = [
     title: 'Uno',
     description: 'Make sure to say Uno',
     url: 'https://script.google.com/macros/s/AKfycbyOGsDEwmKxazJAHOb9fXbJFZM0LwmZJPkmKdLKa1qPY6OWfKIP9GcqbnkRf0JbUWmERQ/exec',
-    thumbnail: 'https://assets.nintendo.com/image/upload/ar_16:9,c_lpad,w_1240/b_white/f_auto/q_auto/store/software/switch/70010000034088/ac97854c142c719f8ae843106d43511db61822eb9bdb78e2c1a98ea0a[...]',
+    thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSEhekk0qTgz3FPvdI-7B2BajmVa-AQgjwkQA&s',
     category: 'Multiplayer'
   },
   {
@@ -376,10 +376,10 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    title: 'ace att',
+    title: 'Ace Attorney',
     description: '...',
     url: 'aceattorney.html',
-    thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/UNO_Logo.svg/1280px-UNO_Logo.svg.png',
+    thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_YlHon89nCvWBzs71pzFmcJWQ4O7zmvfo07Zv85mpQddjo0kLlNWmLEIRqMj1o3BSTy0zsWyLEgrjQUt8ssfh-nkPFBxhKcM216lujQ&s=10',
     category: 'Solo'
   }
 ];
