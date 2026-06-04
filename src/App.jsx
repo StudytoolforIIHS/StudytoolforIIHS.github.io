@@ -84,7 +84,7 @@ export default function App() {
     const nextPasscode = passcode + digit;
     setPasscode(nextPasscode);
 
-    if (nextPasscode === '5432') {
+    if (nextPasscode === '0609') {
       setTimeout(() => {
         setIsPasscodeUnlocked(true);
         safeStorage.setItem('classroom-passcode-unlocked', 'true');
