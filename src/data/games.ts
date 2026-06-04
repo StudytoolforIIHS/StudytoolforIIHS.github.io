@@ -17,11 +17,11 @@ export const games: Game[] = [
     category: 'BEST GAME OUT THERE'
   },
   {
-    title: 'The Final Earth 2',
-    description: 'another one with some bug fixes',
-    url: 'the-final-earth-2.html',
-    thumbnail: 'https://i.ytimg.com/vi/9lZ9dCxejp0/hqdefault.jpg',
-    category: 'BEST GAME OUT THERE'
+    title: 'Copilot',
+    description: '',
+    url: 'https://www.copilot.com/',
+    thumbnail: 'https://www.uscloud.com/wp-content/uploads/What-is-Microsoft-Copilot.webp?v=5a',
+    category: 'solo'
   },
   {
     title: 'Shader Pilot',
