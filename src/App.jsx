@@ -1,54 +1,3 @@
-
-Claude finished the response
-
-import { useState, useEffect, useRef } from 'react'; import { games as gamesData } from './data/games'; import { initialArticles, gameOptions, toneOptions, generateMockAIArticle } from './data/articles'; import { School, Search, Play, ExternalLink, RotateCcw, Maximize2,
-
-pasted
-
-
-import { useState, useEffect, useRef } from 'react'; import { games as gamesData } from './data/games'; import { School, Search, Play, ExternalLink, RotateCcw, Maximize2, Minimize2, Plus, Minus, Heart, ShieldAlert, Gamepad2, Users, Layers,
-
-pasted
-
-merge
-
-6:07 PM
-
-Viewed a file, created a file, read a file
-Viewed a file, created a file, read a file
-Here's a summary of every decision made in the merge:
-
-From Doc 2 (newer/site-specific):
-
-Passcode: '0609'
-Default theme: 'none' (monochrome)
-Alt links: your personal GitHub Pages links
-Lock screen subtitle: the "paid Science, Math, ELA..." description
-Card button label: "Open Article" instead of "LAUNCH PROGRAM"
-Sidebar width: md:w-64
-Game grid: xl:grid-cols-3
-data-locked body attribute effect
-"OPEN IN NEW TAB" button in the game viewer (full popup window logic)
-Back button label: "Go back"
-From Doc 1 (feature-rich):
-
-Full articles panel on the lock screen (side-by-side xl:flex-row layout)
-Article imports, state, search, and AI generator with progress bar
-Zoom reset button shows "Res" label
-
-App
-Code · JSX 
-
-
-
-
-
-
-Claude is AI and can make mistakes. Please double-check responses.
-
-
-raw
-App · JSX
 import { useState, useEffect, useRef } from 'react';
 import { games as gamesData } from './data/games';
 import { initialArticles, gameOptions, toneOptions, generateMockAIArticle } from './data/articles';
@@ -83,7 +32,7 @@ import {
   Lock,
   Unlock
 } from 'lucide-react';
- 
+
 // Safe storage helper to prevent SecurityError crash in sandboxed iframes
 const safeStorage = {
   getItem: (key) => {
@@ -101,7 +50,7 @@ const safeStorage = {
     }
   }
 };
- 
+
 export default function App() {
   const [theme, setTheme] = useState(() => {
     const saved = safeStorage.getItem('unblocked-theme');
@@ -123,14 +72,14 @@ export default function App() {
       return [];
     }
   });
- 
+
   const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState(() => {
     return safeStorage.getItem('classroom-passcode-unlocked') === 'true';
   });
   const [passcode, setPasscode] = useState('');
   const [isShake, setIsShake] = useState(false);
   const [errorCount, setErrorCount] = useState(0);
- 
+
   // Articles and Custom AI article generator states
   const [articles, setArticles] = useState(initialArticles);
   const [selectedArticleId, setSelectedArticleId] = useState(initialArticles[0].id);
@@ -139,12 +88,12 @@ export default function App() {
   const [newArticleTone, setNewArticleTone] = useState(toneOptions[0].value);
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
- 
+
   const handleGenerateArticle = () => {
     if (isGeneratingArticle) return;
     setIsGeneratingArticle(true);
     setGenerationProgress(0);
- 
+
     const interval = setInterval(() => {
       setGenerationProgress((prev) => {
         if (prev >= 100) {
@@ -161,12 +110,12 @@ export default function App() {
       });
     }, 45);
   };
- 
+
   const handleDigitInput = (digit) => {
     if (isPasscodeUnlocked || passcode.length >= 4) return;
     const nextPasscode = passcode + digit;
     setPasscode(nextPasscode);
- 
+
     if (nextPasscode === '0609') {
       setTimeout(() => {
         setIsPasscodeUnlocked(true);
@@ -184,7 +133,7 @@ export default function App() {
       }, 200);
     }
   };
- 
+
   useEffect(() => {
     if (isPasscodeUnlocked) return;
     
@@ -201,7 +150,7 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [passcode, isPasscodeUnlocked]);
- 
+
   // Set LocalStorage theme and mode on change
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -209,17 +158,17 @@ export default function App() {
     safeStorage.setItem('unblocked-theme', theme);
     safeStorage.setItem('unblocked-mode', mode);
   }, [theme, mode]);
- 
+
   // Set LocalStorage favorites on change
   useEffect(() => {
     safeStorage.setItem('unblocked-favorites', JSON.stringify(favorites));
   }, [favorites]);
- 
+
   // Hide/show chat widget based on lock state
   useEffect(() => {
     document.body.setAttribute('data-locked', isPasscodeUnlocked ? 'false' : 'true');
   }, [isPasscodeUnlocked]);
- 
+
   // List of Alt links configuration
   const altLinks = [
     { name: 'Alt Link 1', url: 'https://granddia3.github.io' },
@@ -228,7 +177,7 @@ export default function App() {
     { name: 'Alt Link 4', url: 'https://ciassroonn.github.io' },
     { name: 'Alt Link 5', url: 'about:blank' }
   ];
- 
+
   // Handle addition/removal of favorites
   const toggleFavorite = (e, gameId) => {
     e.stopPropagation();
@@ -238,7 +187,7 @@ export default function App() {
       setFavorites([...favorites, gameId]);
     }
   };
- 
+
   // Helper method to draw beautiful game art based on game title / id
   const renderGameArt = (game) => {
     const iconSize = 48;
@@ -426,25 +375,25 @@ export default function App() {
         );
     }
   };
- 
+
   const isSinglePlayerCategory = (cat) => {
     if (!cat) return true;
     const c = cat.toLowerCase().trim();
     return ['solo', 'single', 'platformer', 'skill', 'science', 'driving', 'horror', 'creative', 'ai'].some(kw => c.includes(kw));
   };
- 
+
   const isMultiplayerCategory = (cat) => {
     if (!cat) return false;
     const c = cat.toLowerCase().trim();
     return ['social', 'sport', 'multiplayer', 'fast', 'party', 'puzzle', 'shooter'].some(kw => c.includes(kw)) || c.includes('or');
   };
- 
+
   // Filter games based on category sidebar, matching search query
   const filteredGames = gamesData.filter(game => {
     if (filter === 'single' && !isSinglePlayerCategory(game.category)) return false;
     if (filter === 'multiplayer' && !isMultiplayerCategory(game.category)) return false;
     if (filter === 'favorites' && !favorites.includes(game.id)) return false;
- 
+
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
       const matchTitle = (game.title || '').toLowerCase().includes(q);
@@ -452,12 +401,12 @@ export default function App() {
       const matchCat = (game.category || '').toLowerCase().includes(q);
       return matchTitle || matchDesc || matchCat;
     }
- 
+
     return true;
   });
- 
- 
- 
+
+
+
   if (!isPasscodeUnlocked) {
     const filteredArticles = articles.filter(art => {
       const q = articleSearch.toLowerCase().trim();
@@ -466,9 +415,9 @@ export default function App() {
              art.content.toLowerCase().includes(q) || 
              art.category.toLowerCase().includes(q);
     });
- 
+
     const selectedArticle = articles.find(art => art.id === selectedArticleId) || articles[0];
- 
+
     const renderFormattedText = (text) => {
       return text.split('\n').map((line, idx) => {
         const trimmed = line.trim();
@@ -506,7 +455,7 @@ export default function App() {
         );
       });
     };
- 
+
     return (
       <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-primary)] flex flex-col xl:flex-row items-center xl:items-center justify-center p-4 md:p-8 xl:p-12 gap-8 md:gap-10 transition-colors duration-350 relative select-none">
         
@@ -529,7 +478,7 @@ export default function App() {
               </div>
             </div>
           </div>
- 
+
           {/* Theme custom capsule */}
           <div className="border border-[var(--card-border)] bg-[var(--bg-secondary)] px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
             <div className="flex items-center gap-1.5">
@@ -551,9 +500,9 @@ export default function App() {
               ))}
             </div>
           </div>
- 
+
         </div>
- 
+
         {/* Lock Card Content Container */}
         <div className={`w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 md:p-8 shadow-2xl transition-all duration-300 flex flex-col items-center gap-6 flex-shrink-0 ${isShake ? 'animate-shake' : ''}`}>
           
@@ -561,7 +510,7 @@ export default function App() {
             <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Portal Secured</h2>
             <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">This is a paid Science, Math, ELA, and Social Studies article website. Please enter a correct password to continue to the website.</p>
           </div>
- 
+
           {/* Indicators for passcode digits */}
           <div className="flex justify-center gap-4 py-2">
             {[0, 1, 2, 3].map((index) => {
@@ -578,7 +527,7 @@ export default function App() {
               );
             })}
           </div>
- 
+
           {/* Secure Pad Grid */}
           <div className="grid grid-cols-3 gap-3.5 w-full max-w-[245px] mt-2">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
@@ -609,15 +558,15 @@ export default function App() {
               Del
             </button>
           </div>
- 
+
           {errorCount > 0 && (
             <span className="text-[10.5px] text-red-500 font-medium font-mono animate-bounce mt-1">
               Access Denied! Attempt #{errorCount}
             </span>
           )}
- 
+
         </div>
- 
+
         {/* ==================== ARTICLES SECTION ==================== */}
         <div className="w-full max-w-4xl bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-5 md:p-6 shadow-2xl transition-all duration-300 flex flex-col gap-4 select-text max-h-[90vh] md:max-h-[640px] overflow-hidden">
           
@@ -634,7 +583,7 @@ export default function App() {
               <span>AI-Generated Archive</span>
             </div>
           </div>
- 
+
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 h-full overflow-hidden">
             {/* Left lists & creator pane (cols 2) */}
             <div className="md:col-span-2 flex flex-col gap-3 overflow-y-auto pr-1">
@@ -650,7 +599,7 @@ export default function App() {
                 />
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--text-muted)]" />
               </div>
- 
+
               {/* Feed items */}
               <div className="flex flex-col gap-2 max-h-[220px] md:max-h-none overflow-y-auto py-0.5">
                 {filteredArticles.length === 0 ? (
@@ -689,7 +638,7 @@ export default function App() {
                   })
                 )}
               </div>
- 
+
               {/* Creator board container */}
               <div className="bg-[var(--bg-secondary)] border border-[var(--card-border)] rounded-2xl p-3 mt-auto flex flex-col gap-2">
                 <div className="flex items-center gap-1.5">
@@ -723,7 +672,7 @@ export default function App() {
                     </select>
                   </div>
                 </div>
- 
+
                 <button
                   type="button"
                   onClick={handleGenerateArticle}
@@ -743,9 +692,9 @@ export default function App() {
                   )}
                 </button>
               </div>
- 
+
             </div>
- 
+
             {/* Right expanded active details reader card (cols 3) */}
             <div className="md:col-span-3 flex flex-col bg-[var(--bg-secondary)] border border-[var(--card-border)] rounded-2xl overflow-hidden h-[300px] md:h-auto">
               {selectedArticle ? (
@@ -767,7 +716,7 @@ export default function App() {
                       {selectedArticle.subtitle} • {selectedArticle.date}
                     </p>
                   </div>
- 
+
                   {/* Article body */}
                   <div className="p-4 overflow-y-auto text-left flex-grow max-h-[180px] md:max-h-none scrollbar-thin">
                     {renderFormattedText(selectedArticle.content)}
@@ -779,15 +728,15 @@ export default function App() {
                 </div>
               )}
             </div>
- 
+
           </div>
- 
+
         </div>
- 
+
       </div>
     );
   }
- 
+
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       {/* HEADER */}
@@ -808,7 +757,7 @@ export default function App() {
             </div>
           </div>
         </div>
- 
+
         {/* Middle Search Bar */}
         <div className="relative w-full max-w-sm sm:mx-4">
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-muted)]">
@@ -822,7 +771,7 @@ export default function App() {
             className="w-full text-sm rounded-full py-2.5 pl-9 pr-4 border border-[var(--card-border)] bg-[var(--input-fill)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] placeholder:opacity-50 transition-all duration-300 shadow-inner"
           />
         </div>
- 
+
         {/* Right Side Controls */}
         <div className="flex items-center gap-3 md:gap-4 self-stretch sm:self-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
           
@@ -830,7 +779,7 @@ export default function App() {
             <span className="text-xs opacity-50 block sm:inline mr-1">made by</span>
             <span className="font-bold text-[var(--accent-color)] tracking-wider">™ AND GRANDDIA2</span>
           </div>
- 
+
           {/* Light/Dark slider */}
           <div className="flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] py-1 md:py-1.5 px-2.5 rounded-full shadow-sm">
             <div 
@@ -847,7 +796,7 @@ export default function App() {
               </div>
             </div>
           </div>
- 
+
           {/* Theme capsule */}
           <div className="border border-[var(--card-border)] bg-[var(--bg-secondary)] px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
             <div className="flex items-center gap-1.5">
@@ -870,9 +819,9 @@ export default function App() {
             </div>
           </div>
         </div>
- 
+
       </nav>
- 
+
       {/* ALT LINKS BAR */}
       <section className="bg-[var(--bg-secondary)] border-b border-[var(--card-border)] py-3 px-4 md:px-6 transition-colors duration-300">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center gap-3">
@@ -894,7 +843,7 @@ export default function App() {
           </div>
         </div>
       </section>
- 
+
       {/* MAIN CONTAINER: SIDEBAR + GAMES */}
       <div className="flex-1 flex flex-col md:flex-row max-w-8xl w-full mx-auto p-4 md:p-6 gap-6 self-center">
         
@@ -921,7 +870,7 @@ export default function App() {
               {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4 animate-bounce" />}
             </button>
           </div>
- 
+
           <button
             onClick={() => { setFilter('all'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
@@ -933,7 +882,7 @@ export default function App() {
             <Layers className="w-4.5 h-4.5 shrink-0" />
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>All Classrooms</span>
           </button>
- 
+
           <button
             onClick={() => { setFilter('single'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
@@ -945,7 +894,7 @@ export default function App() {
             <Gamepad2 className="w-4.5 h-4.5 shrink-0" />
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Single Player</span>
           </button>
- 
+
           <button
             onClick={() => { setFilter('multiplayer'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
@@ -957,9 +906,9 @@ export default function App() {
             <Users className="w-4.5 h-4.5 shrink-0" />
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
           </button>
- 
+
         </aside>
- 
+
         {/* MAIN BODY DISPLAY */}
         <main className="flex-1 min-w-0">
           
@@ -980,7 +929,7 @@ export default function App() {
                   </p>
                 </div>
               </div>
- 
+
               {filteredGames.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 border border-dashed border-[var(--card-border)] rounded-2xl bg-[var(--bg-secondary)]">
                   <Gamepad2 className="w-16 h-16 text-[var(--text-muted)] stroke-1 opacity-40 animate-pulse" />
@@ -1010,11 +959,11 @@ export default function App() {
                           ) : (
                             renderGameArt(game)
                           )}
- 
+
                           <span className="absolute top-2.5 right-2.5 text-[8px] font-bold uppercase tracking-widest bg-black/75 backdrop-blur-sm text-white border border-white/10 px-2.5 py-0.5 rounded-full inline-block z-10">
                             {game.category}
                           </span>
- 
+
                           <button
                             onClick={(e) => toggleFavorite(e, game.id)}
                             className="absolute top-2.5 left-2.5 p-1.5 rounded-full bg-black/40 hover:bg-black/80 text-white/90 border border-white/10 hover:text-rose-500 hover:scale-110 active:scale-95 transition-all duration-200"
@@ -1023,7 +972,7 @@ export default function App() {
                             <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
                           </button>
                         </div>
- 
+
                         {/* Title and descriptions */}
                         <div className="p-4 flex-1 flex flex-col justify-between">
                           <div className="space-y-1.5">
@@ -1034,7 +983,7 @@ export default function App() {
                               {game.description}
                             </p>
                           </div>
- 
+
                           <button
                             onClick={() => { setSelectedGame(game); setZoom(1); }}
                             className="w-full mt-3 border border-[var(--accent-color)] hover:bg-[var(--accent-color)] hover:text-black hover:font-bold hover:shadow-[0_0_12px_calc(var(--accent-color))] text-[11px] font-semibold tracking-wider text-[var(--accent-color)] py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 self-end"
@@ -1048,7 +997,7 @@ export default function App() {
                   })}
                 </div>
               )}
- 
+
             </div>
           ) : (
             /* ACTIVE GAME SCREEN */
@@ -1064,7 +1013,7 @@ export default function App() {
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Go back</span>
                 </button>
- 
+
                 <div className="flex items-center gap-2.5">
                   <span className="font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
                     {selectedGame.title}
@@ -1073,7 +1022,7 @@ export default function App() {
                     </span>
                   </span>
                 </div>
- 
+
                 <div className="flex items-center gap-2 flex-wrap">
                   
                   {/* Zoom controls */}
@@ -1103,7 +1052,7 @@ export default function App() {
                       Res
                     </button>
                   </div>
- 
+
                   {/* Reload button */}
                   <button
                     onClick={() => {
@@ -1115,7 +1064,7 @@ export default function App() {
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                   </button>
- 
+
                   {/* Fullscreen button */}
                   <button
                     onClick={() => {
@@ -1134,7 +1083,7 @@ export default function App() {
                     <Maximize2 className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline text-[10px] font-bold">FULLSCREEN</span>
                   </button>
- 
+
                   {/* Open in New Tab button */}
                   <button
                     onClick={() => {
@@ -1168,11 +1117,11 @@ export default function App() {
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline text-[10px] font-bold">OPEN IN NEW TAB</span>
                   </button>
- 
+
                 </div>
- 
+
               </div>
- 
+
               {/* Game Viewport Container */}
               <div 
                 id="frame-viewport"
@@ -1197,14 +1146,13 @@ export default function App() {
                   />
                 </div>
               </div>
- 
+
             </div>
           )}
- 
+
         </main>
       </div>
- 
+
     </div>
   );
 }
- 
