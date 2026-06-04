@@ -74,9 +74,21 @@ export default function App() {
     }
   });
 
-  const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState(() => {
-    return safeStorage.getItem('classroom-passcode-unlocked') === 'true';
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = safeStorage.getItem('classroom-view-mode');
+    if (saved && ['locked', 'articles', 'games'].includes(saved)) return saved;
+    const legacy = safeStorage.getItem('classroom-passcode-unlocked');
+    return legacy === 'true' ? 'games' : 'locked';
   });
+
+  const isPasscodeUnlocked = viewMode === 'games';
+
+  const setViewModeAndSave = (mode) => {
+    setViewMode(mode);
+    safeStorage.setItem('classroom-view-mode', mode);
+    safeStorage.setItem('classroom-passcode-unlocked', mode === 'games' ? 'true' : 'false');
+  };
+
   const [passcode, setPasscode] = useState('');
   const [isShake, setIsShake] = useState(false);
   const [errorCount, setErrorCount] = useState(0);
@@ -113,14 +125,18 @@ export default function App() {
   };
 
   const handleDigitInput = (digit) => {
-    if (isPasscodeUnlocked || passcode.length >= 4) return;
+    if (viewMode === 'games' || passcode.length >= 4) return;
     const nextPasscode = passcode + digit;
     setPasscode(nextPasscode);
 
     if (nextPasscode === '0609') {
       setTimeout(() => {
-        setIsPasscodeUnlocked(true);
-        safeStorage.setItem('classroom-passcode-unlocked', 'true');
+        setViewModeAndSave('games');
+        setPasscode('');
+      }, 150);
+    } else if (nextPasscode === '1212' || nextPasscode === '2026' || nextPasscode === '1111') {
+      setTimeout(() => {
+        setViewModeAndSave('articles');
         setPasscode('');
       }, 150);
     } else if (nextPasscode.length === 4) {
@@ -136,7 +152,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (isPasscodeUnlocked) return;
+    if (viewMode !== 'locked') return;
     
     const handleKeyDown = (e) => {
       if (e.key >= '0' && e.key <= '9') {
@@ -150,7 +166,20 @@ export default function App() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [passcode, isPasscodeUnlocked]);
+  }, [passcode, viewMode]);
+
+  // Global Panic Key Handler
+  useEffect(() => {
+    const handlePanic = (e) => {
+      if (e.key === '[' || e.key === ']') {
+        e.preventDefault();
+        setViewModeAndSave('articles');
+        setSelectedGame(null); // Instantly close active game to clear screen
+      }
+    };
+    window.addEventListener('keydown', handlePanic);
+    return () => window.removeEventListener('keydown', handlePanic);
+  }, []);
 
   // Set LocalStorage theme and mode on change
   useEffect(() => {
@@ -457,6 +486,143 @@ export default function App() {
       });
     };
 
+    if (viewMode === 'articles') {
+      return (
+        <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-primary)] flex flex-col p-4 md:p-6 transition-colors duration-300 relative select-text">
+          
+          {/* Decoy Legitimate Educational Header */}
+          <header className="w-full max-w-7xl mx-auto flex justify-between items-center pb-4 mb-4 border-b border-[var(--card-border)] gap-4 select-none">
+            <div 
+              onClick={() => setViewModeAndSave('locked')}
+              className="flex items-center gap-3 cursor-pointer active:scale-98 transition-transform"
+              title="Return to secure screen"
+            >
+              <div className="p-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-xl shadow-[0_2px_8.5px_var(--accent-shadow)] border border-[var(--card-border)]">
+                <BookOpen className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
+                  Classroom <span className="text-[10px] font-mono border border-[var(--accent-color)] bg-[var(--accent-color)]/10 text-[var(--accent-color)] px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Academic Base</span>
+                </h1>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Light/Dark Toggle */}
+              <div className="flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] py-1.5 px-2.5 rounded-full shadow-sm">
+                <div 
+                  onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+                  className="relative w-[50px] h-6 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 transition-all duration-300"
+                >
+                  <div 
+                    className={`w-5 h-5 rounded-full bg-[var(--accent-color)] transition-all flex items-center justify-center text-[10px] transform ${
+                      mode === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  >
+                    {mode === 'dark' ? '🌙' : '☀️'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Actual Articles Hub Grid (Occupies full-screen width) */}
+          <div className="w-full max-w-7xl mx-auto bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-5 md:p-6 shadow-2xl transition-all flex flex-col gap-4 flex-1 md:h-[650px] overflow-hidden">
+            
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-1 min-h-0 overflow-hidden">
+              {/* Left Column - Articles selection */}
+              <div className="md:col-span-2 flex flex-col gap-3 overflow-hidden h-full">
+                
+                <div className="relative flex-shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Search curriculum papers..."
+                    value={articleSearch}
+                    onChange={(e) => setArticleSearch(e.target.value)}
+                    className="w-full text-xs rounded-xl py-1.5 pl-8 pr-3 border border-[var(--card-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] placeholder:opacity-50 transition-all font-mono"
+                  />
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--text-muted)]" />
+                </div>
+
+                {/* Feed list */}
+                <div className="flex-1 flex flex-col gap-2 overflow-y-auto py-0.5 scrollbar-thin">
+                  {filteredArticles.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-[var(--text-muted)] font-mono select-none">
+                      No matching resource files available
+                    </div>
+                  ) : (
+                    filteredArticles.map((art) => {
+                      const isSelected = art.id === selectedArticleId;
+                      return (
+                        <div
+                          key={art.id}
+                          onClick={() => setSelectedArticleId(art.id)}
+                          className={`p-2 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                            isSelected
+                              ? 'bg-[var(--accent-color)]/10 border-[var(--accent-color)] shadow-sm scale-[1.01]'
+                              : 'bg-[var(--bg-secondary)] border-[var(--card-border)] hover:border-[var(--text-muted)]/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-0.5 flex-wrap">
+                            <span className="text-[8px] font-bold font-mono tracking-wider px-1.5 py-0.5 rounded bg-[var(--input-fill)] text-[var(--accent-color)] uppercase">
+                              {art.category}
+                            </span>
+                            <span className="text-[8px] text-[var(--text-muted)] font-mono">
+                              {art.readTime}
+                            </span>
+                          </div>
+                          <h4 className="text-[11px] font-bold leading-snug text-[var(--text-primary)] line-clamp-1">
+                            {art.title}
+                          </h4>
+                          <p className="text-[9px] text-[var(--text-muted)] mt-0.5 font-mono">
+                            {art.date}
+                          </p>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+              </div>
+
+              {/* Right Column - Deep Active Article view */}
+              <div className="md:col-span-3 flex flex-col bg-[var(--bg-secondary)] border border-[var(--card-border)] rounded-2xl overflow-hidden h-full">
+                {selectedArticle ? (
+                  <div className="flex flex-col h-full overflow-hidden">
+                    <div className="p-4 border-b border-[var(--card-border)] bg-[var(--card-bg)] flex-shrink-0">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--accent-color)] uppercase tracking-wider border border-[var(--card-border)]">
+                          {selectedArticle.category}
+                        </span>
+                        <span className="text-[9px] text-[var(--text-muted)] font-mono bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded border border-[var(--card-border)]">
+                          {selectedArticle.readTime}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-extrabold text-[var(--text-primary)] leading-snug">
+                        {selectedArticle.title}
+                      </h3>
+                      <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono">
+                        {selectedArticle.subtitle} • {selectedArticle.date}
+                      </p>
+                    </div>
+
+                    <div className="p-4 overflow-y-auto text-left flex-1 min-h-0 scrollbar-thin">
+                      {renderFormattedText(selectedArticle.content)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-xs text-[var(--text-muted)] font-mono">
+                    Select a core paper assignment to read content
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-primary)] flex flex-col xl:flex-row items-center xl:items-center justify-center p-4 md:p-8 xl:p-12 gap-8 md:gap-10 transition-colors duration-350 relative select-none">
         
@@ -760,9 +926,8 @@ export default function App() {
           {/* Sign Out Button right after Classroom */}
           <button
             onClick={() => {
-              setIsPasscodeUnlocked(false);
+              setViewModeAndSave('locked');
               setPasscode('');
-              safeStorage.setItem('classroom-passcode-unlocked', 'false');
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold bg-[var(--bg-secondary)] border border-[var(--card-border)] hover:border-red-500/50 hover:bg-red-500/10 text-[var(--text-primary)] hover:text-red-500 transition-all duration-200 cursor-pointer shadow-sm group"
             title="Sign Out to Lock Screen"
@@ -1130,6 +1295,19 @@ export default function App() {
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline text-[10px] font-bold">OPEN IN NEW TAB</span>
+                  </button>
+
+                  {/* Panic Key / Escape to Academic Articles */}
+                  <button
+                    onClick={() => {
+                      setViewModeAndSave('articles');
+                      setSelectedGame(null);
+                    }}
+                    className="flex items-center gap-1.5 border border-red-500/30 hover:border-red-500 hover:bg-red-500/10 py-1.5 px-3 rounded-lg text-xs font-mono text-red-500 font-medium transition-all cursor-pointer whitespace-nowrap"
+                    title="Panic escape key (or press [ or ] at any time)"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+                    <span className="hidden sm:inline text-[10px] font-bold">PANIC ESCAPE ([ or ])</span>
                   </button>
 
                 </div>
