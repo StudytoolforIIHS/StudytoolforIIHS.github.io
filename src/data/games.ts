@@ -422,9 +422,9 @@ export const games: Game[] = [
   },
   {
     id: 'game-112',
-    title: 'ai',
+    title: 'ace att',
     description: '...',
-    url: 'clai.html',
+    url: 'aceattorney.html',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/UNO_Logo.svg/1280px-UNO_Logo.svg.png',
     category: 'Solo'
   }
