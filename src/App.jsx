@@ -936,6 +936,9 @@ export default function App() {
                     allowFullScreen
                     referrerPolicy="no-referrer"
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  useEffect(() => {
+  document.body.setAttribute('data-locked', isPasscodeUnlocked ? 'false' : 'true');
+}, [isPasscodeUnlocked]);
                   />
                 </div>
 
