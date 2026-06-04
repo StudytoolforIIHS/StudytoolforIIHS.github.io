@@ -6,3 +6,16 @@ export interface Game {
   thumbnail: string;
   category: string;
 }
+
+export interface Article {
+  id: string;
+  title: string;
+  subtitle: string;
+  content: string;
+  date: string;
+  category: string;
+  readTime: string;
+  gameId?: string;
+  isCustomGenerated?: boolean;
+}
+
