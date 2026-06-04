@@ -17,13 +17,6 @@ export const games: Game[] = [
     category: 'BEST GAME OUT THERE'
   },
   {
-    title: 'Copilot',
-    description: '',
-    url: 'youtube.com',
-    thumbnail: 'https://www.uscloud.com/wp-content/uploads/What-is-Microsoft-Copilot.webp?v=5a',
-    category: 'solo'
-  },
-  {
     title: 'Shader Pilot',
     description: 'Game that TTM made and It looks good Ig and cool ig. ',
     url: 'https://tharaniidaran-t.github.io/shader-piolet/',
