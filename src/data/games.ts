@@ -19,7 +19,7 @@ export const games: Game[] = [
   {
     title: 'Copilot',
     description: '',
-    url: 'https://www.copilot.com/',
+    url: 'youtube.com',
     thumbnail: 'https://www.uscloud.com/wp-content/uploads/What-is-Microsoft-Copilot.webp?v=5a',
     category: 'solo'
   },
