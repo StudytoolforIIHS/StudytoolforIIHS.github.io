@@ -227,6 +227,13 @@ export const games: Game[] = [
     thumbnail: 'https://i.ytimg.com/vi/H96rM_liOHo/maxresdefault.jpg',
     category: 'solo'
   },
+  {
+    title: 'Crazy Cattle 3D',
+    description: 'yeah',
+    url: '/clcrazycattle3d.html',
+    thumbnail: 'https://crazycattle3d.github.io/index.png',
+    category: 'solo'
+  },
   // ── MULTIPLAYER ──
   {
     title: 'Animals Volleyball',
