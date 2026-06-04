@@ -230,7 +230,7 @@ export const games: Game[] = [
   {
     title: 'Crazy Cattle 3D',
     description: 'yeah',
-    url: '/clcrazycattle3d.html',
+    url: 'https://crazycattle3d.github.io',
     thumbnail: 'https://crazycattle3d.github.io/index.png',
     category: 'solo'
   },
