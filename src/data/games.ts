@@ -413,7 +413,7 @@ export const games: Game[] = [
   {
     title: 'Hangman',
     description: '...',
-    url: '',
+    url: 'https://script.google.com/macros/s/AKfycbwZ5rAmhbYeKMGab21sLjLKVpxYtSFEYesWc5v0R2Ya1zjsXMO6_9OzZGGqkFISiRZf/exec',
     thumbnail: 'https://t4.ftcdn.net/jpg/14/80/76/33/360_F_1480763300_sQsVKV59fW7BEKo60WOVVPqlFDen30WS.jpg',
     category: 'Multiplayer'
   }
