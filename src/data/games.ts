@@ -409,5 +409,12 @@ export const games: Game[] = [
     url: 'https://script.google.com/macros/s/AKfycbyUrnTBOG7GX18cuwZyso8g60AeCiUJ0z0jaMFtbj1ef8NnxhjMKGSUyANQnEHIhEYj9Q/exec',
     thumbnail: 'https://m.media-amazon.com/images/I/61mPeDyQewL._AC_UF894,1000_QL80_.jpg',
     category: 'Multiplayer'
+  },
+  {
+    title: 'Hangman',
+    description: '...',
+    url: '',
+    thumbnail: 'https://t4.ftcdn.net/jpg/14/80/76/33/360_F_1480763300_sQsVKV59fW7BEKo60WOVVPqlFDen30WS.jpg',
+    category: 'Multiplayer'
   }
 ];
