@@ -601,41 +601,287 @@ export default function App() {
     const selectedArticle = filteredArticles.find(art => art.id === selectedArticleId) || filteredArticles[0] || articles[0];
 
     const renderFormattedText = (text) => {
-      return text.split('\n').map((line, idx) => {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('###')) {
-          const headerText = trimmed.replace(/^###\s*/, '');
+      if (!text) return null;
+      
+      const lines = text.split('\n');
+      const elements = [];
+      let i = 0;
+      
+      // Inline formatting helper
+      const parseInlineFormatting = (str) => {
+        if (!str) return '';
+        let cleaned = str
+          // Chemical formulas subscripts
+          .replace(/CO_2/g, 'CO₂')
+          .replace(/H_2O/g, 'H₂O')
+          .replace(/\\\text\{([^}]+)\}/g, '$1') // '\text{CO}' -> 'CO'
+          .replace(/(\s*)\^(\w+)/g, '<sup>$2</sup>') // superscript like ^+ or ^-
+          .replace(/(\s*)\_(\w+)/g, '<sub>$2</sub>') // subscript like _2
+          .replace(/\\longrightarrow/g, ' ⟶ ')
+          .replace(/\\rightarrow/g, ' → ')
+          .replace(/\$\+\/\+\$/g, '➕/➕ (Mutualism)')
+          .replace(/\$\+\/0\$/g, '➕/🫙 (Commensalism)')
+          .replace(/\$\+\/\-\$/g, '➕/➖ (Parasitism)')
+          .replace(/\$/g, ''); // strip any raw dollar signs
+          
+        // Let's parse bold **bold** and italic *italic* using react elements
+        const parts = [];
+        let index = 0;
+        const regex = /(\*\*|__)(.*?)\1|(\*|_)(.*?)\3/g;
+        let match;
+        
+        while ((match = regex.exec(cleaned)) !== null) {
+          if (match.index > index) {
+            parts.push(cleaned.substring(index, match.index));
+          }
+          if (match[1]) {
+            parts.push(<strong key={match.index} className="font-extrabold text-[var(--accent-color)]">{match[2]}</strong>);
+          } else if (match[3]) {
+            parts.push(<em key={match.index} className="italic text-[var(--text-primary)]">{match[4]}</em>);
+          }
+          index = regex.lastIndex;
+        }
+        
+        if (index < cleaned.length) {
+          parts.push(cleaned.substring(index));
+        }
+        
+        return parts.length > 0 ? parts : cleaned;
+      };
+
+      const formatEquationToHtml = (eq) => {
+        let formatted = eq.trim();
+        
+        if (formatted.includes('Atom')) {
           return (
-            <h4 key={idx} className="text-xs font-bold text-[var(--text-primary)] mt-3 mb-1.5">
-              {headerText}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 md:gap-2.5 text-xs text-[var(--text-primary)] font-mono tracking-tight py-2 w-full">
+              <span className="font-semibold px-2 py-1 bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] hover:border-[var(--accent-color)] transition-colors">Atom</span> 
+              <span className="text-[var(--accent-color)] text-sm">⟶</span>
+              <span className="font-semibold px-2 py-1 bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] hover:border-[var(--accent-color)] transition-colors">Molecule</span> 
+              <span className="text-[var(--accent-color)] text-sm">⟶</span>
+              <span className="font-semibold px-2 py-1 bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] hover:border-[var(--accent-color)] transition-colors">Organelle</span> 
+              <span className="text-[var(--accent-color)] text-sm">⟶</span>
+              <span className="font-semibold px-2 py-1 bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] hover:border-[var(--accent-color)] transition-colors">Cell</span> 
+              <span className="text-[var(--accent-color)] text-sm">⟶</span>
+              <span className="font-semibold px-2 py-1 bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] hover:border-[var(--accent-color)] transition-colors">Tissue</span> 
+              <span className="text-[var(--accent-color)] text-sm">⟶</span>
+              <span className="font-semibold px-2 py-1 bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] hover:border-[var(--accent-color)] transition-colors">Organ</span> 
+              <span className="text-[var(--accent-color)] text-sm">⟶</span>
+              <span className="font-semibold px-2 py-1 bg-[var(--card-bg)] rounded-lg border border-[var(--card-border)] hover:border-[var(--accent-color)] transition-colors">Organ System</span> 
+              <span className="text-[var(--accent-color)] text-sm">⟶</span>
+              <span className="font-extrabold text-[var(--accent-color)] bg-[var(--accent-color)]/15 px-3 py-1 rounded-xl border border-[var(--accent-color)] shadow-sm animate-pulse">Organism</span>
+            </div>
+          );
+        }
+        
+        if (formatted.includes('Photosynthesis') || (formatted.includes('6CO') && formatted.includes('Solar'))) {
+          return (
+            <div className="text-center font-bold text-xs flex flex-wrap items-center justify-center gap-1.5 leading-relaxed py-2 select-text w-full">
+              <span className="text-[var(--text-primary)] font-semibold">Carbon Dioxide</span>
+              <span className="text-[var(--text-muted)] font-mono text-[10px] bg-black/10 px-1 rounded">(6CO₂)</span>
+              <span className="text-[var(--accent-color)] mx-0.5 font-mono">+</span>
+              <span className="text-[var(--text-primary)] font-semibold">Water</span>
+              <span className="text-[var(--text-muted)] font-mono text-[10px] bg-black/10 px-1 rounded">(6H₂O)</span>
+              <span className="text-[var(--accent-color)] mx-0.5 font-mono">+</span>
+              <span className="text-yellow-500 font-semibold flex items-center gap-0.5 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20 text-[10px]"><span className="animate-pulse">☀️</span> Solar Light</span>
+              <span className="text-[var(--accent-color)] text-sm mx-1">⟶</span>
+              <span className="text-[var(--text-primary)] font-semibold">Glucose</span>
+              <span className="text-[var(--text-muted)] font-mono text-[10px] bg-black/10 px-1 rounded">(C₆H₁₂O₆)</span>
+              <span className="text-[var(--accent-color)] mx-0.5 font-mono">+</span>
+              <span className="text-[var(--text-primary)] font-semibold">Oxygen</span>
+              <span className="text-[var(--text-muted)] font-mono text-[10px] bg-black/10 px-1 rounded">(6O₂)</span>
+            </div>
+          );
+        }
+        
+        if (formatted.includes('Respiration') || formatted.includes('ATP') || (formatted.includes('6CO') && formatted.includes('Oxygen'))) {
+          return (
+            <div className="text-center font-bold text-xs flex flex-wrap items-center justify-center gap-1.5 leading-relaxed py-2 select-text w-full">
+              <span className="text-[var(--text-primary)] font-semibold">Glucose</span>
+              <span className="text-[var(--text-muted)] font-mono text-[10px] bg-black/10 px-1 rounded">(C₆H₁₂O₆)</span>
+              <span className="text-[var(--accent-color)] mx-0.5 font-mono">+</span>
+              <span className="text-[var(--text-primary)] font-semibold">Oxygen</span>
+              <span className="text-[var(--text-muted)] font-mono text-[10px] bg-black/10 px-1 rounded">(6O₂)</span>
+              <span className="text-[var(--accent-color)] text-sm mx-1">⟶</span>
+              <span className="text-[var(--text-primary)] font-semibold">Carbon Dioxide</span>
+              <span className="text-[var(--text-muted)] font-mono text-[10px] bg-black/10 px-1 rounded">(6CO₂)</span>
+              <span className="text-[var(--accent-color)] mx-0.5 font-mono">+</span>
+              <span className="text-[var(--text-primary)] font-semibold">Water</span>
+              <span className="text-[var(--text-muted)] font-mono text-[10px] bg-black/10 px-1 rounded">(6H₂O)</span>
+              <span className="text-[var(--accent-color)] mx-0.5 font-mono">+</span>
+              <span className="text-emerald-500 font-bold flex items-center gap-0.5 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 text-[10px] animate-pulse">⚡ ATP Energy</span>
+            </div>
+          );
+        }
+
+        return <span>{formatted}</span>;
+      };
+
+      while (i < lines.length) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        
+        // 1. Equations (Centered math block)
+        if (trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
+          const content = trimmed.substring(2, trimmed.length - 2);
+          elements.push(
+            <div key={i} className="bg-[var(--bg-primary)] border border-[var(--accent-color)]/20 p-4 rounded-xl text-center my-4 shadow-sm text-[var(--accent-color)] flex items-center justify-center overflow-x-auto select-all">
+              {formatEquationToHtml(content)}
+            </div>
+          );
+          i++;
+          continue;
+        }
+        
+        // 2. Custom block code (e.g., Birthday card layout block)
+        if (trimmed.startsWith('```') || trimmed.startsWith('`\\`\\`')) {
+          let codeBlockLines = [];
+          i++; // skip initial tag
+          while (i < lines.length && !lines[i].trim().startsWith('```') && !lines[i].trim().startsWith('`\\`\\`')) {
+            codeBlockLines.push(lines[i]);
+            i++;
+          }
+          elements.push(
+            <pre key={i} className="bg-black/40 border border-[var(--card-border)] p-4.5 rounded-xl text-[10.5px] font-mono text-[var(--text-primary)] whitespace-pre-wrap leading-normal shadow-inner my-3 select-all">
+              {codeBlockLines.join('\n')}
+            </pre>
+          );
+          i++; // skip final tag
+          continue;
+        }
+
+        // 3. Simple blockquotes / horizontal separators
+        if (trimmed.startsWith('---')) {
+          elements.push(<hr key={i} className="border-t border-[var(--card-border)] my-5" />);
+          i++;
+          continue;
+        }
+
+        // 4. Tables parsing
+        if (trimmed.startsWith('|')) {
+          const headerRow = trimmed;
+          let tableLines = [headerRow];
+          i++;
+          
+          // Gather consecutive table rows
+          while (i < lines.length && lines[i].trim().startsWith('|')) {
+            tableLines.push(lines[i]);
+            i++;
+          }
+          
+          // Process Table Rows
+          const filteredRows = tableLines.filter(r => !r.includes('| :---') && !r.includes('|---|') && !r.includes('| :--- |'));
+          
+          const parseColumns = (rowText) => {
+            return rowText.split('|').slice(1, -1).map(col => col.trim());
+          };
+
+          if (filteredRows.length > 0) {
+            const headers = parseColumns(filteredRows[0]);
+            const bodyRows = filteredRows.slice(1).map(r => parseColumns(r));
+            
+            elements.push(
+              <div key={i} className="my-4.5 overflow-x-auto rounded-xl border border-[var(--card-border)] bg-[var(--bg-primary)]/40 shadow-sm">
+                <table className="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr className="bg-[var(--bg-secondary)] border-b border-[var(--card-border)]">
+                      {headers.map((h, hIdx) => (
+                        <th key={hIdx} className="p-3.5 font-bold text-[var(--text-primary)] font-mono uppercase tracking-wider text-[9px] border-r border-[var(--card-border)] last:border-r-0">
+                          {parseInlineFormatting(h)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bodyRows.map((row, rIdx) => (
+                      <tr key={rIdx} className="border-b last:border-b-0 border-[var(--card-border)] hover:bg-[var(--accent-color)]/5 transition-colors duration-150 odd:bg-black/[0.02] even:bg-transparent">
+                        {row.map((cell, cIdx) => (
+                          <td key={cIdx} className="p-3 text-[var(--text-muted)] border-r border-[var(--card-border)] last:border-r-0 leading-relaxed font-sans font-medium">
+                            {parseInlineFormatting(cell)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+          continue;
+        }
+
+        // 5. Headings (### H3)
+        if (trimmed.startsWith('###')) {
+          const hText = trimmed.replace(/^###\s*/, '');
+          elements.push(
+            <h4 key={i} className="text-xs font-bold font-mono tracking-tight text-[var(--text-primary)] border-l-2 border-[var(--accent-color)] pl-2.5 mt-5 mb-2 flex items-center gap-1.5 uppercase">
+              {parseInlineFormatting(hText)}
             </h4>
           );
+          i++;
+          continue;
         }
-        if (trimmed.startsWith('*')) {
-          const itemText = trimmed.replace(/^\*\s*/, '');
-          return (
-            <li key={idx} className="text-[11px] text-[var(--text-muted)] ml-4 list-disc mb-1 leading-relaxed">
-              {itemText}
-            </li>
+
+        // 6. Bold Headers inside content e.g. "#### Header" or "**Header:**" or "Header:" followed by line bullet tags
+        if (trimmed.startsWith('####')) {
+          const hText = trimmed.replace(/^####\s*/, '');
+          elements.push(
+            <h5 key={i} className="text-[11px] font-extrabold font-mono tracking-tight text-[var(--text-primary)] mt-3 mb-1 text-[var(--accent-color)]">
+              {parseInlineFormatting(hText)}
+            </h5>
           );
+          i++;
+          continue;
         }
+
+        // 7. Standard Lists starting with '*' or '-' or '●'
+        if (trimmed.startsWith('*') || trimmed.startsWith('-') || trimmed.startsWith('●') || trimmed.startsWith('○')) {
+          let cleanItem = trimmed.replace(/^(\*|-|●|○)\s*/, '');
+          // Identify if it's high indentation (sub-list)
+          const isNested = line.startsWith('  ') || line.startsWith('\t') || trimmed.startsWith('○');
+          elements.push(
+            <div key={i} className={`flex items-start gap-2 text-[11px] text-[var(--text-muted)] leading-relaxed mb-1.5 ${isNested ? 'ml-6' : 'ml-2'}`}>
+              <span className={`flex-shrink-0 text-[10px] mt-0.5 select-none ${isNested ? 'text-[var(--text-muted)]/50 font-mono' : 'text-[var(--accent-color)]'}`}>
+                {isNested ? '○' : '◼'}
+              </span>
+              <span className="font-medium font-sans">{parseInlineFormatting(cleanItem)}</span>
+            </div>
+          );
+          i++;
+          continue;
+        }
+
+        // 8. Ordered Lists (e.g., 1. Item)
         if (trimmed.match(/^\d+\./)) {
-          const itemText = trimmed.replace(/^\d+\.\s*/, '');
-          return (
-            <li key={idx} className="text-[11px] text-[var(--text-muted)] ml-4 list-decimal mb-1 leading-relaxed">
-              {itemText}
-            </li>
+          const itemNum = trimmed.match(/^(\d+)\./)[1];
+          const cleanItem = trimmed.replace(/^\d+\.\s*/, '');
+          elements.push(
+            <div key={i} className="flex items-start gap-2.5 text-[11px] text-[var(--text-muted)] leading-relaxed ml-2 mb-1.5">
+              <span className="font-mono text-[9px] font-bold text-[var(--accent-color)] bg-[var(--accent-color)]/10 px-1.5 py-0.5 rounded border border-[var(--accent-color)]/20 flex-shrink-0 mt-0.5 min-w-[20px] text-center">
+                {itemNum}
+              </span>
+              <span className="font-medium font-sans">{parseInlineFormatting(cleanItem)}</span>
+            </div>
+          );
+          i++;
+          continue;
+        }
+
+        // 9. Standard paragraphs
+        if (trimmed === '') {
+          elements.push(<div key={i} className="h-2" />);
+        } else {
+          elements.push(
+            <p key={i} className="text-[11px] text-[var(--text-muted)] leading-relaxed mb-3 font-medium font-sans">
+              {parseInlineFormatting(trimmed)}
+            </p>
           );
         }
-        if (trimmed === '') {
-          return <div key={idx} className="h-1.5" />;
-        }
-        return (
-          <p key={idx} className="text-[11px] text-[var(--text-muted)] leading-relaxed mb-2">
-            {trimmed}
-          </p>
-        );
-      });
+        
+        i++;
+      }
+      
+      return <div className="space-y-1.5">{elements}</div>;
     };
 
     if (viewMode === 'articles') {
