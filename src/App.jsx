@@ -115,7 +115,23 @@ export default function App() {
   const [generationProgress, setGenerationProgress] = useState(0);
 
   // Classroom/Games Cloak/Decoy State
-  const [useClassroomDecoy, setUseClassroomDecoy] = useState(false);
+  const [useClassroomDecoy, setUseClassroomDecoy] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('decoy') === 'true') return true;
+      if (params.get('decoy') === 'false') return false;
+      const cached = localStorage.getItem('study-tools-classroom-decoy');
+      return cached === 'true';
+    }
+    return false;
+  });
+
+  const [aboutBlankSuffix, setAboutBlankSuffix] = useState('');
+
+  // Persist decoy state to localStorage
+  useEffect(() => {
+    localStorage.setItem('study-tools-classroom-decoy', String(useClassroomDecoy));
+  }, [useClassroomDecoy]);
 
   const handleGenerateArticle = () => {
     if (isGeneratingArticle) return;
@@ -144,7 +160,7 @@ export default function App() {
     const inputPass = (customPass !== undefined ? customPass : passcode).trim().toLowerCase();
     if (!inputPass) return;
 
-    if (inputPass === 'ttt0609' || inputPass === '0906' || inputPass === '1378') {
+    if (inputPass === 'ttt0609' || inputPass === '2026' || inputPass === 'games') {
       setTimeout(() => {
         setViewModeAndSave('games');
         setPasscode('');
@@ -287,7 +303,19 @@ export default function App() {
 
   // Set dynamic browser tab title & favicon based on current section & decoy toggle
   useEffect(() => {
+    const setBothTitles = (title) => {
+      document.title = title;
+      try {
+        if (window.parent && window.parent !== window && window.parent.document) {
+          window.parent.document.title = title;
+        }
+      } catch (err) {
+        // ignore cross-origin sandbox restrictions
+      }
+    };
+
     const updateFavicon = (href) => {
+      // Current document
       let link = document.querySelector("link[rel*='icon']");
       if (!link) {
         link = document.createElement('link');
@@ -295,6 +323,21 @@ export default function App() {
         document.head.appendChild(link);
       }
       link.href = href;
+
+      // Parent document
+      try {
+        if (window.parent && window.parent !== window && window.parent.document) {
+          let pLink = window.parent.document.querySelector("link[rel*='icon']");
+          if (!pLink) {
+            pLink = window.parent.document.createElement('link');
+            pLink.rel = 'icon';
+            window.parent.document.head.appendChild(pLink);
+          }
+          pLink.href = href;
+        }
+      } catch (err) {
+        // ignore cross-origin sandbox restrictions
+      }
     };
 
     const bookSvgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -306,19 +349,19 @@ export default function App() {
     )}`;
 
     if (viewMode === 'articles') {
-      document.title = "StudyTools";
+      setBothTitles("StudyTools");
       updateFavicon(bookSvgDataUri);
     } else if (viewMode === 'games') {
       if (useClassroomDecoy) {
-        document.title = "Home - Classroom";
+        setBothTitles("Home - Classroom");
         updateFavicon("https://ssl.gstatic.com/classroom/favicon.png");
       } else {
-        document.title = "StudyTools";
+        setBothTitles("StudyTools");
         updateFavicon(bookSvgDataUri);
       }
     } else {
       // Default to StudyTools for locked/welcome screens
-      document.title = "StudyTools";
+      setBothTitles("StudyTools");
       updateFavicon(bookSvgDataUri);
     }
   }, [viewMode, useClassroomDecoy]);
@@ -1717,19 +1760,48 @@ export default function App() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 md:ml-auto w-full md:w-auto">
+            {/* Suffix Select */}
+            <div className="flex items-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-2.5 py-1.5 text-xs text-[var(--text-muted)] font-mono shadow-sm">
+              <span className="text-[10px] uppercase font-extrabold mr-1.5 text-[var(--accent-color)]">Tab Target:</span>
+              <select 
+                value={aboutBlankSuffix}
+                onChange={(e) => setAboutBlankSuffix(e.target.value)}
+                className="bg-transparent border-none outline-none font-bold text-[var(--text-primary)] cursor-pointer py-0.5"
+                style={{ colorScheme: 'dark' }}
+              >
+                <option value="">about:blank (Default)</option>
+                <option value="#1">about:blank#1</option>
+                <option value="#2">about:blank#2</option>
+                <option value="#3">about:blank#3</option>
+                <option value="#math">about:blank#math</option>
+                <option value="#science">about:blank#science</option>
+              </select>
+            </div>
+
             <button
               onClick={() => {
-                const win = window.open("about:blank", "_blank");
+                const targetUrl = "about:blank" + aboutBlankSuffix;
+                const win = window.open(targetUrl, "_blank");
                 if (!win) {
-                  alert("Popup blocked! Please allow popups to open the site in about:blank.");
+                  alert(`Popup blocked! Please allow popups to open the site in ${targetUrl}.`);
                   return;
                 }
+                
+                // Construct query parameters to propagate the decoy state to the new document
+                const searchParams = new URLSearchParams(window.location.search);
+                searchParams.set('decoy', String(useClassroomDecoy));
+                const iframeSrc = `${window.location.origin}${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
+
+                const bookSvgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
+                  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h15M6 10h15"/></svg>`
+                )}`;
+
                 win.document.write(`
                   <!DOCTYPE html>
                   <html>
                   <head>
-                    <title>Home - Classroom</title>
-                    <link rel="icon" type="image/png" href="https://ssl.gstatic.com/classroom/favicon.png">
+                    <title>${useClassroomDecoy ? 'Home - Classroom' : 'StudyTools'}</title>
+                    <link rel="icon" type="image/png" href="${useClassroomDecoy ? 'https://ssl.gstatic.com/classroom/favicon.png' : bookSvgDataUri}">
                     <meta charset="utf-8">
                     <style>
                       html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0c0a09; }
@@ -1737,17 +1809,17 @@ export default function App() {
                     </style>
                   </head>
                   <body>
-                    <iframe src="${window.location.origin}${window.location.pathname}${window.location.search}" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
+                    <iframe src="${iframeSrc}" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
                   </body>
                   </html>
                 `);
                 win.document.close();
               }}
-              className="text-xs bg-[var(--card-bg)] text-[var(--text-primary)] border border-[var(--card-border)] py-1.5 px-3.5 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] active:scale-98 transition-all duration-200 font-mono font-bold flex items-center gap-1.5 cursor-pointer"
-              title="Open entire site inside about:blank tab to cloak history"
+              className="text-xs bg-[var(--card-bg)] text-[var(--text-primary)] border border-[var(--card-border)] py-1.5 px-3.5 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] active:scale-98 transition-all duration-200 font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Open entire site inside about:blank tab with selected suffix to cloak history"
             >
-              <Globe className="w-3.5 h-3.5" />
-              <span>CLOAK IN ABOUT:BLANK</span>
+              <Globe className="w-3.5 h-3.5 text-[var(--accent-color)] animate-spin-slow" />
+              <span>CLOAK IN {aboutBlankSuffix ? `ABOUT:BLANK ${aboutBlankSuffix}` : 'ABOUT:BLANK'}</span>
             </button>
 
             <button
