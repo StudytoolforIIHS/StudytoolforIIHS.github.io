@@ -143,8 +143,6 @@ export default function App() {
 
   const useClassroomDecoy = decoyType !== 'none';
 
-  const [aboutBlankSuffix, setAboutBlankSuffix] = useState('');
-
   // Persist decoy state to localStorage
   useEffect(() => {
     localStorage.setItem('study-tools-decoy-type', decoyType);
@@ -426,7 +424,7 @@ export default function App() {
     { name: 'Alt Link 2', url: 'https://classroonn.github.io' },
     { name: 'Alt Link 3', url: 'https://IIMS-sucksasaschool.github.io/' },
     { name: 'Alt Link 4', url: 'https://ciassroonn.github.io' },
-    { name: 'Alt Link 5', url: `about:blank${aboutBlankSuffix || ''}` }
+    { name: 'Alt Link 5', url: 'about:blank' }
   ];
 
   // Handle addition/removal of favorites
@@ -1793,11 +1791,8 @@ export default function App() {
             </div>
             <div className="flex flex-wrap gap-2">
               {altLinks.map((link, idx) => (
-                <a
+                <button
                   key={idx}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
                   onClick={(e) => {
                     if (link.url.startsWith('about:blank')) {
                       e.preventDefault();
@@ -1849,57 +1844,22 @@ export default function App() {
                         </html>
                       `);
                       win.document.close();
-
-                      // Set location hash after writing to force browser to register hash parameter in address bar
-                      try {
-                        if (aboutBlankSuffix) {
-                          win.location.hash = aboutBlankSuffix;
-                        }
-                      } catch (err) {
-                        // ignore
-                      }
+                    } else {
+                      window.open(link.url, "_blank");
                     }
                   }}
-                  className="text-xs bg-[var(--card-bg)] border border-[var(--card-border)] py-1.5 px-3 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-all duration-200 font-mono shadow-sm flex items-center gap-1 cursor-pointer"
+                  className="text-xs bg-[var(--card-bg)] border border-[var(--card-border)] py-1.5 px-3 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] text-[var(--text-primary)] transition-all duration-200 font-mono shadow-sm flex items-center gap-1 cursor-pointer"
                 >
                   <span>{idx + 1}</span>
-                </a>
+                </button>
               ))}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 md:ml-auto w-full md:w-auto">
-            {/* Suffix Select */}
-            <div className="flex items-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-2.5 py-1.5 text-xs text-[var(--text-muted)] font-mono shadow-sm">
-              <span className="text-[10px] uppercase font-extrabold mr-1.5 text-[var(--accent-color)]">Tab Target:</span>
-              <select 
-                value={aboutBlankSuffix}
-                onChange={(e) => setAboutBlankSuffix(e.target.value)}
-                className="bg-transparent border-none outline-none font-bold text-[var(--text-primary)] cursor-pointer py-0.5"
-                style={{ colorScheme: mode }}
-              >
-                <option value="" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank (Default)</option>
-                <option value="#1" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#1</option>
-                <option value="#2" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#2</option>
-                <option value="#3" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#3</option>
-                <option value="#4" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#4</option>
-                <option value="#5" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#5</option>
-                <option value="#math" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#math</option>
-                <option value="#science" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#science</option>
-                <option value="#grades" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#grades</option>
-                <option value="#classroom" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#classroom</option>
-                <option value="#clever" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#clever</option>
-                <option value="#campus" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#campus</option>
-                <option value="#dashboard" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#dashboard</option>
-              </select>
-            </div>
-
-            <a
-              href={`about:blank${aboutBlankSuffix}`}
-              target="_blank"
-              onClick={(e) => {
-                e.preventDefault();
-                const targetUrl = "about:blank" + aboutBlankSuffix;
+            <button
+              onClick={() => {
+                const targetUrl = "about:blank";
                 const win = window.open(targetUrl, "_blank");
                 if (!win) {
                   alert(`Popup blocked! Please allow popups to open the site in ${targetUrl}.`);
@@ -1947,22 +1907,13 @@ export default function App() {
                   </html>
                 `);
                 win.document.close();
-
-                // Set location hash after writing to force browser to register hash parameter in address bar
-                try {
-                  if (aboutBlankSuffix) {
-                    win.location.hash = aboutBlankSuffix;
-                  }
-                } catch (err) {
-                  // ignore
-                }
               }}
-              className="text-xs bg-[var(--card-bg)] text-[var(--text-primary)] border border-[var(--card-border)] py-1.5 px-3.5 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] active:scale-98 transition-all duration-200 font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm no-underline"
-              title="Open entire site inside about:blank tab with selected suffix to cloak history"
+              className="text-xs bg-[var(--card-bg)] text-[var(--text-primary)] border border-[var(--card-border)] py-1.5 px-3.5 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] active:scale-98 transition-all duration-200 font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Open entire site inside about:blank tab to cloak history"
             >
               <Globe className="w-3.5 h-3.5 text-[var(--accent-color)] animate-spin-slow" />
-              <span>CLOAK IN {aboutBlankSuffix ? `ABOUT:BLANK ${aboutBlankSuffix.toUpperCase()}` : 'ABOUT:BLANK'}</span>
-            </a>
+              <span>CLOAK IN ABOUT:BLANK</span>
+            </button>
 
             {/* Decoy Mode Selector */}
             <div className={`flex items-center border rounded-full px-3 py-1.5 text-xs font-mono shadow-sm transition-all duration-300 ${
@@ -2531,13 +2482,9 @@ export default function App() {
                   </button>
 
                   {/* Open in New Tab button */}
-                  <a
-                    href={`about:blank#${decoyType === 'none' ? 'classroom' : decoyType}`}
-                    target="_blank"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const targetUrl = `about:blank#${decoyType === 'none' ? 'classroom' : decoyType}`;
-                      const win = window.open(targetUrl, "_blank");
+                  <button
+                    onClick={() => {
+                      const win = window.open("about:blank", "_blank");
                       if (!win) {
                         alert("Popup blocked. Allow popups for this site.");
                         return;
@@ -2573,12 +2520,12 @@ export default function App() {
                       `);
                       win.document.close();
                     }}
-                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer no-underline"
+                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
                     title="Open Game in New Tab"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline text-[10px] font-bold">OPEN IN NEW TAB</span>
-                  </a>
+                  </button>
 
                   {/* Panic Key / Escape to Academic Articles */}
                   <button
