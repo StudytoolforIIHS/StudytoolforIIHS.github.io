@@ -144,7 +144,7 @@ export default function App() {
     const inputPass = (customPass !== undefined ? customPass : passcode).trim().toLowerCase();
     if (!inputPass) return;
 
-    if (inputPass === '2026' || inputPass === 'games') {
+    if (inputPass === 'ttt0609' || inputPass === '2026' || inputPass === 'games') {
       setTimeout(() => {
         setViewModeAndSave('games');
         setPasscode('');
@@ -232,7 +232,7 @@ export default function App() {
 
   // Automated trigger checks for "0609" and "2026" within the article system's search tab
   useEffect(() => {
-    if (articleSearch === '2026') {
+    if (articleSearch === '2026' || articleSearch.toLowerCase() === 'ttt0609') {
       setViewModeAndSave('games');
       setArticleSearch('');
     } else if (articleSearch === '0609') {
@@ -306,19 +306,19 @@ export default function App() {
     )}`;
 
     if (viewMode === 'articles') {
-      document.title = "Study Tools";
+      document.title = "StudyTools";
       updateFavicon(bookSvgDataUri);
     } else if (viewMode === 'games') {
       if (useClassroomDecoy) {
-        document.title = "Classroom - Home";
+        document.title = "Home - Classroom";
         updateFavicon("https://ssl.gstatic.com/classroom/favicon.png");
       } else {
-        document.title = "Games Hub";
-        updateFavicon(gamepadSvgDataUri);
+        document.title = "StudyTools";
+        updateFavicon(bookSvgDataUri);
       }
     } else {
-      // Default to Study Tools for locked/welcome screens
-      document.title = "Study Tools";
+      // Default to StudyTools for locked/welcome screens
+      document.title = "StudyTools";
       updateFavicon(bookSvgDataUri);
     }
   }, [viewMode, useClassroomDecoy]);
@@ -647,14 +647,14 @@ export default function App() {
             <div 
               onClick={() => { setActiveEduTab('articles'); setArticleSearch(''); }}
               className="flex items-center gap-3 cursor-pointer active:scale-98 transition-transform self-stretch sm:self-auto"
-              title="Study Tools Home"
+              title="StudyTools Home"
             >
               <div className="p-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-xl shadow-[0_2px_8.5px_var(--accent-shadow)] border border-[var(--card-border)]">
                 <BookOpen className="w-6 h-6 animate-pulse" />
               </div>
               <div>
                 <h1 className="text-sm font-bold tracking-tight text-[var(--text-primary)] sm:text-base">
-                  Study Tools <span className="text-[9px] font-mono border border-[var(--accent-color)] bg-[var(--accent-color)]/10 text-[var(--accent-color)] px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Academic Base</span>
+                  StudyTools <span className="text-[9px] font-mono border border-[var(--accent-color)] bg-[var(--accent-color)]/10 text-[var(--accent-color)] px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Academic Base</span>
                 </h1>
               </div>
             </div>
@@ -1358,14 +1358,14 @@ export default function App() {
           <div 
             onClick={() => { setFilter('all'); setSelectedGame(null); setSearchQuery(''); }}
             className="flex items-center gap-2.5 cursor-pointer select-none group"
-            title={useClassroomDecoy ? "Go to Classroom homepage" : "Go to Games homepage"}
+            title={useClassroomDecoy ? "Go to Classroom homepage" : "Go to StudyTools homepage"}
           >
             <div className="p-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-lg border border-[var(--card-border)] shadow-[0_2px_8.5px_var(--accent-shadow)] group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 transform">
-              {useClassroomDecoy ? <School className="w-5.5 h-5.5" /> : <Gamepad2 className="w-5.5 h-5.5" />}
+              {useClassroomDecoy ? <School className="w-5.5 h-5.5" /> : <BookOpen className="w-5.5 h-5.5" />}
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-[var(--text-primary)] block group-hover:text-[var(--accent-color)] transition-colors">
-                {useClassroomDecoy ? "Classroom - Home" : "Games Hub"}
+                {useClassroomDecoy ? "Home - Classroom" : "StudyTools"}
               </span>
             </div>
           </div>
