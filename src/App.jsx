@@ -711,7 +711,7 @@ export default function App() {
           
           <div className="text-center">
             <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Portal Secured</h2>
-            <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">This is a paid Science, Math, ELA, and Social Studies article website. Please enter a correct password to continue to the website. Hint: Year 26.</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">This is a Science, Math, ELA, and Social Studies article website. Please enter a correct password to access all the articles. Hint: Year 26. There will be a paid option soon.</p>
           </div>
 
           {/* Indicators for passcode digits */}
