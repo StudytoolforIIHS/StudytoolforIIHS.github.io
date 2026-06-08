@@ -143,6 +143,8 @@ export default function App() {
 
   const useClassroomDecoy = decoyType !== 'none';
 
+  const [aboutBlankSuffix, setAboutBlankSuffix] = useState('');
+
   // Persist decoy state to localStorage
   useEffect(() => {
     localStorage.setItem('study-tools-decoy-type', decoyType);
@@ -1796,7 +1798,7 @@ export default function App() {
                   onClick={(e) => {
                     if (link.url.startsWith('about:blank')) {
                       e.preventDefault();
-                      const targetUrl = link.url;
+                      const targetUrl = link.url + (aboutBlankSuffix || '');
                       const win = window.open(targetUrl, "_blank");
                       if (!win) {
                         alert(`Popup blocked! Please allow popups to open the site in ${targetUrl}.`);
@@ -1844,6 +1846,15 @@ export default function App() {
                         </html>
                       `);
                       win.document.close();
+
+                      // Set location hash after writing to force browser to register hash parameter in address bar
+                      try {
+                        if (aboutBlankSuffix) {
+                          win.location.hash = aboutBlankSuffix;
+                        }
+                      } catch (err) {
+                        // ignore
+                      }
                     } else {
                       window.open(link.url, "_blank");
                     }
@@ -1857,9 +1868,32 @@ export default function App() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 md:ml-auto w-full md:w-auto">
+            {/* Suffix/Hash Selector */}
+            <div className="flex items-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-full px-2.5 py-1.5 text-xs text-[var(--text-muted)] font-mono shadow-sm">
+              <span className="text-[10px] uppercase font-extrabold mr-1.5 text-[var(--accent-color)]">Tab Target:</span>
+              <select 
+                value={aboutBlankSuffix}
+                onChange={(e) => setAboutBlankSuffix(e.target.value)}
+                className="bg-transparent border-none outline-none font-bold text-[var(--text-primary)] cursor-pointer py-0.5"
+                style={{ colorScheme: mode }}
+              >
+                <option value="" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank (Default)</option>
+                <option value="#1" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#1</option>
+                <option value="#2" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#2</option>
+                <option value="#3" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#3</option>
+                <option value="#4" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#4</option>
+                <option value="#5" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#5</option>
+                <option value="#6" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#6</option>
+                <option value="#7" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#7</option>
+                <option value="#8" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#8</option>
+                <option value="#9" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#9</option>
+                <option value="#10" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>about:blank#10</option>
+              </select>
+            </div>
+
             <button
               onClick={() => {
-                const targetUrl = "about:blank";
+                const targetUrl = "about:blank" + (aboutBlankSuffix || '');
                 const win = window.open(targetUrl, "_blank");
                 if (!win) {
                   alert(`Popup blocked! Please allow popups to open the site in ${targetUrl}.`);
@@ -1907,12 +1941,21 @@ export default function App() {
                   </html>
                 `);
                 win.document.close();
+
+                // Set location hash after writing to force browser to register hash parameter in address bar
+                try {
+                  if (aboutBlankSuffix) {
+                    win.location.hash = aboutBlankSuffix;
+                  }
+                } catch (err) {
+                  // ignore
+                }
               }}
               className="text-xs bg-[var(--card-bg)] text-[var(--text-primary)] border border-[var(--card-border)] py-1.5 px-3.5 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] active:scale-98 transition-all duration-200 font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
               title="Open entire site inside about:blank tab to cloak history"
             >
               <Globe className="w-3.5 h-3.5 text-[var(--accent-color)] animate-spin-slow" />
-              <span>CLOAK IN ABOUT:BLANK</span>
+              <span>CLOAK IN {aboutBlankSuffix ? `ABOUT:BLANK ${aboutBlankSuffix}` : 'ABOUT:BLANK'}</span>
             </button>
 
             {/* Decoy Mode Selector */}
