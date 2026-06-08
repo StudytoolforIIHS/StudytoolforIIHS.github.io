@@ -371,6 +371,14 @@ export default function App() {
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h15M6 10h15"/></svg>`
     )}`;
 
+    const cleverSvgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%231b4ce6"/><text x="16" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="22" fill="%23ffffff" text-anchor="middle">C</text></svg>`
+    )}`;
+
+    const campusSvgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%2378be20"/><text x="16" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="22" fill="%23ffffff" text-anchor="middle">C</text></svg>`
+    )}`;
+
     if (viewMode === 'articles') {
       setBothTitles("StudyTools");
       updateFavicon(bookSvgDataUri);
@@ -380,10 +388,10 @@ export default function App() {
         updateFavicon("https://ssl.gstatic.com/classroom/favicon.png");
       } else if (decoyType === 'clever') {
         setBothTitles("Clever | Log in with Clever");
-        updateFavicon("https://www.google.com/s2/favicons?sz=64&domain=clever.com");
+        updateFavicon(cleverSvgDataUri);
       } else if (decoyType === 'campus') {
         setBothTitles("Campus Student");
-        updateFavicon("https://www.google.com/s2/favicons?sz=64&domain=infinitecampus.com");
+        updateFavicon(campusSvgDataUri);
       } else {
         setBothTitles("StudyTools");
         updateFavicon(bookSvgDataUri);
@@ -1676,14 +1684,10 @@ export default function App() {
           <div 
             onClick={() => { setFilter('all'); setSelectedGame(null); setSearchQuery(''); }}
             className="flex items-center gap-2.5 cursor-pointer select-none group"
-            title={decoyType !== 'none' ? `Go to ${decoyType === 'classroom' ? 'Classroom' : decoyType === 'clever' ? 'Clever' : 'Campus'} homepage` : "Go to StudyTools homepage"}
+            title={viewMode === 'games' ? "Go to Classroom homepage" : "Go to StudyTools homepage"}
           >
             <div className="p-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-lg border border-[var(--card-border)] shadow-[0_2px_8.5px_var(--accent-shadow)] group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 transform">
-              {decoyType === 'classroom' ? (
-                <School className="w-5.5 h-5.5" />
-              ) : decoyType === 'clever' ? (
-                <Compass className="w-5.5 h-5.5" />
-              ) : decoyType === 'campus' ? (
+              {viewMode === 'games' ? (
                 <School className="w-5.5 h-5.5" />
               ) : (
                 <BookOpen className="w-5.5 h-5.5" />
@@ -1691,13 +1695,7 @@ export default function App() {
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-[var(--text-primary)] block group-hover:text-[var(--accent-color)] transition-colors">
-                {decoyType === 'classroom' 
-                  ? "Home - Classroom" 
-                  : decoyType === 'clever' 
-                  ? "Clever | Log in with Clever" 
-                  : decoyType === 'campus' 
-                  ? "Campus Student" 
-                  : "StudyTools"}
+                {viewMode === 'games' ? "Home - Classroom" : "StudyTools"}
               </span>
             </div>
           </div>
@@ -1846,6 +1844,14 @@ export default function App() {
                   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h15M6 10h15"/></svg>`
                 )}`;
 
+                const cleverSvgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
+                  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%231b4ce6"/><text x="16" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="22" fill="%23ffffff" text-anchor="middle">C</text></svg>`
+                )}`;
+
+                const campusSvgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(
+                  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%2378be20"/><text x="16" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="22" fill="%23ffffff" text-anchor="middle">C</text></svg>`
+                )}`;
+
                 let parentTitle = "StudyTools";
                 let parentFavicon = bookSvgDataUri;
                 
@@ -1854,10 +1860,10 @@ export default function App() {
                   parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
                 } else if (decoyType === 'clever') {
                   parentTitle = "Clever | Log in with Clever";
-                  parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
+                  parentFavicon = cleverSvgDataUri;
                 } else if (decoyType === 'campus') {
                   parentTitle = "Campus Student";
-                  parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=infinitecampus.com";
+                  parentFavicon = campusSvgDataUri;
                 }
 
                 win.document.write(`
@@ -1889,13 +1895,13 @@ export default function App() {
                 }
               }}
               className="text-xs bg-[var(--card-bg)] text-[var(--text-primary)] border border-[var(--card-border)] py-1.5 px-3.5 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] active:scale-98 transition-all duration-200 font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-              title="Open entire site inside about:blank tab with selected suffix to cloak history"
+              title="Open entire site inside about:blank tab with selected suffix"
             >
               <Globe className="w-3.5 h-3.5 text-[var(--accent-color)] animate-spin-slow" />
-              <span>CLOAK IN {aboutBlankSuffix ? `ABOUT:BLANK ${aboutBlankSuffix.toUpperCase()}` : 'ABOUT:BLANK'}</span>
+              <span>OPEN IN {aboutBlankSuffix ? `ABOUT:BLANK ${aboutBlankSuffix.toUpperCase()}` : 'ABOUT:BLANK'}</span>
             </button>
 
-            {/* Decoy Mode Selector */}
+            {/* Favicon Mode Selector */}
             <div className={`flex items-center border rounded-full px-3 py-1.5 text-xs font-mono shadow-sm transition-all duration-300 ${
               decoyType !== 'none' 
                 ? 'bg-[var(--accent-color)]/10 border-[var(--accent-color)] text-[var(--accent-color)]' 
@@ -1903,7 +1909,7 @@ export default function App() {
             }`}>
               <span className="text-[10px] uppercase font-extrabold mr-1.5 flex items-center gap-1">
                 <School className="w-3.5 h-3.5 animate-pulse" />
-                <span>Decoy:</span>
+                <span>Favicon:</span>
               </span>
               <select 
                 value={decoyType}
