@@ -16,6 +16,13 @@ export const games: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSeaYvNRf5sKi2HUrLKcMxWrVHdOCHllA_aQ&s',
     category: 'Solo'
   },
+   {
+    title: 'Cookie Clicker',
+    description: '',
+    url: 'https://g8hh.github.io/cookieclicker/',
+    thumbnail: 'https://upload.wikimedia.org/wikipedia/en/0/06/Cookie_Clicker_logo.png',
+    category: 'Solo'
+  },
   {
     title: '99 Nights at a Forest Copy',
     description: '',
