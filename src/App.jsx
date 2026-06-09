@@ -40,7 +40,10 @@ import {
   Share2,
   Download,
   Check,
-  X
+  X,
+  Shuffle,
+  Cpu,
+  Box
 } from 'lucide-react';
 
 // Safe storage helper to prevent SecurityError crash in sandboxed iframes
@@ -420,14 +423,7 @@ export default function App() {
     document.body.setAttribute('data-locked', isPasscodeUnlocked ? 'false' : 'true');
   }, [isPasscodeUnlocked]);
 
-  // List of Alt links configuration
-  const altLinks = [
-    { name: 'Alt Link 1', url: 'https://granddia3.github.io' },
-    { name: 'Alt Link 2', url: 'https://classroonn.github.io' },
-    { name: 'Alt Link 3', url: 'https://IIMS-sucksasaschool.github.io/' },
-    { name: 'Alt Link 4', url: 'https://ciassroonn.github.io' },
-    { name: 'Alt Link 5', url: 'about:blank' }
-  ];
+
 
   // Handle addition/removal of favorites
   const toggleFavorite = (e, gameId) => {
@@ -630,20 +626,29 @@ export default function App() {
   const isSinglePlayerCategory = (cat) => {
     if (!cat) return true;
     const c = cat.toLowerCase().trim();
+    if (c === 'minecraft' || c === 'emulated' || c === 'other websites') return true;
     return ['solo', 'single', 'platformer', 'skill', 'science', 'driving', 'horror', 'creative', 'ai'].some(kw => c.includes(kw));
   };
 
   const isMultiplayerCategory = (cat) => {
     if (!cat) return false;
     const c = cat.toLowerCase().trim();
+    if (c === 'minecraft' || c === 'random' || c === 'other websites') return true;
     return ['social', 'sport', 'multiplayer', 'fast', 'party', 'puzzle', 'shooter'].some(kw => c.includes(kw)) || c.includes('or');
   };
 
   // Filter games based on category sidebar, matching search query
   const filteredGames = gamesData.filter(game => {
-    if (filter === 'single' && !isSinglePlayerCategory(game.category)) return false;
-    if (filter === 'multiplayer' && !isMultiplayerCategory(game.category)) return false;
-    if (filter === 'favorites' && !favorites.includes(game.id)) return false;
+    if (filter === 'single') {
+      if (!isSinglePlayerCategory(game.category)) return false;
+    } else if (filter === 'multiplayer') {
+      if (!isMultiplayerCategory(game.category)) return false;
+    } else if (filter === 'favorites') {
+      if (!favorites.includes(game.id)) return false;
+    } else if (filter !== 'all') {
+      // Direct category filter matching
+      if ((game.category || '').toLowerCase().trim() !== filter.toLowerCase().trim()) return false;
+    }
 
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
@@ -1787,24 +1792,7 @@ export default function App() {
       {/* ALT LINKS BAR */}
       <section className="bg-[var(--bg-secondary)] border-b border-[var(--card-border)] py-3 px-4 md:px-6 transition-colors duration-300">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
-            <div className="text-[10px] font-mono tracking-widest uppercase opacity-60 self-center">
-              ALT LINKS
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {altLinks.map((link, idx) => (
-                <a
-                  key={idx}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs bg-[var(--card-bg)] border border-[var(--card-border)] py-1.5 px-3 rounded-full hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-all duration-200 font-mono shadow-sm flex items-center gap-1 cursor-pointer"
-                >
-                  <span>{idx + 1}</span>
-                </a>
-              ))}
-            </div>
-          </div>
+          {/* Alt Links Removed */}
 
           <div className="flex flex-wrap items-center gap-2 md:ml-auto w-full md:w-auto">
             {/* Suffix Select */}
@@ -2288,6 +2276,54 @@ export default function App() {
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
           </button>
 
+          <button
+            onClick={() => { setFilter('Random'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'Random' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+            }`}
+          >
+            <Shuffle className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Random Games</span>
+          </button>
+
+          <button
+            onClick={() => { setFilter('Emulated'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'Emulated' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+            }`}
+          >
+            <Cpu className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Emulated Retro</span>
+          </button>
+
+          <button
+            onClick={() => { setFilter('minecraft'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'minecraft' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+            }`}
+          >
+            <Box className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Minecraft</span>
+          </button>
+
+          <button
+            onClick={() => { setFilter('other websites'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'other websites' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+            }`}
+          >
+            <Globe className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Other Websites</span>
+          </button>
+
         </aside>
 
         {/* MAIN BODY DISPLAY */}
@@ -2304,6 +2340,10 @@ export default function App() {
                     {filter === 'single' && 'Singleplayer Arcades'}
                     {filter === 'multiplayer' && 'Multiplayer Hub'}
                     {filter === 'favorites' && 'Bookmarked Games'}
+                    {filter === 'Random' && 'Random Games'}
+                    {filter === 'Emulated' && 'Emulated Archives'}
+                    {filter === 'minecraft' && 'Minecraft Platform'}
+                    {filter === 'other websites' && 'Other Websites & Portals'}
                   </h2>
                   <p className="text-xs text-[var(--text-muted)] mt-0.5">
                     Showing {filteredGames.length} unblocked resources
