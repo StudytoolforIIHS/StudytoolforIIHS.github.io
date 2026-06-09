@@ -68,7 +68,7 @@ export const games: Game[] = [
   {
     title: 'Youtube',
     description: 'Youtube unblocked, should allow you to paste videos into the URL thingy and watch it.',
-    url: 'https://granddia2.github.io/old/yt.html',
+    url: 'https://grandplat2.github.io/old/yt.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_yL7AtgrIozF4QESx27DN6CDTvAuxtEfPPw&s',
     category: 'Solo'
   },  
@@ -195,7 +195,7 @@ export const games: Game[] = [
   {
     title: 'Champion Island',
     description: 'Google Doodle',
-    url: 'https://granddia2.github.io/championisland/',
+    url: 'https://grandplat2.github.io/championisland/',
     thumbnail: 'https://www.gstatic.com/marketing-cms/c2/de/b1ea4f8d4314be89cbd66a6c94d7/4.gif',
     category: 'solo'
   },
