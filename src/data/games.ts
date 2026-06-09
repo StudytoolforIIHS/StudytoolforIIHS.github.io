@@ -1,4 +1,4 @@
-import { Game } from '../types';
+ import { Game } from '../types';
 
 export const games: Game[] = [
   // ── CHAT / AI ──
@@ -31,9 +31,16 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
-    title: 'The Final Earth 2',
+    title: 'The Final Earth 2 New (More stuff)',
     description: 'I love this game bro. Actually best game out there, please try atleast once!',
     url: 'https://florianvanstrien.nl/TheFinalEarth2/play/',
+    thumbnail: 'https://i.ytimg.com/vi/9lZ9dCxejp0/hqdefault.jpg',
+    category: 'Solo'
+  },
+  {
+    title: 'The Final Earth 2 Old',
+    description: 'I love this game bro. Actually best game out there, please try atleast once!',
+    url: 'clfinalearth2.html/',
     thumbnail: 'https://i.ytimg.com/vi/9lZ9dCxejp0/hqdefault.jpg',
     category: 'Solo'
   },
