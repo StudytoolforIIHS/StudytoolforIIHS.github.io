@@ -17,6 +17,13 @@ export const games: Game[] = [
     category: 'Solo'
   },
   {
+    title: '99 Nights at a Forest Copy',
+    description: '',
+    url: 'cl99nightsitf.html',
+    thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVcqmKa58thtYd3HWzjJd1MwokpvGspBxKPQ&s',
+    category: 'Solo'
+  },
+  {
     title: 'The Final Earth 2',
     description: 'I love this game bro. Actually best game out there, please try atleast once!',
     url: 'clfinalearth2.html',
