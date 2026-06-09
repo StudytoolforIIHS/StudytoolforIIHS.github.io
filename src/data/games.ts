@@ -209,28 +209,28 @@ export const games: Game[] = [
   {
     title: 'Madden 2002',
     description: 'yeah',
-    url: '/clmaddennfl2002.html',
+    url: 'clmaddennfl2002.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNXrI6cQ7sBJyZenq-Ur4Cz3V8ZQHgWpFf4XEnWDQgkiSMjE37CiA0g7Ew7Lz1dp78kCcWRRIPo179hdLl4G8XJmFxmwSaZ2Gpt97hkw&s=10',
     category: 'solo'
   },
   {
     title: 'Call of Duty 4',
     description: 'yeah',
-    url: '/clcod4.html',
+    url: 'clcod4.html',
     thumbnail: 'https://m.media-amazon.com/images/I/61bs4F5yOIL._AC_UF1000,1000_QL80_.jpg',
     category: 'solo'
   },
   {
     title: 'GTA Advance',
     description: 'yeah',
-    url: '/clgrandtheftautoadvance.html',
+    url: 'clgrandtheftautoadvance.html',
     thumbnail: 'https://m.media-amazon.com/images/M/MV5BNjRhYzk1ODItYjFhNy00OGU4LWE2YjAtZTk3NmRlNDhiZTFjXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
     category: 'solo'
   },
   {
     title: 'NFS: Most Wanted',
     description: 'yeah',
-    url: '/clnfsmostwanted.html',
+    url: 'clnfsmostwanted.html',
     thumbnail: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1262560/capsule_616x353.jpg?t=1777484382',
     category: 'solo'
   },
@@ -244,42 +244,42 @@ export const games: Game[] = [
   {
     title: 'Pokemon Platinum',
     description: 'yeah',
-    url: '/clpokeplatinum.html',
+    url: 'clpokeplatinum.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQt28qRa0-4kRzGsgiZ76XHYAhuNG6jYlt-Ud40owAzpJrXl4dHHRDHcavTsyQYjsBmvXu1Sw&s=10',
     category: 'solo'
   },
   {
     title: 'Pokemon Black 2',
     description: 'yeah',
-    url: '/clpokeblack2.html',
+    url: 'clpokeblack2.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuOhDpOLhmmSUkCuI-aDpmhwF7iygOrqUqeg&s',
     category: 'solo'
   },
   {
     title: 'Pokemon SoulSilver',
     description: 'yeah',
-    url: '/clpokesoulsilver.html',
+    url: 'clpokesoulsilver.html',
     thumbnail: 'https://media.gamestop.com/i/gamestop/10077723/Pokemon-SoulSilver-Game-Only---Nintendo-DS?w=768&h=768&fmt=auto',
     category: 'solo'
   },
    {
     title: 'Tomodachi Collection',
     description: 'yeah',
-    url: '/cltomodachicollection.html',
+    url: 'cltomodachicollection.html',
     thumbnail: 'https://i.ytimg.com/vi/H96rM_liOHo/maxresdefault.jpg',
     category: 'solo'
   },
   {
     title: 'Crazy Cattle 3D',
     description: 'yeah',
-    url: '/clcrazycattle3d.html',
+    url: 'clcrazycattle3d.html',
     thumbnail: 'https://crazycattle3d.github.io/index.png',
     category: 'solo'
   },
   {
     title: 'Pokemon Stadium 2',
     description: 'yeah',
-    url: '/clpokemonstadium2.html',
+    url: 'clpokemonstadium2.html',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/ba/Pok%C3%A9mon_Stadium_2_Coverart.png',
     category: 'solo'
   },
@@ -357,7 +357,7 @@ export const games: Game[] = [
   {
     title: 'Chess',
     description: 'Play chess with a friend online using a room code.',
-    url: '/chess.html',
+    url: 'chess.html',
     thumbnail: 'https://images.chesscomfiles.com/uploads/v1/blog/291978.333e4ddb.630x354o.6e5e89b5223a.png',
     category: 'Multiplayer'
   },
