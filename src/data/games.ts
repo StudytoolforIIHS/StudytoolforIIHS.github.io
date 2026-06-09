@@ -7,7 +7,7 @@ export const games: Game[] = [
     description: 'I used ai to make some of the game.',
     url: 'https://tharaniidaran-t.github.io/cityskylinesremake/',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/en/5/58/Cities_Skylines_cover_art.jpg',
-    category: 'Fun'
+    category: 'Solo'
   },
   {
     title: 'Paper.Io',
@@ -28,28 +28,28 @@ export const games: Game[] = [
     description: 'I love this game bro. Actually best game out there, please try atleast once!',
     url: 'clfinalearth2.html',
     thumbnail: 'https://i.ytimg.com/vi/9lZ9dCxejp0/hqdefault.jpg',
-    category: 'BEST GAME OUT THERE'
+    category: 'Solo'
   },
   {
     title: 'Shader Pilot',
     description: 'Game that TTM made and It looks good Ig and cool ig. ',
     url: 'https://tharaniidaran-t.github.io/shader-piolet/',
     thumbnail: 'https://i.ytimg.com/vi/cpsY9WQxh5U/maxresdefault.jpg',
-    category: 'Game'
+    category: 'Solo'
   },
   {
     title: 'unblocked anime stuff',
     description: '',
     url: 'https://streamex.sh/s',
     thumbnail: 'https://media.licdn.com/dms/image/v2/C4D0BAQHfLNZeLxAnSw/company-logo_200_200/company-logo_200_200/0/1660365825078/streamx_logo?e=2147483647&v=beta&t=pgzHh-mNGlpjcTsC6qxYkW1kRSaOzk0MZlOCL46CmQ0',
-    category: 'Game'
+    category: 'Solo'
   },
   {
     title: 'Chatgpt (GROQ API)',
     description: 'Go to the doc and get a API or swap your model if it says max token limit reached. ',
     url: 'https://tharaniidaran-t.github.io/GroqAI2/',
     thumbnail: 'https://www.internetmatters.org/wp-content/uploads/2025/06/Chat-GPT-logo.webp',
-    category: 'AI'
+    category: 'Solo'
   },
   {
     title: 'Youtube',
@@ -92,42 +92,42 @@ export const games: Game[] = [
     description: 'Most fun to experiment by yourself.',
     url: 'https://ubg365.github.io/bitlife-life-simulator/play.html',
     thumbnail: 'https://i.ytimg.com/vi/WUTrv--kZtI/maxresdefault.jpg',
-    category: 'Single-Player'
+    category: 'Solo'
   },
   {
     title: 'OvO',
     description: 'Fun to play by yourself.',
     url: 'https://mc0825.github.io/g5/class-456',
     thumbnail: 'https://play-lh.googleusercontent.com/v7KwGdPjJGjJjRXn46sck4DwDBdKSeRzGN44CjiXUtKV0jjOi51Bt4wcXud0m-SkXg',
-    category: 'Platformer'
+    category: 'Solo'
   },
   {
     title: 'Wordle Unlimited',
     description: '',
     url: 'https://bosorioo.github.io/wordle-unlimited/',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzXo17pL3S9PjcsR4V-ZPUr8nuQ622Lq0lhA&s',
-    category: 'Skill'
+    category: 'Solo'
   },
   {
     title: 'Sandboxels',
     description: 'works now I think',
     url: 'https://mr-funkinguy.github.io/sandboxels/',
     thumbnail: 'https://s3.amazonaws.com/production2.sciencegamecenter.org/games/boxarts/000/000/417/medium/TitleArt_SandBoxels.jpeg?1707496550',
-    category: 'Science'
+    category: 'Solo'
   },
   {
     title: 'Tanuki Sunset',
     description: '',
     url: 'https://mc0825.github.io/g26/class-488/',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBc_knTaEJfOEGjJPNFjIsNG5Mk95b6ua-vw&s',
-    category: 'Driving'
+    category: 'Solo'
   },
   {
     title: 'Minecraft Launcher',
     description: 'Fun to play with your friends and by yourself.',
     url: 'https://irv77.github.io/AmplerLauncher/',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3i6T2Z3GQtOp-O6IC1qtggAoP3_-vm0RsPw&s',
-    category: 'Creative'
+    category: 'Solo or Multiplayer'
   },
   {
     title: 'Bloons TD6 copy',
@@ -267,6 +267,13 @@ export const games: Game[] = [
     description: 'yeah',
     url: '/clpokemonstadium2.html',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/ba/Pok%C3%A9mon_Stadium_2_Coverart.png',
+    category: 'solo'
+  },
+  {
+    title: 'Slow Roads',
+    description: 'yeah',
+    url: 'https://script.google.com/macros/s/AKfycbzqDA2SnuVZ3DRelxxbUxSV9Z1RJz_gQfDRx06WUpgppWgrdDEErtZ1Lev9O6j2w9ioBQ/exec',
+    thumbnail: 'https://slowroads.io/meta-2.0.0.jpg',
     category: 'solo'
   },
   // ── MULTIPLAYER ──
