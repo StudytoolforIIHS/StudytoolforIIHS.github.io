@@ -10,11 +10,11 @@ export const games: Game[] = [
     category: 'Fun'
   },
   {
-    title: 'Chatgpt',
-    description: 'I used ai to make some of the game.',
-    url: 'https://chatgpt.org/',
-    thumbnail: 'https://upload.wikimedia.org/wikipedia/en/5/58/Cities_Skylines_cover_art.jpg',
-    category: 'Fun'
+    title: 'Paper.Io',
+    description: '',
+    url: 'clpaperio.html',
+    thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSeaYvNRf5sKi2HUrLKcMxWrVHdOCHllA_aQ&s',
+    category: 'Solo'
   },
   {
     title: 'The Final Earth 2',
