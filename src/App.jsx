@@ -2277,18 +2277,6 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => { setFilter('Fast Paced'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'Fast Paced' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Globe className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Fast Paced</span>
-          </button>
-
-          <button
             onClick={() => { setFilter('Shooter'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'Shooter' && !selectedGame
@@ -2390,7 +2378,6 @@ export default function App() {
                     {filter === 'favorites' && 'Bookmarked Games'}
                     {filter === 'single' && 'Singleplayer Arcades'}
                     {filter === 'multiplayer' && 'Multiplayer Hub'}
-                    {filter === 'Fast Paced' && 'Fast Paced Games'}
                     {filter === 'Shooter' && 'Shooter Games'}
                     {filter === 'Party' && 'Party Games'}
                     {filter === 'Sports' && 'Sports Games'}
