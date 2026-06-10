@@ -56,28 +56,28 @@ export const games: Game[] = [
     description: '',
     url: 'https://streamex.sh/s',
     thumbnail: 'https://media.licdn.com/dms/image/v2/C4D0BAQHfLNZeLxAnSw/company-logo_200_200/company-logo_200_200/0/1660365825078/streamx_logo?e=2147483647&v=beta&t=pgzHh-mNGlpjcTsC6qxYkW1kRSaOzk0MZlOCL46CmQ0',
-    category: 'Solo'
+    category: 'Not Games'
   },
   {
     title: 'Chatgpt (GROQ API)',
     description: 'Go to the doc and get a API or swap your model if it says max token limit reached. ',
     url: 'https://tharaniidaran-t.github.io/GroqAI2/',
     thumbnail: 'https://www.internetmatters.org/wp-content/uploads/2025/06/Chat-GPT-logo.webp',
-    category: 'Solo'
+    category: 'Not Games'
   },
   {
     title: 'Youtube',
     description: 'Youtube unblocked, should allow you to paste videos into the URL thingy and watch it.',
     url: 'https://grandplat2.github.io/old/yt.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_yL7AtgrIozF4QESx27DN6CDTvAuxtEfPPw&s',
-    category: 'Solo'
+    category: 'Not Games'
   },  
   {
     title: 'Proxy',
     description: 'Allows you to scour the web unblocked',
     url: 'https://somany.gsxpress.com.my/',
     thumbnail: 'https://cdn.prod.website-files.com/65e50602c9dc544319635b46/65e88c2b238ceb5fe132c177_proxy-logo.png',
-    category: 'Solo'
+    category: 'Not Games'
   },
   // ── SOLO ──
   {
@@ -141,7 +141,7 @@ export const games: Game[] = [
     description: 'Fun to play with your friends and by yourself.',
     url: 'https://irv77.github.io/AmplerLauncher/',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3i6T2Z3GQtOp-O6IC1qtggAoP3_-vm0RsPw&s',
-    category: 'Solo or Multiplayer'
+    category: 'Minecraft'
   },
   {
     title: 'Bloons TD6 copy',
@@ -204,35 +204,35 @@ export const games: Game[] = [
     description: 'yeah',
     url: 'clFIFA11.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpOYk7hDNvaL46ncyl7PbEdtncc_EaXvXsCw&s',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'Madden 2002',
     description: 'yeah',
     url: 'clmaddennfl2002.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNXrI6cQ7sBJyZenq-Ur4Cz3V8ZQHgWpFf4XEnWDQgkiSMjE37CiA0g7Ew7Lz1dp78kCcWRRIPo179hdLl4G8XJmFxmwSaZ2Gpt97hkw&s=10',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'Call of Duty 4',
     description: 'yeah',
     url: 'clcod4.html',
     thumbnail: 'https://m.media-amazon.com/images/I/61bs4F5yOIL._AC_UF1000,1000_QL80_.jpg',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'GTA Advance',
     description: 'yeah',
     url: 'clgrandtheftautoadvance.html',
     thumbnail: 'https://m.media-amazon.com/images/M/MV5BNjRhYzk1ODItYjFhNy00OGU4LWE2YjAtZTk3NmRlNDhiZTFjXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'NFS: Most Wanted',
     description: 'yeah',
     url: 'clnfsmostwanted.html',
     thumbnail: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1262560/capsule_616x353.jpg?t=1777484382',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'Suika Watermelon copy',
@@ -246,28 +246,28 @@ export const games: Game[] = [
     description: 'yeah',
     url: 'clpokeplatinum.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQt28qRa0-4kRzGsgiZ76XHYAhuNG6jYlt-Ud40owAzpJrXl4dHHRDHcavTsyQYjsBmvXu1Sw&s=10',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'Pokemon Black 2',
     description: 'yeah',
     url: 'clpokeblack2.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuOhDpOLhmmSUkCuI-aDpmhwF7iygOrqUqeg&s',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'Pokemon SoulSilver',
     description: 'yeah',
     url: 'clpokesoulsilver.html',
     thumbnail: 'https://media.gamestop.com/i/gamestop/10077723/Pokemon-SoulSilver-Game-Only---Nintendo-DS?w=768&h=768&fmt=auto',
-    category: 'solo'
+    category: 'Emulated'
   },
    {
     title: 'Tomodachi Collection',
     description: 'yeah',
     url: 'cltomodachicollection.html',
     thumbnail: 'https://i.ytimg.com/vi/H96rM_liOHo/maxresdefault.jpg',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'Crazy Cattle 3D',
@@ -281,7 +281,7 @@ export const games: Game[] = [
     description: 'yeah',
     url: 'clpokemonstadium2.html',
     thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/ba/Pok%C3%A9mon_Stadium_2_Coverart.png',
-    category: 'solo'
+    category: 'Emulated'
   },
   {
     title: 'Slow Roads',
@@ -296,7 +296,7 @@ export const games: Game[] = [
     description: 'Probably the most fun game, also can play with friends.',
     url: 'https://mc0825.github.io/g66/class-847/',
     thumbnail: 'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/966cec3b19cedf7dd72f93419f13268c/animals-volleyball-logo.png',
-    category: 'Sports'
+    category: 'Sports/Fast Paced'
   },
   {
     title: 'Tag',
@@ -310,7 +310,7 @@ export const games: Game[] = [
     description: '',
     url: 'https://mc0825.github.io/g26/class-436/',
     thumbnail: 'https://images.sftcdn.net/images/t_app-cover-s-16-9,f_auto/p/c980f465-a1b3-49d0-a53a-bca3d956be49/2213180539/basket-random-unblocked-screenshot',
-    category: 'Platformer'
+    category: 'Sports/Fast Paced'
   },
   {
     title: 'Smash Karts',
@@ -338,7 +338,7 @@ export const games: Game[] = [
     description: 'Fun to play with your friends.',
     url: 'https://mc0825.github.io/g/class-811',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSE-WsAiFSXWoWlHvWGYm4xNQysU_kK39VvcRz54bY9a1mdBapeDJne6gevddjqVG_5qhvQZIfZx3POJnNa6sJ-fBbEVW-oUY7-Rv27LwQ&s=10',
-    category: 'Fast Paced'
+    category: 'Sports/Fast Paced'
   },
   {
     title: 'Among Us',
@@ -380,7 +380,7 @@ export const games: Game[] = [
     description: 'Fun to play with your friends.',
     url: 'https://script.google.com/macros/s/AKfycbybZkVPGyvHUOZbwrJSn5fRQIFcGpoIEhp0r-yq2GWRtE_1G7YzP4t8kPZRfp6tutUN/exec',
     thumbnail: 'https://play-lh.googleusercontent.com/VFwCWELna7i6okl299W0e1H-0moEvVfT9N2M9moaikhCTcEDjUg3hE1mkSlm3ZezfLPi4ppMcStIhjWUustesg=w526-h296-rw',
-    category: 'Puzzle'
+    category: 'Fast Paced'
   },
   {
     title: 'Wrassling',
@@ -394,7 +394,7 @@ export const games: Game[] = [
     description: 'Fun to play with your friends.',
     url: 'https://mc0825.github.io/g26/class-511',
     thumbnail: 'https://play-lh.googleusercontent.com/G1PIlb6HWKSaDre0XpUcmKGps9T4iamsSlwrogB3EJzYv4bz0M2am4D17MtGzndaOOU=w240-h480-rw',
-    category: 'Fast Paced'
+    category: 'Sports/Fast Paced'
   },
   {
     title: 'Getaway Shootout',
