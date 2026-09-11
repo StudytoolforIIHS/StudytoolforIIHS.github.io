@@ -1,7 +1,7 @@
 import { lazy, Suspense, useDeferredValue, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PUBLIC_GAMES_BASE_URL } from './data/gameSource';
-import { games as originalGamesCatalog } from './data/games';
+import { ogGames } from './data/games';
 import { games as staticGameCatalog } from './data/gameCatalog';
 import { downloadWebsiteHtml } from './utils/downloadWebsiteHtml';
 import defaultThumbnail from './assets/images/defaultthumbnail.png';
@@ -1789,7 +1789,7 @@ export default function App() {
 
   // Filter games based on category sidebar, matching search query
   const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
-  const displayedGames = gamesScope === 'all' ? games : originalGamesCatalog;
+  const displayedGames = gamesScope === 'all' ? games : ogGames;
   const filteredGames = displayedGames.filter(game => {
     if (filter === 'single') {
       if (!isSinglePlayerCategory(game.category)) return false;

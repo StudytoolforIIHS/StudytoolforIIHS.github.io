@@ -21707,6 +21707,11 @@ const gameData: Game[] = [
   ...legacyGameData
 ];
 
+export const ogGames: Game[] = legacyGameData.map((game) => ({
+  ...game,
+  url: game.url.startsWith('http') ? game.url : `${PUBLIC_GAMES_BASE_URL}${game.url}`
+}));
+
 export const games: Game[] = gameData.map((game) => ({
   ...game,
   url: game.url.startsWith('http') ? game.url : `${PUBLIC_GAMES_BASE_URL}${game.url}`
