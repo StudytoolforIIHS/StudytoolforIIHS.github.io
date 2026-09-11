@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PUBLIC_GAMES_BASE_URL } from './data/gameSource';
 import { games as originalGamesCatalog } from './data/games';
 import { games as staticGameCatalog } from './data/gameCatalog';
+import { downloadWebsiteHtml } from './utils/downloadWebsiteHtml';
 import defaultThumbnail from './assets/images/defaultthumbnail.png';
 const GAMES_PER_PAGE = 36;
 const gameHtmlCache = new Map();
@@ -1343,15 +1344,7 @@ export default function App() {
   }, [panicKeysEnabled]);
 
   const downloadEntireWebsite = () => {
-    if (filter === 'download') {
-      setFilter('all');
-    } else {
-      setFilter('download');
-      setSelectedGame(null);
-      if (viewMode !== 'games') {
-        setViewMode('games');
-      }
-    }
+    downloadWebsiteHtml();
   };
 
   // Prevent accidental close or refresh only when actively inside a game
