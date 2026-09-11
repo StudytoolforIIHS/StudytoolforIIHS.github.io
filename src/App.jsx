@@ -1,9 +1,6 @@
 import { lazy, Suspense, useDeferredValue, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PUBLIC_GAMES_BASE_URL } from './data/gameSource';
-import { ogGames } from './data/games';
-import { games as staticGameCatalog } from './data/gameCatalog';
-import { downloadWebsiteHtml } from './utils/downloadWebsiteHtml';
 import defaultThumbnail from './assets/images/defaultthumbnail.png';
 const GAMES_PER_PAGE = 36;
 const gameHtmlCache = new Map();
@@ -47,32 +44,19 @@ const loadGameFrame = async (url, signal) => {
     return prepareGameHtml(html, baseUrl);
   };
 
-  const filename = new URL(url).pathname.split('/').pop();
+  try {
+    const srcDoc = await loadHtml(url);
+    return { srcDoc };
+  } catch (error) {
+    if (error.name === 'AbortError') throw error;
 
-  const candidates = [url];
-  if (filename) {
-    const fallbackUrls = [
-      `${window.location.origin}${PUBLIC_GAMES_BASE_URL}${filename}`,
-      `${window.location.origin}/${filename}`,
-    ];
-    candidates.push(...fallbackUrls.filter((candidate, index, array) => array.indexOf(candidate) === index));
+    const filename = new URL(url).pathname.split('/').pop();
+    if (!filename) throw error;
+
+    const localUrl = `${window.location.origin}/${filename}`;
+    const srcDoc = await loadHtml(localUrl);
+    return { srcDoc };
   }
-
-  let lastError;
-
-  for (const candidate of candidates) {
-    try {
-      const srcDoc = await loadHtml(candidate);
-      return { srcDoc };
-    } catch (error) {
-      if (error.name === 'AbortError') throw error;
-      lastError = error;
-    }
-  }
-
-  // Fall back to the raw game file so launcher-style pages can still load even when
-  // the HTML pre-processing step fails or the page is served in a slightly different way.
-  return { src: url };
 };
 import { initialArticles } from './data/articles';
 const FlashcardsWorkspace = lazy(() => import('./components/FlashcardsWorkspace'));
@@ -723,12 +707,21 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [currentGamePage, setCurrentGamePage] = useState(1);
-  const [games, setGames] = useState(staticGameCatalog);
-  const [gamesScope, setGamesScope] = useState('og');
+  const [games, setGames] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedGame, setSelectedGame] = useState(null);
   const [gameFrame, setGameFrame] = useState(null);
   const restoredSavedGame = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    import('./data/gameCatalog').then(({ games: loadedGames }) => {
+      if (active) setGames(loadedGames);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (games.length === 0 || selectedGame || restoredSavedGame.current) return;
@@ -1344,7 +1337,15 @@ export default function App() {
   }, [panicKeysEnabled]);
 
   const downloadEntireWebsite = () => {
-    downloadWebsiteHtml();
+    if (filter === 'download') {
+      setFilter('all');
+    } else {
+      setFilter('download');
+      setSelectedGame(null);
+      if (viewMode !== 'games') {
+        setViewMode('games');
+      }
+    }
   };
 
   // Prevent accidental close or refresh only when actively inside a game
@@ -1789,8 +1790,7 @@ export default function App() {
 
   // Filter games based on category sidebar, matching search query
   const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
-  const displayedGames = gamesScope === 'all' ? games : ogGames;
-  const filteredGames = displayedGames.filter(game => {
+  const filteredGames = games.filter(game => {
     if (filter === 'single') {
       if (!isSinglePlayerCategory(game.category)) return false;
     } else if (filter === 'multiplayer') {
@@ -4212,32 +4212,6 @@ export default function App() {
               </button>
             </div>
 
-            {sidebarOpen && (
-              <div className="grid grid-cols-2 gap-2 px-2 pb-1">
-                <button
-                  type="button"
-                  onClick={() => setGamesScope('og')}
-                  className={`rounded-lg border px-2 py-1.5 text-[10px] font-mono font-black uppercase tracking-wide transition-all cursor-pointer ${
-                    gamesScope === 'og'
-                      ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_2px_10px_var(--accent-shadow)]'
-                      : 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)]'
-                  }`}
-                >
-                  OG Games
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGamesScope('all')}
-                  className={`rounded-lg border px-2 py-1.5 text-[10px] font-mono font-black uppercase tracking-wide transition-all cursor-pointer ${
-                    gamesScope === 'all'
-                      ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_2px_10px_var(--accent-shadow)]'
-                      : 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)]'
-                  }`}
-                >
-                  All Games
-                </button>
-              </div>
-            )}
 
             <motion.button
               whileHover={{ x: 6 }}
@@ -4483,7 +4457,7 @@ export default function App() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-l-4 border-[var(--accent-color)] pl-3 gap-4">
                 <div>
                   <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
-                    {filter === 'all' && (gamesScope === 'all' ? 'All Games' : 'OG Games')}
+                    {filter === 'all' && 'All Portals'}
                     {filter === 'favorites' && 'Bookmarked Games'}
                     {filter === 'featured' && 'Featured Showcases'}
                     {filter === 'single' && 'Singleplayer Arcades'}
