@@ -4869,15 +4869,21 @@ export default function App() {
                       const frame = win.document.getElementById('about-blank-game-frame');
                       const cachedFrame = gameHtmlCache.get(selectedGame.url);
                       const loadGameHtml = cachedFrame
-                        ? Promise.resolve(cachedFrame.src || cachedFrame.srcDoc)
+                        ? Promise.resolve(cachedFrame)
                         : loadGameFrame(selectedGame.url).then((gameFrame) => {
                             gameHtmlCache.set(selectedGame.url, gameFrame);
-                            return gameFrame.src || gameFrame.srcDoc;
+                            return gameFrame;
                           });
 
                       loadGameHtml
-                        .then((srcDoc) => {
-                          if (!win.closed) frame.srcdoc = srcDoc;
+                        .then((gameFrameData) => {
+                          if (!win.closed) {
+                            if (gameFrameData.src) {
+                              frame.src = gameFrameData.src;
+                            } else {
+                              frame.srcdoc = gameFrameData.srcDoc;
+                            }
+                          }
                         })
                         .catch(() => {
                           if (!win.closed) frame.srcdoc = createGameLoadErrorDocument(selectedGame.url).srcDoc;
