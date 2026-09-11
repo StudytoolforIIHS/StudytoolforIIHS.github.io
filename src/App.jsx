@@ -152,6 +152,13 @@ const isLocalGame = (url) => {
   return url && !url.startsWith('http://') && !url.startsWith('https://');
 };
 
+const getLocalGameDownloadUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/')) return `${window.location.origin}${url}`;
+  return `${window.location.origin}/${url}`;
+};
+
 const decoyOptions = [
   { value: 'classroom', label: 'Classroom', labelLong: 'Google Classroom', icon: 'https://ssl.gstatic.com/classroom/favicon.png' },
   { value: 'canva', label: 'Canva', labelLong: 'Canva | Visual Suite', icon: 'https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico' },
@@ -4587,8 +4594,8 @@ export default function App() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const link = document.createElement('a');
-                                  link.href = '/' + game.url;
-                                  link.download = game.url;
+                                  link.href = getLocalGameDownloadUrl(game.url);
+                                  link.download = game.url.split('/').pop() || game.url;
                                   document.body.appendChild(link);
                                   link.click();
                                   document.body.removeChild(link);
@@ -4726,8 +4733,8 @@ export default function App() {
                       <button
                         onClick={() => {
                           const link = document.createElement('a');
-                          link.href = '/' + selectedGame.url;
-                          link.download = selectedGame.url;
+                          link.href = getLocalGameDownloadUrl(selectedGame.url);
+                          link.download = selectedGame.url.split('/').pop() || selectedGame.url;
                           document.body.appendChild(link);
                           link.click();
                           document.body.removeChild(link);
