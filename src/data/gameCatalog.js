@@ -1,15 +1,22 @@
 import { games as gamesData } from './games';
 import { slopeGames } from './slopeGames';
 
+const originalGamesSet = new Set(gamesData.slice(0, 100));
+
 export const games = [...gamesData, ...slopeGames].map((game, index) => {
+  const isOriginal = originalGamesSet.has(game);
   if (!game.id) {
     const slug = (game.title || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     return {
       ...game,
-      id: `game-gen-${index}-${slug}`
+      id: `game-gen-${index}-${slug}`,
+      isOriginal
     };
   }
-  return game;
+  return {
+    ...game,
+    isOriginal
+  };
 }).sort((a, b) => {
   const aAi = a.isAiGenerated === true || a.isAiGenerated === 'true';
   const bAi = b.isAiGenerated === true || b.isAiGenerated === 'true';
