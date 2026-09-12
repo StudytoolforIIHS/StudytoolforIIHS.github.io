@@ -1384,14 +1384,19 @@ export default function App() {
   }, [panicKeysEnabled]);
 
   const downloadEntireWebsite = () => {
-    if (filter === 'download') {
-      setFilter('all');
-    } else {
-      setFilter('download');
-      setSelectedGame(null);
-      if (viewMode !== 'games') {
-        setViewMode('games');
-      }
+    const downloadUrl = `${window.location.origin}/Websitedownload/WebsiteUpdated.html`;
+
+    try {
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = 'WebsiteUpdated.html';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
