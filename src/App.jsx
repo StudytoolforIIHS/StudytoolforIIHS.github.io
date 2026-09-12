@@ -162,6 +162,16 @@ const getLocalGameDownloadUrl = (url) => {
   return `${window.location.origin}/${url}`;
 };
 
+const getDirectGmfilesUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  let cleanName = url.startsWith('/') ? url.slice(1) : url;
+  if (cleanName.toLowerCase().startsWith('gmfiles/')) {
+    cleanName = cleanName.slice(8);
+  }
+  return `https://urnperiodic.github.io/Gmfiles/${cleanName}`;
+};
+
 const decoyOptions = [
   { value: 'classroom', label: 'Classroom', labelLong: 'Google Classroom', icon: 'https://ssl.gstatic.com/classroom/favicon.png' },
   { value: 'canva', label: 'Canva', labelLong: 'Canva | Visual Suite', icon: 'https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico' },
@@ -4620,21 +4630,37 @@ export default function App() {
                             )}
 
                             {isLocalGame(game.url) && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const link = document.createElement('a');
-                                  link.href = getLocalGameDownloadUrl(game.url);
-                                  link.download = game.url.split('/').pop() || game.url;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                                className="p-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--card-bg)] rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer"
-                                title="Download Offline Game (.html)"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(getDirectGmfilesUrl(game.url), '_blank');
+                                  }}
+                                  className="p-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--card-bg)] rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                                  title={`Open Direct Link (${getDirectGmfilesUrl(game.url)})`}
+                                >
+                                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                  </svg>
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const link = document.createElement('a');
+                                    link.href = getLocalGameDownloadUrl(game.url);
+                                    link.download = game.url.split('/').pop() || game.url;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  className="p-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--card-bg)] rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                                  title="Download Offline Game (.html)"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -4757,6 +4783,22 @@ export default function App() {
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
+
+                    {/* Direct Gmfiles Link button for local public games */}
+                    {selectedGame && isLocalGame(selectedGame.url) && (
+                      <button
+                        onClick={() => {
+                          window.open(getDirectGmfilesUrl(selectedGame.url), '_blank');
+                        }}
+                        className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                        title={`Open Direct Link (${getDirectGmfilesUrl(selectedGame.url)})`}
+                      >
+                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                      </button>
+                    )}
 
                     {/* Download button for local public games */}
                     {selectedGame && isLocalGame(selectedGame.url) && (
