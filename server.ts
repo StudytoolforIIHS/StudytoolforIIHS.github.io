@@ -193,6 +193,9 @@ Always focus on being genuinely useful and producing high-quality answers.`
     }
   });
 
+  // Serve the website download bundle from the repo root in all modes
+  app.use('/Websitedownload', express.static(path.join(process.cwd(), 'Websitedownload')));
+
   // Vite development middleware integration
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
