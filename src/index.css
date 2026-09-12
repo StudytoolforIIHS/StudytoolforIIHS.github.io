@@ -1261,3 +1261,89 @@ body {
   font-weight: 600;
 }
 
+/* ==========================================================================
+   CHROMEBOOK PERFORMANCE OPTIMIZATION & ANIMATION ENGINE CONTROL
+   ========================================================================== */
+
+/* Low-power rendering & composite optimizations for Chromebook hardware */
+html {
+  text-rendering: optimizeSpeed;
+}
+
+/* Fast image decoding and viewport-contained rendering */
+.custom-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 320px 240px;
+}
+
+/* When animations are disabled (Default on start for Chromebooks) */
+html[data-animations="disabled"] *,
+html[data-animations="disabled"] *::before,
+html[data-animations="disabled"] *::after,
+.animations-disabled,
+.animations-disabled *,
+.animations-disabled *::before,
+.animations-disabled *::after {
+  animation: none !important;
+  animation-duration: 0.0001ms !important;
+  animation-iteration-count: 1 !important;
+  transition: none !important;
+  transition-duration: 0.0001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Completely remove expensive GPU fill-rate filters and multi-pass blurs */
+html[data-animations="disabled"] .bg-orbs,
+html[data-animations="disabled"] .orb,
+.animations-disabled .bg-orbs,
+.animations-disabled .orb {
+  display: none !important;
+}
+
+html[data-animations="disabled"] [class*="backdrop-blur"],
+.animations-disabled [class*="backdrop-blur"],
+html[data-animations="disabled"] .backdrop-blur-md,
+html[data-animations="disabled"] .backdrop-blur-xl,
+html[data-animations="disabled"] .backdrop-blur-sm,
+.animations-disabled .backdrop-blur-md,
+.animations-disabled .backdrop-blur-xl,
+.animations-disabled .backdrop-blur-sm {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Flatten heavy hover transforms and animated shadows when animations are disabled */
+html[data-animations="disabled"] .custom-card:hover,
+.animations-disabled .custom-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+html[data-animations="disabled"] .custom-theme-option:hover,
+.animations-disabled .custom-theme-option:hover {
+  transform: none !important;
+}
+
+html[data-animations="disabled"] .gemini-logo-svg,
+html[data-animations="disabled"] .gemini-logo-svg-large,
+.animations-disabled .gemini-logo-svg,
+.animations-disabled .gemini-logo-svg-large {
+  animation: none !important;
+  filter: none !important;
+}
+
+html[data-animations="disabled"] .shimmer-bg,
+.animations-disabled .shimmer-bg {
+  animation: none !important;
+}
+
+/* Utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
