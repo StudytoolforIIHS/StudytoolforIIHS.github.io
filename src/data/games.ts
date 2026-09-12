@@ -8508,7 +8508,7 @@ const gameData: Game[] = [
   {
     title: 'Ayuncraft',
     description: '',
-    url: 'clayuncraft.html',
+    url: 'clclayuncraft.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8524,7 +8524,7 @@ const gameData: Game[] = [
   {
     title: 'EB Client',
     description: '',
-    url: 'clebclient.html',
+    url: 'EB.Client.V1.0.0R2.WASM.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8548,7 +8548,7 @@ const gameData: Game[] = [
   {
     title: 'Eaglercraft Magic',
     description: '',
-    url: 'Cleaglercraftmagic.html',
+    url: 'cleaglercraftmagic.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8588,7 +8588,7 @@ const gameData: Game[] = [
   {
     title: 'Eaglercraft Tech',
     description: '',
-    url: 'cleaglercrafttech.html',
+    url: 'clEaglerCraftTech.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8628,7 +8628,7 @@ const gameData: Game[] = [
   {
     title: 'GX Client',
     description: '',
-    url: 'clGXClient.html',
+    url: 'clGXclient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8636,7 +8636,7 @@ const gameData: Game[] = [
   {
     title: 'JMO Client',
     description: '',
-    url: 'cljmoclient.html',
+    url: 'cljmocraft.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8708,7 +8708,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft Prismarine Client',
     description: '',
-    url: 'clprismarine.html',
+    url: 'clprismclient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8716,7 +8716,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft 1.11.2',
     description: '',
-    url: 'EaglercraftZ_1.11.2.html',
+    url: 'clEaglercraftZ_1112.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8724,7 +8724,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft 1.5.2',
     description: '',
-    url: 'eaglercraft.1.5.2.html',
+    url: 'cleaglercraft152.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8732,7 +8732,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft 1.7.3',
     description: '',
-    url: 'Eaglercraft-Beta-1.7.3-Offline.html',
+    url: 'clEaglercraft-Beta-13-Offline.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8740,7 +8740,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft 1.9',
     description: '',
-    url: 'EaglercraftL_1.9_v0_7_0_Offline_Signed.html',
+    url: 'clEaglercraftL_19_v0_7_0_Offline_Signed.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8748,7 +8748,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft Alpha 1.2.6',
     description: '',
-    url: 'Eaglercraft-Alpha-1.2.6-Offline.html',
+    url: 'clEaglercraft-Alpha-126-Offline.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8756,7 +8756,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft Beta 1.3',
     description: '',
-    url: 'Eaglercraft-Beta-1.3-Offline.html',
+    url: 'clEaglercraft-Beta-1.3-Offline.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8764,7 +8764,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft Indev',
     description: '',
-    url: 'Eaglercraft-Indev-Offline.html',
+    url: 'clEaglercraft-Indev-Offline.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8796,7 +8796,7 @@ const gameData: Game[] = [
   {
     title: 'Pixel Client',
     description: '',
-    url: 'clpixel.html',
+    url: 'clpixelclient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8844,7 +8844,7 @@ const gameData: Game[] = [
   {
     title: 'Solar Client',
     description: '',
-    url: 'clsolar.html',
+    url: 'clsolarclient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8860,7 +8860,7 @@ const gameData: Game[] = [
   {
     title: 'Tuff Client',
     description: '',
-    url: 'cltuffclient.html',
+    url: 'clTuff_Client_Offline_WASM.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8892,7 +8892,7 @@ const gameData: Game[] = [
   {
     title: 'Zeta Client',
     description: '',
-    url: 'clzetaclient.html',
+    url: 'clZetaClient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
