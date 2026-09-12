@@ -279,6 +279,15 @@ body {
   user-select: text !important;
 }
 
+/* Allow users to highlight the names and descriptions on game cards while keeping the rest of the games UI non-selectable */
+.games-no-select .games-card-copy,
+.games-no-select .games-card-copy * {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
 .custom-card {
   background-color: var(--card-bg);
   border: 1px solid var(--card-border);

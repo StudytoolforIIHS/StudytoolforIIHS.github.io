@@ -173,6 +173,23 @@ const getDirectGmfilesUrl = (url) => {
   return `https://urnperiodic.github.io/Gmfiles/${cleanName}`;
 };
 
+const getGamePathName = (url) => {
+  if (!url) return '';
+  const cleanedUrl = url.split('?')[0].split('#')[0];
+  const filename = cleanedUrl.split('/').pop() || cleanedUrl;
+  return filename.replace(/\.html?$/i, '');
+};
+
+const copyTextToClipboard = async (text) => {
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    console.error('Failed to copy text:', error);
+  }
+};
+
 const decoyOptions = [
   { value: 'classroom', label: 'Classroom', labelLong: 'Google Classroom', icon: 'https://ssl.gstatic.com/classroom/favicon.png' },
   { value: 'canva', label: 'Canva', labelLong: 'Canva | Visual Suite', icon: 'https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico' },
@@ -551,12 +568,23 @@ export default function App() {
   // Helper to optimize and resize thumbnail URLs dynamically to Poki recommended size (512x512) for fast load & high clarity
   const getOptimizedThumbnail = (url) => {
     if (!url) return '';
-    if (url.includes('img.poki-cdn.com')) {
-      return url
-        .replace('width=1200', 'width=512')
-        .replace('height=1200', 'height=512');
+
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      if (url.includes('img.poki-cdn.com')) {
+        return url
+          .replace('width=1200', 'width=512')
+          .replace('height=1200', 'height=512');
+      }
+      return url;
     }
-    return url;
+
+    const normalizedUrl = url.replace(/^\/+/, '');
+
+    if (normalizedUrl.startsWith('thumbnails/')) {
+      return `/${normalizedUrl}`;
+    }
+
+    return `/thumbnails/${normalizedUrl}`;
   };
 
   const [theme, setTheme] = useState(() => {
@@ -4617,19 +4645,45 @@ export default function App() {
                         </div>
 
                         {/* Title and descriptions */}
-                        <div className="p-4 flex-1 flex flex-col justify-between">
+                        <div className="games-card-copy p-4 flex-1 flex flex-col justify-between">
                           <div className="space-y-1.5">
-                            <h3 className={`text-sm font-black line-clamp-1 leading-snug transition-colors flex items-center gap-1.5 ${
+                            <h3 className={`games-card-copy-title text-sm font-black line-clamp-1 leading-snug transition-colors flex items-center gap-1.5 ${
                               game.featured 
                                 ? 'text-[var(--text-primary)] group-hover:text-amber-400' 
                                 : 'text-[var(--text-primary)] group-hover:text-[var(--accent-color)]'
                             }`}>
-                              <span>{game.title}</span>
+                              <span className="min-w-0 flex-1 truncate">{game.title}</span>
                               {game.isAiGenerated && (
                                 <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 whitespace-nowrap">
                                   AI
                                 </span>
                               )}
+                              <div className="ml-auto flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  aria-label={`Copy game path for ${game.title}`}
+                                  title={`Copy game path for ${game.title}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyTextToClipboard(getGamePathName(game.url));
+                                  }}
+                                  className="p-1 rounded border border-[var(--card-border)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-colors"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`Copy game title for ${game.title}`}
+                                  title={`Copy game title for ${game.title}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyTextToClipboard(game.title);
+                                  }}
+                                  className="p-1 rounded border border-[var(--card-border)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-colors"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
                             </h3>
                             <p className="text-xs text-[var(--text-muted)] line-clamp-3 leading-relaxed">
                               {game.description}
