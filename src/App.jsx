@@ -1384,7 +1384,7 @@ export default function App() {
   }, [panicKeysEnabled]);
 
   const downloadEntireWebsite = () => {
-    const downloadUrl = `${window.location.origin}/Websitedownload/WebsiteUpdated.html`;
+    const downloadUrl = `${window.location.origin}/WebsiteUpdated.html`;
 
     try {
       const link = document.createElement('a');
