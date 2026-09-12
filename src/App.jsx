@@ -123,7 +123,8 @@ import {
   Shuffle,
   Timer,
   Dices,
-  GripVertical
+  GripVertical,
+  Crown
 } from 'lucide-react';
 
 // Safe storage helper to prevent SecurityError crash in sandboxed iframes
@@ -1842,20 +1843,24 @@ export default function App() {
       return (game.searchText || '').includes(normalizedSearchQuery);
     }
 
-    if (gameCatalogMode === 'original' && !game.isOriginal) {
-      return false;
-    }
-    if (filter === 'single') {
-      if (!isSinglePlayerCategory(game.category)) return false;
-    } else if (filter === 'multiplayer') {
-      if (!isMultiplayerCategory(game.category)) return false;
-    } else if (filter === 'favorites') {
-      if (!favorites.includes(game.id)) return false;
-    } else if (filter === 'featured') {
-      if (!game.featured) return false;
-    } else if (filter !== 'all') {
-      // Direct category filter matching
-      if ((game.category || '').toLowerCase().trim() !== filter.toLowerCase().trim()) return false;
+    if (filter === 'og') {
+      if (!game.isOriginal && !game.isOg && (game.category || '').toLowerCase().trim() !== 'og') return false;
+    } else {
+      if (gameCatalogMode === 'original' && !game.isOriginal && !game.isOg) {
+        return false;
+      }
+      if (filter === 'single') {
+        if (!isSinglePlayerCategory(game.category)) return false;
+      } else if (filter === 'multiplayer') {
+        if (!isMultiplayerCategory(game.category)) return false;
+      } else if (filter === 'favorites') {
+        if (!favorites.includes(game.id)) return false;
+      } else if (filter === 'featured') {
+        if (!game.featured) return false;
+      } else if (filter !== 'all') {
+        // Direct category filter matching
+        if ((game.category || '').toLowerCase().trim() !== filter.toLowerCase().trim()) return false;
+      }
     }
 
     return true;
@@ -4232,6 +4237,20 @@ export default function App() {
           <motion.button
             whileHover={{ x: 6 }}
             whileTap={{ scale: 0.97 }}
+            onClick={() => { setFilter('og'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'og' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80 text-emerald-400/90 hover:text-emerald-300'
+            }`}
+          >
+            <Crown className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>OG Games</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ x: 6 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => { setFilter('single'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'single' && !selectedGame
@@ -4418,6 +4437,7 @@ export default function App() {
                           {filter === 'all' && (gameCatalogMode === 'original' ? 'ORIGINAL GAMES' : 'ALL GAMES')}
                           {filter === 'favorites' && 'BOOKMARKED GAMES'}
                           {filter === 'featured' && 'FEATURED SHOWCASES'}
+                          {filter === 'og' && 'OG CLASSICS & ORIGINAL GAMES'}
                           {filter === 'single' && 'SINGLEPLAYER ARCADES'}
                           {filter === 'Emulated' && 'EMULATED ARCHIVES'}
                           {filter === 'minecraft' && 'MINECRAFT PLATFORM'}
@@ -4586,6 +4606,12 @@ export default function App() {
                           {game.isAiGenerated && (
                             <span className="absolute bottom-2.5 left-2.5 text-[8px] font-extrabold tracking-widest bg-purple-950/85 backdrop-blur-sm text-purple-400 border border-purple-500/40 px-2 py-0.5 rounded-full inline-block z-10 shadow-sm font-mono uppercase">
                               ✧ AI Generated
+                            </span>
+                          )}
+
+                          {(game.isOriginal || game.isOg) && !game.featured && !game.isAiGenerated && (
+                            <span className="absolute bottom-2.5 left-2.5 text-[8px] font-extrabold tracking-widest bg-emerald-950/85 backdrop-blur-sm text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full inline-block z-10 shadow-sm font-mono uppercase">
+                              ♛ OG Classic
                             </span>
                           )}
                         </div>

@@ -1,21 +1,23 @@
-import { games as gamesData } from './games';
+import { games as gamesData, ogGames, isOgGame } from './games';
 import { slopeGames } from './slopeGames';
 
-const originalGamesSet = new Set(gamesData.slice(0, 100));
+const ogTitlesSet = new Set(ogGames.map(g => g.title));
 
 export const games = [...gamesData, ...slopeGames].map((game, index) => {
-  const isOriginal = originalGamesSet.has(game);
+  const isOriginal = Boolean(game.isOriginal || game.isOg || ogTitlesSet.has(game.title) || isOgGame(game));
   if (!game.id) {
     const slug = (game.title || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     return {
       ...game,
       id: `game-gen-${index}-${slug}`,
-      isOriginal
+      isOriginal,
+      isOg: isOriginal
     };
   }
   return {
     ...game,
-    isOriginal
+    isOriginal,
+    isOg: isOriginal
   };
 }).sort((a, b) => {
   const aAi = a.isAiGenerated === true || a.isAiGenerated === 'true';

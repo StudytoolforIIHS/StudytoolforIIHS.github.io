@@ -3,16 +3,15 @@ import { Game } from '../types';
 export const PUBLIC_GAMES_BASE_URL = '/Gmfiles/';
 
 const legacyGameData: Game[] = [
-  // ─────────────────────────────────────────────────────────────
-  // ── WELL-KNOWN EMULATED CLASSICS (TOP PRIORITY) ──
-  // ─────────────────────────────────────────────────────────────
   {
     title: 'The Legend of Zelda Ocarina of Time',
     description: 'Travel through time to save Hyrule in the legendary Nintendo 64 masterpiece. Make sure you open in a seperate tab to play this game.',
     url: 'clocarinaoftime.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'The Legend of Zelda',
@@ -20,7 +19,9 @@ const legacyGameData: Game[] = [
     url: 'clloz1.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Chrono Trigger',
@@ -28,7 +29,9 @@ const legacyGameData: Game[] = [
     url: 'clchronotrigger.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'EarthBound',
@@ -36,7 +39,9 @@ const legacyGameData: Game[] = [
     url: 'clearthboundsnes.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Castlevania: Aria of Sorrow',
@@ -44,7 +49,9 @@ const legacyGameData: Game[] = [
     url: 'clcastlevaniaariaofsorrow.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Cave Story',
@@ -52,7 +59,9 @@ const legacyGameData: Game[] = [
     url: 'clcavestory.html',
     thumbnail: '',
     category: 'Solo',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'New Super Mario Bros',
@@ -60,7 +69,9 @@ const legacyGameData: Game[] = [
     url: 'clnewsupermariobros.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Mario Kart DS',
@@ -68,7 +79,9 @@ const legacyGameData: Game[] = [
     url: 'clmariokartds.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Pokemon - Platinum Version',
@@ -76,7 +89,9 @@ const legacyGameData: Game[] = [
     url: 'clpokeplatinum.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQt28qRa0-4kRzGsgiZ76XHYAhuNG6jYlt-Ud40owAzpJrXl4dHHRDHcavTsyQYjsBmvXu1Sw&s=10',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Pokemon Black Version 2',
@@ -84,7 +99,9 @@ const legacyGameData: Game[] = [
     url: 'clpokeblack2.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuOhDpOLhmmSUkCuI-aDpmhwF7iygOrqUqeg&s',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Pokemon - SoulSilver Version',
@@ -92,7 +109,9 @@ const legacyGameData: Game[] = [
     url: 'clpokesoulsilver.html',
     thumbnail: 'https://media.gamestop.com/i/gamestop/10077723/Pokemon-SoulSilver-Game-Only---Nintendo-DS?w=768&h=768&fmt=auto',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Pokemon Stadium 2',
@@ -100,7 +119,9 @@ const legacyGameData: Game[] = [
     url: 'clpokemonstadium2.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Gran Turismo 2',
@@ -108,7 +129,9 @@ const legacyGameData: Game[] = [
     url: 'clgranturismo2.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Need For Speed - Most Wanted',
@@ -116,7 +139,9 @@ const legacyGameData: Game[] = [
     url: 'clnfsmostwanted.html',
     thumbnail: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1262560/capsule_616x353.jpg?t=1777484382',
     category: 'Emulated',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Grand Theft Auto Advance',
@@ -124,7 +149,9 @@ const legacyGameData: Game[] = [
     url: 'clgrandtheftautoadvance.html',
     thumbnail: 'https://m.media-amazon.com/images/M/MV5BNjRhYzk1ODItYjFhNy00OGU4LWE2YjAtZTk3NmRlNDhiZTFjXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
     category: 'Emulated',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Call of Duty 4 - Modern Warfare',
@@ -132,7 +159,9 @@ const legacyGameData: Game[] = [
     url: 'clcod4.html',
     thumbnail: 'https://m.media-amazon.com/images/I/61bs4F5yOIL._AC_UF1000,1000_QL80_.jpg',
     category: 'Emulated',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Madden NFL 2002',
@@ -140,7 +169,9 @@ const legacyGameData: Game[] = [
     url: 'clmaddennfl2002.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNXrI6cQ7sBJyZenq-Ur4Cz3V8ZQHgWpFf4XEnWDQgkiSMjE37CiA0g7Ew7Lz1dp78kCcWRRIPo179hdLl4G8XJmFxmwSaZ2Gpt97hkw&s=10',
     category: 'Emulated',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'FIFA 11',
@@ -148,7 +179,9 @@ const legacyGameData: Game[] = [
     url: 'clFIFA11.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpOYk7hDNvaL46ncyl7PbEdtncc_EaXvXsCw&s',
     category: 'Emulated',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Ace Attorney: Investigations - Miles Edgeworth',
@@ -156,7 +189,9 @@ const legacyGameData: Game[] = [
     url: 'claceattorneymilesedgeworth.html',
     thumbnail: '',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Phoenix Wright - Ace Attorney - Justice For All',
@@ -164,7 +199,9 @@ const legacyGameData: Game[] = [
     url: 'clpheonixjusticeforall.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_YlHon89nCvWBzs71pzFmcJWQ4O7zmvfo07Zv85mpQddjo0kLlNWmLEIRqMj1o3BSTy0zsWyLEgrjQUt8ssfh-nkPFBxhKcM216lujQ&s=10',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Phoenix Wright - Ace Attorney - Trials and Tribulations',
@@ -172,7 +209,9 @@ const legacyGameData: Game[] = [
     url: 'clpheonixtrialsandyear.html',
     thumbnail: 'Mia_Happy-1.jpg',
     category: 'Emulated',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Tomodachi Collection',
@@ -180,7 +219,9 @@ const legacyGameData: Game[] = [
     url: 'cltomodachicollection.html',
     thumbnail: 'https://i.ytimg.com/vi/H96rM_liOHo/maxresdefault.jpg',
     category: 'Emulated',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   }
 ];
 
@@ -21707,12 +21748,110 @@ const gameData: Game[] = [
   ...legacyGameData
 ];
 
-export const ogGames: Game[] = legacyGameData.map((game) => ({
-  ...game,
-  url: game.url.startsWith('http') ? game.url : `${PUBLIC_GAMES_BASE_URL}${game.url}`
-}));
+export const EXPLICIT_OG_TITLES: string[] = [
+  'The Legend of Zelda Ocarina of Time',
+  'The Legend of Zelda',
+  'Chrono Trigger',
+  'EarthBound',
+  'Castlevania: Aria of Sorrow',
+  'Cave Story',
+  'New Super Mario Bros',
+  'Mario Kart DS',
+  'Pokemon - Platinum Version',
+  'Pokemon Black Version 2',
+  'Pokemon - SoulSilver Version',
+  'Pokemon Stadium 2',
+  'Gran Turismo 2',
+  'Need For Speed - Most Wanted',
+  'Grand Theft Auto Advance',
+  'Call of Duty 4 - Modern Warfare',
+  'Madden NFL 2002',
+  'FIFA 11',
+  'Ace Attorney: Investigations - Miles Edgeworth',
+  'Phoenix Wright - Ace Attorney - Justice For All',
+  'Phoenix Wright - Ace Attorney - Trials and Tribulations',
+  'Tomodachi Collection',
+  'City Skylines copy',
+  'The Final Earth 2 New',
+  'The Final Earth 2 (Modded)',
+  'The Final Earth 2',
+  'Shader Pilot',
+  'Paper.io',
+  'Cookie Clicker',
+  '99 Nights In The Forest',
+  'Slope',
+  'Epilepsy game',
+  '2048',
+  'Bitlife',
+  'OvO',
+  'Wordle Unlimited',
+  'Sandboxels',
+  'Tanuki Sunset',
+  'Minecraft Launcher',
+  'Bloons TD6 copy',
+  'Bloons Tower Defense 5',
+  'Tetris',
+  'Tomb of the Mask',
+  'Crossy Road',
+  'Champion Island',
+  'Suika Watermelon copy',
+  'Crazy Cattle 3D',
+  'Slow Roads',
+  'Raft - Old',
+  'Schoolboy Runaway',
+  'Buckshot Roulette',
+  'Bendy and the Ink Machine',
+  'Block Blast 2',
+  'Yandere Simulator',
+  'Adventure Capitalist',
+  'Angry Birds',
+  'Neon Breakout',
+  'Synthwave Runner',
+  'TRON Lightcycle Trail',
+  'Cyber Defenders Arcade',
+  'Animals Volleyball',
+  'Tag',
+  'Basket Random',
+  'Smash Karts',
+  'Leader Strike',
+  'Imposter',
+  'Volley Random',
+  'Among Us',
+  'Wavelength',
+  'Chess',
+  'Wordle 1v1',
+  'Mafia',
+  'Rocket goal',
+  'Wrassling',
+  'Soccer Random',
+  'Getaway Shootout',
+  'Skribbl.io',
+  'Uno',
+  '20 Questions',
+  'Hangman',
+  'Minecraft 1.12'
+];
 
-export const games: Game[] = gameData.map((game) => ({
-  ...game,
-  url: game.url.startsWith('http') ? game.url : `${PUBLIC_GAMES_BASE_URL}${game.url}`
-}));
+const legacyTitlesSet = new Set([
+  ...legacyGameData.map(g => (g.title || '').toLowerCase().trim()),
+  ...EXPLICIT_OG_TITLES.map(t => t.toLowerCase().trim())
+]);
+
+export const isOgGame = (game: Game): boolean => {
+  if (!game) return false;
+  if (game.isOriginal || game.isOg) return true;
+  const titleNorm = (game.title || '').toLowerCase().trim();
+  return legacyTitlesSet.has(titleNorm);
+};
+
+export const games: Game[] = gameData.map((game) => {
+  const isOg = game.isOriginal || game.isOg || legacyTitlesSet.has((game.title || '').toLowerCase().trim());
+  return {
+    ...game,
+    isOriginal: isOg,
+    isOg: isOg,
+    url: game.url.startsWith('http') ? game.url : `${PUBLIC_GAMES_BASE_URL}${game.url}`
+  };
+});
+
+export const ogGames: Game[] = games.filter((game) => game.isOg);
