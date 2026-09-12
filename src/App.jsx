@@ -4614,11 +4614,6 @@ export default function App() {
                             </span>
                           )}
 
-                          {(game.isOriginal || game.isOg) && !game.featured && !game.isAiGenerated && (
-                            <span className="absolute bottom-2.5 left-2.5 text-[8px] font-extrabold tracking-widest bg-emerald-950/85 backdrop-blur-sm text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full inline-block z-10 shadow-sm font-mono uppercase">
-                              ♛ OG Classic
-                            </span>
-                          )}
                         </div>
 
                         {/* Title and descriptions */}
