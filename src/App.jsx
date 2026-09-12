@@ -76,6 +76,8 @@ import {
   RotateCcw, 
   Maximize2, 
   Minimize2, 
+  Expand,
+  Shrink,
   Plus, 
   Minus, 
   Heart, 
@@ -120,7 +122,8 @@ import {
   History,
   Shuffle,
   Timer,
-  Dices
+  Dices,
+  GripVertical
 } from 'lucide-react';
 
 // Safe storage helper to prevent SecurityError crash in sandboxed iframes
@@ -707,6 +710,14 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [currentGamePage, setCurrentGamePage] = useState(1);
+  const [gameCatalogMode, setGameCatalogMode] = useState(() => {
+    try {
+      return safeStorage.getItem('unblocked-game-catalog-mode') || 'original';
+    } catch {
+      return 'original';
+    }
+  });
+  const [targetPageInput, setTargetPageInput] = useState('');
   const [games, setGames] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedGame, setSelectedGame] = useState(null);
@@ -762,7 +773,7 @@ export default function App() {
   const [gameHeaderHidden, setGameHeaderHidden] = useState(false);
   const [autoHideHeader, setAutoHideHeader] = useState(() => {
     const saved = safeStorage.getItem('unblocked-auto-hide-header');
-    return saved === 'true'; // Defaults to false
+    return saved === null ? true : saved === 'true'; // Defaults to true
   });
   const [altBarOpen, setAltBarOpen] = useState(true);
   const [headerOpen, setHeaderOpen] = useState(false);
@@ -808,13 +819,19 @@ export default function App() {
     } else if (currentFilter === 'youtube') {
       url = 'https://urnperiodic.github.io/youtube1/';
     } else if (currentFilter === 'chat') {
-      url = 'https://urnperiodic.github.io/extrastuffforwebsite/';
+      url = 'https://grandplat2.vercel.app/';
     } else if (currentFilter === 'lobbychat') {
       url = window.location.origin + '?filter=lobbychat&view=games';
     } else if (currentFilter === 'download') {
       url = 'https://urnperiodic.github.io/download/';
     } else {
-      url = window.location.origin + '?view=games';
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set('decoyType', decoyType);
+      searchParams.set('view', 'games');
+      if (selectedGame) {
+        searchParams.set('game', selectedGame.id);
+      }
+      url = `${window.location.origin}${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
     }
 
     const win = window.open('about:blank', '_blank');
@@ -825,6 +842,9 @@ export default function App() {
       if (decoyType === 'classroom') {
         parentTitle = "Home - Classroom";
         parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
+      } else if (decoyType === 'canva') {
+        parentTitle = "Home - Canva";
+        parentFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
       } else if (decoyType === 'clever') {
         parentTitle = "Clever | Log in with Clever";
         parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
@@ -845,13 +865,20 @@ export default function App() {
         parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
       }
 
-      win.document.write(`<html><head><title>${parentTitle}</title><link rel="icon" href="${parentFavicon}"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;}iframe{width:100vw;height:100vh;border:none;display:block;margin:0;padding:0;}</style></head><body><iframe src="${url}" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation" allowfullscreen="true"></iframe></body></html>`);
-      win.document.close();
+      win.document.title = parentTitle;
+      const link1 = win.document.createElement("link"); link1.rel = "icon"; link1.href = parentFavicon;
+      const link2 = win.document.createElement("link"); link2.rel = "shortcut icon"; link2.href = parentFavicon;
+      win.document.head.appendChild(link1); win.document.head.appendChild(link2);
+      win.document.body.style.margin = "0"; win.document.body.style.padding = "0"; win.document.body.style.width = "100%"; win.document.body.style.height = "100%"; win.document.body.style.overflow = "hidden"; win.document.body.style.background = "#000";
+      const iframe = win.document.createElement("iframe"); iframe.src = url; iframe.style.width = "100vw"; iframe.style.height = "100vh"; iframe.style.border = "none"; iframe.style.display = "block"; iframe.style.margin = "0"; iframe.style.padding = "0"; iframe.setAttribute("allow", "fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation"); iframe.setAttribute("allowfullscreen", "true");
+      win.document.body.appendChild(iframe);
+    } else {
+      alert("Popup blocked! Please allow popups for this site.");
     }
   };
 
   // States for collapsible & resizable docked game chat
-  const [dockedChatWidth, setDockedChatWidth] = useState(288); // 288px default (w-72)
+  const [dockedChatWidth, setDockedChatWidth] = useState(235); // 235px lowest width
   const [dockedChatCollapsed, setDockedChatCollapsed] = useState(true);
   const [isDraggingDock, setIsDraggingDock] = useState(false);
 
@@ -1005,30 +1032,41 @@ export default function App() {
   const [isShake, setIsShake] = useState(false);
   const [errorCount, setErrorCount] = useState(0);
   const [isGlobalSettingsOpen, setIsGlobalSettingsOpen] = useState(false);
-  const [historyClearedToast, setHistoryClearedToast] = useState(false);
-
-  const handleClearHistory = () => {
+  // Animations state: disabled by default at start for Chromebook performance
+  const [animationsEnabled, setAnimationsEnabled] = useState(() => {
     try {
-      if (typeof window !== 'undefined') {
-        const cleanPath = window.location.pathname || '/';
-        const maskedState = {
-          disguise: 'educational_workspace',
-          app: 'Google Classroom',
-          timestamp: Date.now()
-        };
-        window.history.replaceState(maskedState, 'Google Classroom', cleanPath);
-      }
-    } catch (e) {
-      console.warn('History replaceState failed:', e);
+      return safeStorage.getItem('unblocked-animations-enabled') === 'true';
+    } catch {
+      return false;
     }
-    setHistoryClearedToast(true);
-    setTimeout(() => {
-      setHistoryClearedToast(false);
-    }, 2000);
-  };
-  const [showNotices, setShowNotices] = useState(() => {
-    return safeStorage.getItem('notices-seen') !== 'true';
   });
+
+  const toggleAnimations = () => {
+    setAnimationsEnabled(prev => {
+      const next = !prev;
+      try {
+        safeStorage.setItem('unblocked-animations-enabled', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    try {
+      if (animationsEnabled) {
+        document.documentElement.classList.remove('animations-disabled');
+        document.documentElement.setAttribute('data-animations', 'enabled');
+      } else {
+        document.documentElement.classList.add('animations-disabled');
+        document.documentElement.setAttribute('data-animations', 'disabled');
+      }
+    } catch {
+      // Safe fallback
+    }
+  }, [animationsEnabled]);
+  const [showNotices, setShowNotices] = useState(false);
   const [noticeStep, setNoticeStep] = useState(0); // 0: Download, 1: Movies, 2: Cloak, 3: Decoy
   const [noticeCountdown, setNoticeCountdown] = useState(20);
 
@@ -1075,15 +1113,13 @@ export default function App() {
   };
 
   const reshowAllNotices = () => {
-    setNoticeStep(0);
-    setNoticeCountdown(20);
-    setShowNotices(true);
+    setFilter('info');
+    setSelectedGame(null);
   };
 
   const reshowDownloadNotice = () => {
-    setNoticeStep(0);
-    setNoticeCountdown(20);
-    setShowNotices(true);
+    setFilter('info');
+    setSelectedGame(null);
   };
 
   // Articles and Custom AI article generator states
@@ -1791,6 +1827,14 @@ export default function App() {
   // Filter games based on category sidebar, matching search query
   const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
   const filteredGames = games.filter(game => {
+    // When a search query is entered, search across every game in the entire library
+    if (normalizedSearchQuery !== '') {
+      return (game.searchText || '').includes(normalizedSearchQuery);
+    }
+
+    if (gameCatalogMode === 'original' && !game.isOriginal) {
+      return false;
+    }
     if (filter === 'single') {
       if (!isSinglePlayerCategory(game.category)) return false;
     } else if (filter === 'multiplayer') {
@@ -1802,10 +1846,6 @@ export default function App() {
     } else if (filter !== 'all') {
       // Direct category filter matching
       if ((game.category || '').toLowerCase().trim() !== filter.toLowerCase().trim()) return false;
-    }
-
-    if (normalizedSearchQuery !== '') {
-      return game.searchText.includes(normalizedSearchQuery);
     }
 
     return true;
@@ -2427,23 +2467,6 @@ export default function App() {
         {/* Floating Controls inside Lock Screen */}
         <div className="absolute top-4 right-4 flex items-center gap-3">
           
-          {/* Light/Dark Slider */}
-          <div className="flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] py-1.5 px-2.5 rounded-full shadow-sm">
-            <div 
-              onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
-              className="relative w-[50px] h-6 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
-              title="Toggle Light/Dark Theme Mode"
-            >
-              <div 
-                className={`w-5 h-5 rounded-full bg-[var(--accent-color)] shadow-md transition-all duration-350 ease-out flex items-center justify-center text-[10px] transform ${
-                  mode === 'dark' ? 'translate-x-6' : 'translate-x-0'
-                }`}
-              >
-                {mode === 'dark' ? '🌙' : '☀️'}
-              </div>
-            </div>
-          </div>
-
           {/* Theme custom capsule */}
           <div className="border border-[var(--card-border)] bg-[var(--bg-secondary)] px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
             <div className="flex items-center gap-1.5">
@@ -2469,13 +2492,29 @@ export default function App() {
             </div>
           </div>
 
+          {/* Light/Dark Slider */}
+          <div className="flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] py-1.5 px-2.5 rounded-full shadow-sm">
+            <div 
+              onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+              className="relative w-[50px] h-6 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
+              title="Toggle Light/Dark Theme Mode"
+            >
+              <div 
+                className={`w-5 h-5 rounded-full bg-[var(--accent-color)] shadow-md transition-all duration-350 ease-out flex items-center justify-center text-[10px] transform ${
+                  mode === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              >
+                {mode === 'dark' ? '🌙' : '☀️'}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Lock Card Content Container */}
         <div className={`w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 md:p-8 shadow-2xl transition-all duration-300 flex flex-col items-center gap-6 flex-shrink-0 ${isShake ? 'animate-shake' : ''}`}>
           
           <div className="text-center">
-            <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Portal Secured</h2>
+            <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Games Secured</h2>
             <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">This is a paid Science, Math, ELA, and Social Studies article website. Please enter a correct password to continue to the website.</p>
           </div>
 
@@ -2720,7 +2759,7 @@ export default function App() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-muted)] text-sm">Loading workspace...</div>}>
       <div className={`min-h-screen flex flex-col transition-colors duration-300 relative overflow-x-clip ${viewMode === 'games' ? 'games-no-select select-none' : ''} ${selectedGame ? 'h-screen overflow-hidden' : ''}`}>
-      <CursorSpotlight active={viewMode === 'games'} />
+      <CursorSpotlight active={viewMode === 'games' && animationsEnabled} />
       {/* HEADER */}
       <AnimatePresence initial={false}>
         {(!gameHeaderHidden || !selectedGame) && (
@@ -2733,7 +2772,7 @@ export default function App() {
             className="border-b border-[var(--card-border)] bg-[var(--header-bg)] shadow-sm sticky top-0 z-[5000] transition-colors duration-300 w-full"
           >
             {headerOpen ? (
-              <div className="py-3.5 px-4 md:px-6 flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors duration-300">
+              <div className="py-2 px-3 md:px-5 flex flex-col sm:flex-row justify-between items-center gap-2.5 transition-colors duration-300">
         
         {/* Left Side: Logo & Title */}
         <div 
@@ -2807,59 +2846,11 @@ export default function App() {
               <span>YouTube</span>
             </motion.button>
 
-            {/* Cloak Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                const win = window.open("about:blank", "_blank");
-                if (!win) { alert("Popup blocked!"); return; }
-                const searchParams = new URLSearchParams(window.location.search);
-                searchParams.set('decoyType', decoyType);
-                const iframeSrc = `${window.location.origin}${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
-                let parentTitle = "Urnperiodic StudyTools";
-                let parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-                
-                if (decoyType === 'classroom') {
-                  parentTitle = "Home - Classroom";
-                  parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-                } else if (decoyType === 'canva') {
-                  parentTitle = "Home - Canva";
-                  parentFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
-                } else if (decoyType === 'clever') {
-                  parentTitle = "Clever | Log in with Clever";
-                  parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
-                } else if (decoyType === 'campus') {
-                  parentTitle = "Campus Student";
-                  parentFavicon = "https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png";
-                } else if (decoyType === 'docs') {
-                  parentTitle = "Google Docs";
-                  parentFavicon = "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico";
-                } else if (decoyType === 'gmail') {
-                  parentTitle = "Inbox - Jersey City Public Schools";
-                  parentFavicon = "https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon_gmail_2026_v2.ico";
-                } else if (decoyType === 'duolingo') {
-                  parentTitle = "Duolingo - Learn a language for free";
-                  parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=duolingo.com";
-                } else if (decoyType === 'ixl') {
-                  parentTitle = "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
-                  parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
-                }
-
-                win.document.write(`<html><head><title>${parentTitle}</title><link rel="icon" href="${parentFavicon}"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0c0a09;}iframe{width:100vw;height:100vh;border:none;display:block;}</style></head><body><iframe src="${iframeSrc}" allow="fullscreen"></iframe></body></html>`);
-                win.document.close();
-              }}
-              className="px-3 py-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-              title="Cloak in about:blank"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Cloak</span>
-            </motion.button>
-
             {/* Decoy Selector */}
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase select-none">Decoy:</span>
               <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} />
+
               <AutoRandomizeDecoyButton
                 autoRandomize={autoRandomizeDecoy}
                 setAutoRandomize={setAutoRandomizeDecoy}
@@ -2873,55 +2864,64 @@ export default function App() {
                 currentDecoy={decoyType}
                 mode={mode}
               />
+
+              {/* Cloak / About:blank Button (to the right of shuffle button) */}
+              <motion.button
+                whileHover={filter !== 'lobbychat' ? { scale: 1.05 } : {}}
+                whileTap={filter !== 'lobbychat' ? { scale: 0.95 } : {}}
+                onClick={() => { if (filter !== 'lobbychat') openWorkspaceInAboutBlank(filter); }}
+                className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold transition-all ${
+                  filter !== 'lobbychat'
+                    ? 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] cursor-pointer'
+                    : 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] opacity-40 cursor-not-allowed'
+                }`}
+                title={
+                  filter === 'movies' ? "Open Movies in about:blank" :
+                  filter === 'youtube' ? "Open YouTube in about:blank" :
+                  filter === 'chat' ? "Open AI Chat in about:blank" :
+                  filter === 'lobbychat' ? "Open Lobby Chat in about:blank" :
+                  filter === 'download' ? "Open Download in about:blank" :
+                  "Cloak site in about:blank"
+                }
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Cloak</span>
+              </motion.button>
+
+              {/* Open Link Button */}
+              {(() => {
+                const url = filter === 'movies' ? 'https://urnperiodic.github.io/p/' : filter === 'youtube' ? 'https://urnperiodic.github.io/youtube1/' : filter === 'chat' ? 'https://grandplat2.vercel.app/' : filter === 'download' ? 'https://urnperiodic.github.io/download/' : '';
+                const hasUrl = !!url;
+                return (
+                  <motion.button
+                    whileHover={hasUrl ? { scale: 1.05 } : {}}
+                    whileTap={hasUrl ? { scale: 0.95 } : {}}
+                    onClick={() => { if (hasUrl) window.open(url, '_blank'); }}
+                    className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold transition-all ${
+                      hasUrl 
+                        ? 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 cursor-pointer shadow-[0_0_8px_rgba(0,0,0,0)] hover:shadow-[0_0_8px_var(--accent-color)]'
+                        : 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] opacity-40 cursor-not-allowed'
+                    }`}
+                    title={hasUrl ? "Open Workspace in new tab" : "No external link available"}
+                  >
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    <span>Open Link</span>
+                  </motion.button>
+                );
+              })()}
             </div>
 
             {/* Quick Exit & Open Separately buttons for Workspaces (Sticky) */}
             <AnimatePresence>
-              {(filter === 'movies' || filter === 'chat' || filter === 'youtube' || filter === 'lobbychat') && (
+              {(filter === 'movies' || filter === 'chat' || filter === 'youtube' || filter === 'lobbychat' || filter === 'download') && (
                 <motion.div 
-                  initial={{ opacity: 0, x: -10, width: 0 }}
-                  animate={{ opacity: 1, x: 0, width: 'auto' }}
-                  exit={{ opacity: 0, x: -10, width: 0 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="flex items-center gap-1.5 pl-2 ml-1 border-l border-[var(--card-border)]/50 overflow-hidden whitespace-nowrap"
+                  key="workspace-actions-sticky"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="flex items-center gap-1.5 pl-2 ml-1 border-l border-[var(--card-border)]/50 whitespace-nowrap"
                 >
-                  <button
-                    onClick={() => openWorkspaceInAboutBlank(filter)}
-                    className="px-2.5 py-1.5 text-[10px] font-mono font-black tracking-tight uppercase border border-[#00e5b0]/30 hover:border-[#00e5b0] bg-[#00e5b0]/10 hover:bg-[#00e5b0]/20 text-[#00e5b0] rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
-                    title="Open Workspace in a cloaked about:blank Page"
-                    style={{ backgroundColor: '#000000', borderColor: '#ffffff' }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5" style={{ color: '#ffffff' }}>
-                      <path d="M15 3h6v6" />
-                      <path d="M10 14 21 3" />
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    </svg>
-                    <span style={{ fontSize: '6px', fontFamily: 'Verdana', fontWeight: 'normal', color: '#ffffff', height: '10px' }}>About:blank</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      const url = filter === 'movies' 
-                        ? 'https://urnperiodic.github.io/p/' 
-                        : filter === 'youtube'
-                        ? 'https://urnperiodic.github.io/youtube1/'
-                        : filter === 'chat'
-                        ? 'https://urnperiodic.github.io/extrastuffforwebsite/'
-                        : window.location.origin + '?filter=lobbychat';
-                      window.open(url, '_blank');
-                    }}
-                    className="px-2.5 py-1.5 text-[10px] font-mono font-black tracking-tight uppercase border border-[var(--accent-color)]/30 hover:border-[var(--accent-color)] bg-[var(--accent-color)]/10 hover:bg-[var(--accent-color)]/20 text-[var(--accent-color)] rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
-                    title="Open separately"
-                    style={{ fontSize: '10px' }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                      <path d="M15 3h6v6" />
-                      <path d="M10 14 21 3" />
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" style={{ fontSize: '8px' }} />
-                    </svg>
-                    <span style={{ fontSize: '6px', fontFamily: 'Verdana', fontWeight: 'normal' }}>Open Link</span>
-                  </button>
-                  
                   <button
                     onClick={() => setFilter('all')}
                     className="p-1.5 rounded-lg border border-rose-500/40 hover:border-rose-500 bg-rose-500/10 text-rose-500 hover:text-white hover:bg-rose-500 transition-all cursor-pointer flex items-center justify-center shrink-0 group"
@@ -2940,7 +2940,7 @@ export default function App() {
       ) : (
         <div 
           ref={compactHeaderRef}
-          className="relative py-1.5 px-3 md:px-4 flex flex-wrap md:flex-nowrap items-center justify-between gap-2.5 md:gap-3 w-full transition-colors duration-300 min-h-[42px]"
+          className="relative py-1.5 px-3 md:px-4 flex items-center justify-between gap-2 md:gap-3 w-full transition-colors duration-300 min-h-[42px] overflow-visible"
         >
           
           {/* Left: Logo & Title + Search Bar */}
@@ -2954,19 +2954,29 @@ export default function App() {
               <div className="p-1 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-md border border-[var(--card-border)] shadow-sm group-hover:rotate-12 transition-all duration-300 transform flex items-center justify-center shrink-0">
                 <School className="w-3.5 h-3.5" />
               </div>
-              <div className="flex flex-col items-start gap-0.5">
-                <h1 className="font-extrabold tracking-tight text-[var(--text-primary)] leading-none group-hover:text-[var(--accent-color)] transition-colors text-left" style={{ fontSize: '12px', textAlign: 'left' }}>
-                  Urnperiodic&Grandplat2 hub
-                </h1>
-                <span className="text-[8px] leading-none text-gray-400 whitespace-nowrap">
-                  Lead creator: Urnperiodic&nbsp;&nbsp;Cocreator: Grandplat2
+              <div className="flex flex-col items-start justify-center">
+                <span className="text-left whitespace-nowrap flex flex-col justify-center select-none">
+                  <span 
+                    className="text-[8px] leading-[11px] tracking-tight flex items-center gap-1 transition-colors"
+                    style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                  >
+                    <span className="text-neutral-400 font-normal">Leadcreator:</span>
+                    <span className="font-bold text-[var(--text-primary)]">Thorne Wail</span>
+                  </span>
+                  <span 
+                    className="text-[8px] leading-[11px] tracking-tight flex items-center gap-1 transition-colors"
+                    style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                  >
+                    <span className="text-neutral-400 font-normal">Cocreator:</span>
+                    <span className="font-bold text-[var(--accent-color)]">Grandplat2</span>
+                  </span>
                 </span>
               </div>
             </div>
 
             {/* Compact Search Bar next to Name */}
-            <div className="relative flex items-center w-24 sm:w-28 md:w-32 shrink-0 transition-all duration-200">
-              <Search className="absolute left-2 w-3 h-3 text-[var(--accent-color)] pointer-events-none shrink-0" />
+            <div className="relative flex items-center w-20 sm:w-24 md:w-28 shrink-0 transition-all duration-200">
+              <Search className="absolute left-1.5 w-2.5 h-2.5 text-[var(--accent-color)] pointer-events-none shrink-0" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -2978,12 +2988,12 @@ export default function App() {
                     setSearchQuery('');
                   }
                 }}
-                className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-[var(--accent-color)]/50 focus:border-[var(--accent-color)] text-[var(--text-primary)] text-[11px] rounded-lg pl-6 pr-6 py-0.5 outline-none shadow-sm transition-all duration-200 placeholder:text-[var(--text-muted)]/60 min-w-0"
+                className="w-full h-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-[var(--accent-color)]/50 focus:border-[var(--accent-color)] text-[var(--text-primary)] text-[10px] rounded-md pl-5 pr-5 py-0 outline-none shadow-sm transition-all duration-200 placeholder:text-[var(--text-muted)]/60 min-w-0"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-1.5 p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
+                  className="absolute right-1 p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
                   title="Clear search"
                 >
                   <X className="w-2.5 h-2.5" />
@@ -2992,10 +3002,10 @@ export default function App() {
             </div>
           </div>
 
-          {/* Center: Quick Sections & Navigation (perfect true center with CSS) */}
+          {/* Center: Quick Sections & Navigation (fluid center without absolute clipping) */}
           <div 
             ref={compactCenterRef}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center min-w-0 pointer-events-auto"
+            className="flex items-center justify-center gap-1.5 min-w-0 shrink mx-auto z-10"
           >
             {/* Quick Sections with backgrounds for mobile/tablet wrapped cleanly */}
             <div className="flex md:hidden items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--card-border)]/50 p-0.5 rounded-lg shadow-sm shrink-0">
@@ -3050,59 +3060,10 @@ export default function App() {
                 </svg>
               </button>
 
-              {/* Cloak Button */}
-              <button
-                onClick={() => {
-                  const win = window.open("about:blank", "_blank");
-                  if (!win) {
-                    alert("Popup blocked!");
-                    return;
-                  }
-                  const searchParams = new URLSearchParams(window.location.search);
-                  searchParams.set('decoyType', decoyType);
-                  searchParams.set('view', 'games');
-                  const iframeSrc = `${window.location.origin}${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
-                  let parentTitle = "Urnperiodic StudyTools";
-                  let parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-                  
-                  if (decoyType === 'classroom') {
-                    parentTitle = "Home - Classroom";
-                    parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-                  } else if (decoyType === 'canva') {
-                    parentTitle = "Home - Canva";
-                    parentFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
-                  } else if (decoyType === 'clever') {
-                    parentTitle = "Clever | Log in with Clever";
-                    parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
-                  } else if (decoyType === 'campus') {
-                    parentTitle = "Campus Student";
-                    parentFavicon = "https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png";
-                  } else if (decoyType === 'docs') {
-                    parentTitle = "Google Docs";
-                    parentFavicon = "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico";
-                  } else if (decoyType === 'gmail') {
-                    parentTitle = "Inbox - Jersey City Public Schools";
-                    parentFavicon = "https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon_gmail_2026_v2.ico";
-                  } else if (decoyType === 'duolingo') {
-                    parentTitle = "Duolingo - Learn a language for free";
-                    parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=duolingo.com";
-                  } else if (decoyType === 'ixl') {
-                    parentTitle = "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
-                    parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
-                  }
-
-                  win.document.write(`<html><head><title>${parentTitle}</title><link rel="icon" href="${parentFavicon}"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0c0a09;}iframe{width:100vw;height:100vh;border:none;display:block;}</style></head><body><iframe src="${iframeSrc}" allow="fullscreen"></iframe></body></html>`);
-                  win.document.close();
-                }}
-                className="p-1 rounded-md text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all"
-                title="Cloak site"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-
               {/* Decoy Selector & Auto Randomize */}
               <div className="flex items-center gap-1">
                 <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} compact={true} />
+
                 <AutoRandomizeDecoyButton
                   autoRandomize={autoRandomizeDecoy}
                   setAutoRandomize={setAutoRandomizeDecoy}
@@ -3117,6 +3078,46 @@ export default function App() {
                   mode={mode}
                   compact={true}
                 />
+
+                {/* Cloak & Open Link Buttons */}
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => { if (filter !== 'lobbychat') openWorkspaceInAboutBlank(filter); }}
+                    className={`p-1 rounded-md transition-all ${
+                      filter !== 'lobbychat'
+                        ? 'text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 cursor-pointer'
+                        : 'text-[var(--accent-color)] opacity-40 cursor-not-allowed'
+                    }`}
+                    title={
+                      filter === 'movies' ? "Open Movies in about:blank" :
+                      filter === 'youtube' ? "Open YouTube in about:blank" :
+                      filter === 'chat' ? "Open AI Chat in about:blank" :
+                      filter === 'lobbychat' ? "Open Lobby Chat in about:blank" :
+                      filter === 'download' ? "Open Download in about:blank" :
+                      "Cloak site in about:blank"
+                    }
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+
+                  {(() => {
+                    const url = filter === 'movies' ? 'https://urnperiodic.github.io/p/' : filter === 'youtube' ? 'https://urnperiodic.github.io/youtube1/' : filter === 'chat' ? 'https://grandplat2.vercel.app/' : filter === 'download' ? 'https://urnperiodic.github.io/download/' : '';
+                    const hasUrl = !!url;
+                    return (
+                      <button
+                        onClick={() => { if (hasUrl) window.open(url, '_blank'); }}
+                        className={`p-1 rounded-md transition-all ${
+                          hasUrl
+                            ? 'text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 cursor-pointer shadow-[0_0_8px_rgba(0,0,0,0)] hover:shadow-[0_0_8px_var(--accent-color)]'
+                            : 'text-[var(--accent-color)] opacity-40 cursor-not-allowed'
+                        }`}
+                        title={hasUrl ? "Open Workspace in new tab" : "No external link available"}
+                      >
+                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                      </button>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
 
@@ -3251,132 +3252,12 @@ export default function App() {
                 </svg>
               </button>
 
-              {/* Cloak Button */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    const win = window.open("about:blank", "_blank");
-                    if (!win) { alert("Popup blocked!"); return; }
-                    const searchParams = new URLSearchParams(window.location.search);
-                    searchParams.set('decoyType', decoyType);
-                    searchParams.set('view', 'games');
-                    const iframeSrc = `${window.location.origin}${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
-                    let parentTitle = "Urnperiodic StudyTools";
-                    let parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-                    
-                    if (decoyType === 'classroom') {
-                      parentTitle = "Home - Classroom";
-                      parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-                    } else if (decoyType === 'canva') {
-                      parentTitle = "Home - Canva";
-                      parentFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
-                    } else if (decoyType === 'clever') {
-                      parentTitle = "Clever | Log in with Clever";
-                      parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
-                    } else if (decoyType === 'campus') {
-                      parentTitle = "Campus Student";
-                      parentFavicon = "https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png";
-                    } else if (decoyType === 'docs') {
-                      parentTitle = "Google Docs";
-                      parentFavicon = "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico";
-                    } else if (decoyType === 'gmail') {
-                      parentTitle = "Inbox - Jersey City Public Schools";
-                      parentFavicon = "https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon_gmail_2026_v2.ico";
-                    } else if (decoyType === 'duolingo') {
-                      parentTitle = "Duolingo - Learn a language for free";
-                      parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=duolingo.com";
-                    } else if (decoyType === 'ixl') {
-                      parentTitle = "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
-                      parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
-                    }
-
-                    win.document.write(`<html><head><title>${parentTitle}</title><link rel="icon" href="${parentFavicon}"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0c0a09;}iframe{width:100vw;height:100vh;border:none;display:block;}</style></head><body><iframe src="${iframeSrc}" allow="fullscreen"></iframe></body></html>`);
-                    win.document.close();
-                  }}
-                  className={`p-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] transition-all cursor-pointer flex items-center justify-center ${showNotices && noticeStep === 2 ? 'ring-2 ring-[var(--accent-color)] ring-offset-2 ring-offset-[#0d0d12] animate-pulse' : ''}`}
-                  title="Cloak in about:blank"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-
-                {showNotices && noticeStep === 2 && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-80 bg-[#13111c] border-2 border-amber-500/80 text-white rounded-xl p-3.5 shadow-[0_0_30px_rgba(245,158,11,0.4)] z-[3000] animate-fade-in select-none text-left text-xs font-medium">
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-[#13111c] border-t-2 border-l-2 border-amber-500/80 transform rotate-45" />
-
-                    {/* IMPORTANT WARNING HEADER BANNER */}
-                    <div className="bg-amber-500/15 border border-amber-500/40 rounded-lg px-2.5 py-1.5 mb-2.5 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 text-amber-400 font-black text-[11px] uppercase tracking-wider">
-                        <AlertTriangle className="w-4 h-4 text-amber-400 animate-bounce shrink-0" />
-                        <span>IMPORTANT WARNING</span>
-                      </div>
-                      <button
-                        onClick={closeNotices}
-                        className="px-2 py-0.5 text-[10px] text-neutral-300 hover:text-white bg-white/10 hover:bg-red-500/80 rounded-md transition-all cursor-pointer shrink-0 font-sans font-bold flex items-center gap-1 border border-white/10"
-                        title="Close Notifications"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Close</span>
-                      </button>
-                    </div>
-
-                    <div className="mb-2 text-[10px] font-bold text-amber-300 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                      <span>You need to read this only once</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 text-[10px] text-[var(--accent-color)] font-mono font-bold uppercase tracking-wider">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Tip 3 of 4 • Cloak Screen</span>
-                    </div>
-
-                    <p className="mt-2 text-[11px] leading-relaxed text-neutral-200 font-semibold">
-                      Open in about:blank masks your screen from GoGuardian in a blank screen and masks the URL (it doesn't even appear in your search history), but can confuse older teachers and looks suspicious when multiple students have blank screens.
-                    </p>
-
-                    <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
-                      <span className="flex items-center gap-1 text-amber-400 font-mono font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                        {noticeCountdown}s
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={prevNoticeStep}
-                          className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-neutral-200 transition-colors cursor-pointer font-sans"
-                        >
-                          ← Prev
-                        </button>
-                        <button
-                          onClick={closeNotices}
-                          className="px-2.5 py-1 rounded bg-red-500/20 hover:bg-red-600 text-red-200 hover:text-white font-bold transition-all cursor-pointer font-sans border border-red-500/40 flex items-center gap-1"
-                          title="Close notifications"
-                        >
-                          <X className="w-3 h-3" />
-                          <span>Close</span>
-                        </button>
-                        <button
-                          onClick={nextNoticeStep}
-                          className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-black font-black transition-all cursor-pointer font-sans shadow-md"
-                        >
-                          Next →
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 rounded-b-xl overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 transition-all duration-1000 ease-linear"
-                        style={{ width: `${(noticeCountdown / 20) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Decoy Selector & Auto Randomize */}
               <div className="relative flex items-center gap-1">
                 <div className={showNotices && noticeStep === 3 ? 'ring-2 ring-[var(--accent-color)] ring-offset-2 ring-offset-[#0d0d12] rounded-lg animate-pulse' : ''}>
                   <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} compact={true} />
                 </div>
+
                 <AutoRandomizeDecoyButton
                   autoRandomize={autoRandomizeDecoy}
                   setAutoRandomize={setAutoRandomizeDecoy}
@@ -3391,6 +3272,119 @@ export default function App() {
                   mode={mode}
                   compact={true}
                 />
+
+                {/* Cloak / About:blank Button (to the right of shuffle button) */}
+                <div className="relative">
+                  <button
+                    onClick={() => { if (filter !== 'lobbychat') openWorkspaceInAboutBlank(filter); }}
+                    className={`p-1.5 rounded-lg border flex items-center justify-center transition-all ${
+                      filter !== 'lobbychat'
+                        ? 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] cursor-pointer'
+                        : 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] opacity-40 cursor-not-allowed'
+                    } ${showNotices && noticeStep === 2 ? 'ring-2 ring-[var(--accent-color)] ring-offset-2 ring-offset-[#0d0d12] animate-pulse' : ''}`}
+                    title={
+                      filter === 'movies' ? "Open Movies in about:blank" :
+                      filter === 'youtube' ? "Open YouTube in about:blank" :
+                      filter === 'chat' ? "Open AI Chat in about:blank" :
+                      filter === 'lobbychat' ? "Open Lobby Chat in about:blank" :
+                      filter === 'download' ? "Open Download in about:blank" :
+                      "Cloak site in about:blank"
+                    }
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+
+                  {showNotices && noticeStep === 2 && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-80 bg-[#13111c] border-2 border-amber-500/80 text-white rounded-xl p-3.5 shadow-[0_0_30px_rgba(245,158,11,0.4)] z-[3000] animate-fade-in select-none text-left text-xs font-medium">
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-[#13111c] border-t-2 border-l-2 border-amber-500/80 transform rotate-45" />
+
+                      {/* IMPORTANT WARNING HEADER BANNER */}
+                      <div className="bg-amber-500/15 border border-amber-500/40 rounded-lg px-2.5 py-1.5 mb-2.5 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-amber-400 font-black text-[11px] uppercase tracking-wider">
+                          <AlertTriangle className="w-4 h-4 text-amber-400 animate-bounce shrink-0" />
+                          <span>IMPORTANT WARNING</span>
+                        </div>
+                        <button
+                          onClick={closeNotices}
+                          className="px-2 py-0.5 text-[10px] text-neutral-300 hover:text-white bg-white/10 hover:bg-red-500/80 rounded-md transition-all cursor-pointer shrink-0 font-sans font-bold flex items-center gap-1 border border-white/10"
+                          title="Close Notifications"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Close</span>
+                        </button>
+                      </div>
+
+                      <div className="mb-2 text-[10px] font-bold text-amber-300 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                        <span>You need to read this only once</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[10px] text-[var(--accent-color)] font-mono font-bold uppercase tracking-wider">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Tip 3 of 4 • Cloak Screen</span>
+                      </div>
+
+                      <p className="mt-2 text-[11px] leading-relaxed text-neutral-200 font-semibold">
+                        Open in about:blank masks your screen from GoGuardian in a blank screen and masks the URL (it doesn't even appear in your search history), but can confuse older teachers and looks suspicious when multiple students have blank screens.
+                      </p>
+
+                      <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
+                        <span className="flex items-center gap-1 text-amber-400 font-mono font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                          {noticeCountdown}s
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={prevNoticeStep}
+                            className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-neutral-200 transition-colors cursor-pointer font-sans"
+                          >
+                            ← Prev
+                          </button>
+                          <button
+                            onClick={closeNotices}
+                            className="px-2.5 py-1 rounded bg-red-500/20 hover:bg-red-600 text-red-200 hover:text-white font-bold transition-all cursor-pointer font-sans border border-red-500/40 flex items-center gap-1"
+                            title="Close notifications"
+                          >
+                            <X className="w-3 h-3" />
+                            <span>Close</span>
+                          </button>
+                          <button
+                            onClick={nextNoticeStep}
+                            className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-black font-black transition-all cursor-pointer font-sans shadow-md"
+                          >
+                            Next →
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 rounded-b-xl overflow-hidden">
+                        <div
+                          className="h-full bg-amber-500 transition-all duration-1000 ease-linear"
+                          style={{ width: `${(noticeCountdown / 20) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Open Link Button */}
+                {(() => {
+                  const url = filter === 'movies' ? 'https://urnperiodic.github.io/p/' : filter === 'youtube' ? 'https://urnperiodic.github.io/youtube1/' : filter === 'chat' ? 'https://grandplat2.vercel.app/' : filter === 'download' ? 'https://urnperiodic.github.io/download/' : '';
+                  const hasUrl = !!url;
+                  return (
+                    <button
+                      onClick={() => { if (hasUrl) window.open(url, '_blank'); }}
+                      className={`p-1.5 rounded-lg border transition-all flex items-center justify-center ${
+                        hasUrl
+                          ? 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 cursor-pointer shadow-[0_0_8px_rgba(0,0,0,0)] hover:shadow-[0_0_8px_var(--accent-color)]'
+                          : 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] opacity-40 cursor-not-allowed'
+                      }`}
+                      title={hasUrl ? "Open Workspace in new tab" : "No external link available"}
+                    >
+                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    </button>
+                  );
+                })()}
 
                 {showNotices && noticeStep === 3 && (
                   <div className="absolute top-full left-0 mt-3 w-80 bg-[#13111c] border-2 border-amber-500/80 text-white rounded-xl p-3.5 shadow-[0_0_30px_rgba(245,158,11,0.4)] z-[3000] animate-fade-in select-none text-left text-xs font-medium">
@@ -3461,53 +3455,15 @@ export default function App() {
 
               {/* Quick Exit & Open Separately buttons for Workspaces (Main) */}
               <AnimatePresence>
-                {(filter === 'movies' || filter === 'chat' || filter === 'youtube' || filter === 'lobbychat') && (
+                {(filter === 'movies' || filter === 'chat' || filter === 'youtube' || filter === 'lobbychat' || filter === 'download') && (
                   <motion.div 
-                    initial={{ opacity: 0, x: -10, width: 0 }}
-                    animate={{ opacity: 1, x: 0, width: 'auto' }}
-                    exit={{ opacity: 0, x: -10, width: 0 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="flex items-center gap-1.5 pl-2 ml-1 border-l border-[var(--card-border)]/50 overflow-hidden whitespace-nowrap"
+                    key="workspace-actions-main"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="flex items-center gap-1.5 pl-2 ml-1 border-l border-[var(--card-border)]/50 whitespace-nowrap"
                   >
-                    <button
-                      onClick={() => openWorkspaceInAboutBlank(filter)}
-                      className="px-2.5 py-1.5 text-[10px] font-mono font-black tracking-tight uppercase border border-[#00e5b0]/30 hover:border-[#00e5b0] bg-[#00e5b0]/10 hover:bg-[#00e5b0]/20 text-[#00e5b0] rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
-                      title="Open Workspace in a cloaked about:blank Page"
-                      style={{ backgroundColor: '#000000', borderColor: '#ffffff' }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5" style={{ color: '#ffffff' }}>
-                        <path d="M15 3h6v6" />
-                        <path d="M10 14 21 3" />
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      </svg>
-                      <span style={{ fontSize: '6px', fontFamily: 'Verdana', fontWeight: 'normal', color: '#ffffff', height: '10px' }}>About:blank</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        const url = filter === 'movies' 
-                          ? 'https://urnperiodic.github.io/p/' 
-                          : filter === 'youtube'
-                          ? 'https://urnperiodic.github.io/youtube1/'
-                          : filter === 'download'
-                          ? 'https://urnperiodic.github.io/download/'
-                          : filter === 'chat'
-                          ? 'https://urnperiodic.github.io/extrastuffforwebsite/'
-                          : window.location.origin + '?filter=lobbychat';
-                        window.open(url, '_blank');
-                      }}
-                      className="px-2.5 py-1.5 text-[10px] font-mono font-black tracking-tight uppercase border border-[var(--accent-color)]/30 hover:border-[var(--accent-color)] bg-[var(--accent-color)]/10 hover:bg-[var(--accent-color)]/20 text-[var(--accent-color)] rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
-                      title="Open separately"
-                      style={{ fontSize: '10px' }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                        <path d="M15 3h6v6" />
-                        <path d="M10 14 21 3" />
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" style={{ fontSize: '8px' }} />
-                      </svg>
-                      <span style={{ fontSize: '6px', fontFamily: 'Verdana', fontWeight: 'normal' }}>Open Link</span>
-                    </button>
-                    
                     <button
                       onClick={() => setFilter('all')}
                       className="p-1.5 rounded-lg border border-rose-500/40 hover:border-rose-500 bg-rose-500/10 text-rose-500 hover:text-white hover:bg-rose-500 transition-all cursor-pointer flex items-center justify-center shrink-0 group"
@@ -3521,53 +3477,42 @@ export default function App() {
             </div>
           </div>
 
-          {/* Top Right: Clear History, Theme Slider & Settings */}
-          <div ref={compactRightRef} className="flex items-center gap-2 justify-end shrink-0 min-w-0 ml-auto z-10">
-
-            {/* Clear History Button in Header */}
-            <button
-              id="header-clear-history-button"
-              onClick={handleClearHistory}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono font-bold tracking-tight rounded-md border transition-all duration-200 cursor-pointer shadow-sm shrink-0 active:scale-95 group ${
-                historyClearedToast 
-                  ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-400' 
-                  : 'border-[var(--card-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent-color)] text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)]'
-              }`}
-              title="Clear & Sanitize Browser History (replaceState)"
-              aria-label="Clear History"
-            >
-              {historyClearedToast ? (
-                <>
-                  <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                  <span className="text-emerald-400 font-bold whitespace-nowrap">Cleared!</span>
-                </>
-              ) : (
-                <>
-                  <History className="w-3 h-3 text-[var(--accent-color)] group-hover:-rotate-45 transition-transform duration-200 shrink-0" />
-                  <span className="whitespace-nowrap">Clear History</span>
-                </>
-              )}
-            </button>
-
-            {/* Light/Dark slider (Compact) */}
-            <div className="flex items-center gap-1 border border-[var(--card-border)] bg-[var(--bg-secondary)] p-0.5 rounded-full shadow-sm">
-              <div 
-                onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
-                className="relative w-[34px] h-4 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
-                title="Slide to change Mode"
+          {/* Top Right: Combined Animations & Settings, plus Theme Slider */}
+          <div ref={compactRightRef} className="flex items-center gap-1.5 justify-end shrink-0 min-w-0 ml-auto z-10">{/* Combined Animations & Settings Group */}
+            <div className="relative flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] px-2.5 py-1 rounded-full shadow-sm shrink-0">
+              {/* Animations Slider */}
+              <div
+                id="header-animations-slider"
+                onClick={toggleAnimations}
+                className="flex items-center gap-1.5 cursor-pointer select-none group"
+                title={animationsEnabled ? "Animations Enabled (Click to toggle OFF for Chromebooks)" : "Animations Disabled (Click to toggle ON)"}
+                role="switch"
+                aria-checked={animationsEnabled}
+                aria-label="Toggle Animations"
               >
+                <span className="text-[10px] font-mono font-bold tracking-tight text-white transition-colors whitespace-nowrap">
+                  Anim
+                </span>
                 <div 
-                  className={`w-3 h-3 rounded-full bg-[var(--accent-color)] shadow-sm transition-all duration-300 ease-out flex items-center justify-center text-[7px] transform ${
-                    mode === 'dark' ? 'translate-x-4' : 'translate-x-0'
+                  className={`relative w-7 h-4 rounded-full border transition-all duration-200 flex items-center px-0.5 ${
+                    animationsEnabled 
+                      ? 'bg-white border-white' 
+                      : 'bg-neutral-850 bg-[#1e1e1e] border-neutral-700'
                   }`}
                 >
-                  {mode === 'dark' ? '🌙' : '☀️'}
+                  <div 
+                    className={`w-3 h-3 rounded-full transition-all duration-200 ease-out transform ${
+                      animationsEnabled 
+                        ? 'translate-x-3 bg-black' 
+                        : 'translate-x-0 bg-neutral-400'
+                    }`}
+                  />
                 </div>
               </div>
-            </div>
 
-            {/* Unified Settings, Colors Group (Compact) */}
-            <div className="relative flex items-center gap-1.5 border border-[var(--card-border)] bg-[var(--bg-secondary)] p-0.5 rounded-lg shadow-sm">
+              {/* Subtle divider */}
+              <div className="w-px h-3.5 bg-[var(--card-border)]/60" />
+
               {/* Settings Gear Button */}
               <button
                 onClick={() => setIsGlobalSettingsOpen(!isGlobalSettingsOpen)}
@@ -3658,7 +3603,7 @@ export default function App() {
               </div>
 
               {isGlobalSettingsOpen && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-[#12121a] border border-white/10 rounded-xl p-4 shadow-2xl z-[2500] select-none text-left animate-fade-in">
+                <div className="absolute top-full right-0 mt-2 w-72 max-h-[85vh] overflow-y-auto bg-[#12121a] border border-white/10 rounded-xl p-4 shadow-2xl z-[99999] select-none text-left animate-fade-in no-scrollbar">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
                       <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">System Settings</span>
@@ -3774,20 +3719,6 @@ export default function App() {
                     <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
                       <button
                         onClick={() => {
-                          reshowAllNotices();
-                          setIsGlobalSettingsOpen(false);
-                        }}
-                        className="w-full flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-[var(--accent-color)]/20 hover:border-[var(--accent-color)] border border-white/10 text-white text-xs font-semibold transition-all cursor-pointer group"
-                        title="Reshow Notifications"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Bell className="w-3.5 h-3.5 text-[var(--accent-color)] group-hover:scale-110 transition-transform" />
-                          <span>Reshow Notifications</span>
-                        </span>
-                      </button>
-
-                      <button
-                        onClick={() => {
                           downloadEntireWebsite();
                           setIsGlobalSettingsOpen(false);
                         }}
@@ -3837,9 +3768,27 @@ export default function App() {
                   />
                 ))}
               </div>
+
+              {/* Subtle divider */}
+              <div className="w-[1px] h-3 bg-[var(--card-border)]/80" />
+
+              {/* Light/Dark slider (Joined with color palette bar) */}
+              <div 
+                onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+                className="relative w-[34px] h-4 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300 shrink-0"
+                title="Slide to change Light/Dark Mode"
+              >
+                <div 
+                  className={`w-3 h-3 rounded-full bg-[var(--accent-color)] shadow-sm transition-all duration-300 ease-out flex items-center justify-center text-[7px] transform ${
+                    mode === 'dark' ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                >
+                  {mode === 'dark' ? '🌙' : '☀️'}
+                </div>
+              </div>
             </div>
 
-          </div>
+            </div>
 
         </div>
       )}
@@ -3848,7 +3797,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* ALT LINKS BAR */}
-      {headerOpen && altBarOpen && (
+      {headerOpen && altBarOpen && filter !== 'info' && (
         <section className="bg-[var(--bg-secondary)] border-b border-[var(--card-border)] py-3 px-4 md:px-6 transition-colors duration-300 animate-fade-in">
         <div className="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           {/* Alt Links Removed */}
@@ -3924,49 +3873,35 @@ export default function App() {
               </div>
             </div>
 
-            {/* Clear History Button in Alt Bar */}
-            <button
-              id="alt-bar-clear-history-button"
-              onClick={handleClearHistory}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold tracking-tight rounded-full border transition-all duration-200 cursor-pointer shadow-sm shrink-0 active:scale-95 group ${
-                historyClearedToast 
-                  ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-400' 
-                  : 'border-[var(--card-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent-color)] text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)]'
-              }`}
-              title="Clear & Sanitize Browser History (replaceState)"
-              aria-label="Clear History"
+            {/* Animations Slider in Alt Bar (Compact & Simplified for Chromebooks, Full White with Black Dot when ON) */}
+            <div
+              id="alt-bar-animations-slider"
+              onClick={toggleAnimations}
+              className="flex items-center gap-2 px-2.5 py-1 border border-[var(--card-border)] bg-[var(--bg-secondary)] hover:border-neutral-500 rounded-full shadow-sm cursor-pointer select-none transition-all group shrink-0"
+              title={animationsEnabled ? "Animations Enabled (Click to toggle OFF for Chromebooks)" : "Animations Disabled (Click to toggle ON)"}
+              role="switch"
+              aria-checked={animationsEnabled}
+              aria-label="Toggle Animations"
             >
-              {historyClearedToast ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-emerald-400 font-bold whitespace-nowrap">Cleared!</span>
-                </>
-              ) : (
-                <>
-                  <History className="w-3.5 h-3.5 text-[var(--accent-color)] group-hover:-rotate-45 transition-transform duration-200 shrink-0" />
-                  <span className="whitespace-nowrap">Clear History</span>
-                </>
-              )}
-            </button>
-
-            {/* Light/Dark Mode slider */}
-            <div className="flex items-center gap-1 border border-[var(--card-border)] bg-[var(--bg-secondary)] p-1 rounded-full shadow-sm">
+              <span className="text-[10px] font-mono font-bold tracking-tight text-white transition-colors whitespace-nowrap">
+                Animations
+              </span>
               <div 
-                onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
-                className="relative w-[38px] h-5 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
-                title="Slide to change Mode"
+                className={`relative w-7 h-4 rounded-full border transition-all duration-200 flex items-center px-0.5 ${
+                  animationsEnabled 
+                    ? 'bg-white border-white' 
+                    : 'bg-neutral-850 bg-[#1e1e1e] border-neutral-700'
+                }`}
               >
                 <div 
-                  className={`w-3.5 h-3.5 rounded-full bg-[var(--accent-color)] shadow-sm transition-all duration-300 ease-out flex items-center justify-center text-[8px] transform ${
-                    mode === 'dark' ? 'translate-x-4' : 'translate-x-0'
+                  className={`w-3 h-3 rounded-full transition-all duration-200 ease-out transform ${
+                    animationsEnabled 
+                      ? 'translate-x-3 bg-black' 
+                      : 'translate-x-0 bg-neutral-400'
                   }`}
-                >
-                  {mode === 'dark' ? '🌙' : '☀️'}
-                </div>
+                />
               </div>
-            </div>
-
-            {/* Unified Settings, Colors & Sign Out Group */}
+            </div>{/* Unified Settings, Colors & Sign Out Group */}
             <div className="relative flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] p-1 rounded-full shadow-sm">
               {/* Settings Gear Button (opens System Settings Dropdown) */}
               <button
@@ -3994,7 +3929,7 @@ export default function App() {
               </div>
 
               {isGlobalSettingsOpen && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-[#12121a] border border-white/10 rounded-xl p-4 shadow-2xl z-[2500] select-none text-left animate-fade-in">
+                <div className="absolute top-full right-0 mt-2 w-72 max-h-[85vh] overflow-y-auto bg-[#12121a] border border-white/10 rounded-xl p-4 shadow-2xl z-[99999] select-none text-left animate-fade-in no-scrollbar">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between border-b border-white/5 pb-2">
                       <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">System Settings</span>
@@ -4110,20 +4045,6 @@ export default function App() {
                     <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
                       <button
                         onClick={() => {
-                          reshowDownloadNotice();
-                          setIsGlobalSettingsOpen(false);
-                        }}
-                        className="w-full flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-[var(--accent-color)]/20 hover:border-[var(--accent-color)] border border-white/10 text-white text-xs font-semibold transition-all cursor-pointer group"
-                        title="Reshow Download Notification"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Bell className="w-3.5 h-3.5 text-[var(--accent-color)] group-hover:scale-110 transition-transform" />
-                          <span>Reshow Download Notice</span>
-                        </span>
-                      </button>
-
-                      <button
-                        onClick={() => {
                           downloadEntireWebsite();
                           setIsGlobalSettingsOpen(false);
                         }}
@@ -4174,7 +4095,26 @@ export default function App() {
                 ))}
               </div>
             </div>
-          </div>
+          
+
+            {/* Light/Dark Mode slider */}
+            <div className="flex items-center gap-1 border border-[var(--card-border)] bg-[var(--bg-secondary)] p-1 rounded-full shadow-sm">
+              <div 
+                onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+                className="relative w-[38px] h-5 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
+                title="Slide to change Mode"
+              >
+                <div 
+                  className={`w-3.5 h-3.5 rounded-full bg-[var(--accent-color)] shadow-sm transition-all duration-300 ease-out flex items-center justify-center text-[8px] transform ${
+                    mode === 'dark' ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                >
+                  {mode === 'dark' ? '🌙' : '☀️'}
+                </div>
+              </div>
+            </div>
+
+            </div>
         </div>
       </section>
       )}
@@ -4182,13 +4122,13 @@ export default function App() {
 
       {/* MAIN CONTAINER: SIDEBAR + GAMES */}
       <div className={`flex-1 flex flex-col md:flex-row w-full mx-auto relative select-none games-no-select ${windowFullscreen ? 'z-[99999]' : 'z-10'} ${
-        (filter === 'chat' || filter === 'movies' || filter === 'lobbychat' || filter === 'youtube' || filter === 'download' || selectedGame)
+        (filter === 'chat' || filter === 'movies' || filter === 'lobbychat' || filter === 'youtube' || filter === 'download' || filter === 'info' || selectedGame)
           ? 'max-w-none p-0 gap-0 border-t-0 lg:bg-[#07090e]' 
           : 'max-w-8xl p-4 md:p-6 gap-6 self-center'
       }`}>
         
         {/* LEFT NAV PANEL - CAT SIDEBAR */}
-        {filter !== 'chat' && filter !== 'movies' && filter !== 'youtube' && filter !== 'lobbychat' && filter !== 'download' && !selectedGame && (
+        {filter !== 'chat' && filter !== 'movies' && filter !== 'youtube' && filter !== 'lobbychat' && filter !== 'download' && filter !== 'info' && !selectedGame && (
           <aside className={`transition-all duration-300 ease-in-out shrink-0 flex flex-col gap-2 overflow-hidden ${
             sidebarOpen ? 'w-full md:w-44' : 'w-full md:w-14'
           }`}>
@@ -4196,7 +4136,7 @@ export default function App() {
             <div className="flex items-center justify-between px-2 py-1 min-h-[36px]">
               {sidebarOpen ? (
                 <span className="text-[10px] font-mono tracking-wider opacity-50 uppercase whitespace-nowrap" style={{ borderColor: '#ffffff', color: '#ffffff', fontFamily: 'Verdana', fontWeight: 'normal' }}>
-                  Browse Portals
+                  Browse Games
                 </span>
               ) : (
                 <span className="hidden md:inline text-[9px] font-mono tracking-wider opacity-50 uppercase text-center mx-auto font-bold text-[var(--accent-color)]" style={{ borderColor: '#ffffff', color: '#ffffff', fontFamily: 'Verdana', fontWeight: 'normal' }}>
@@ -4208,7 +4148,7 @@ export default function App() {
                 className="p-1.5 rounded-lg hover:bg-[var(--card-bg)] text-[var(--accent-color)] transition-all duration-250 cursor-pointer flex items-center justify-center ml-auto"
                 title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
               >
-                {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4 animate-bounce" />}
+                {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
             </div>
 
@@ -4376,7 +4316,7 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.2 }}
-                  className={`flex flex-col w-full min-h-[550px] bg-[var(--bg-secondary)] ${headerOpen ? 'h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]' : 'h-[calc(100vh-100px)] md:h-[calc(100vh-80px)]'}`}
+                  className={`flex flex-col w-full bg-[var(--bg-secondary)] overflow-hidden ${headerOpen ? 'h-[calc(100vh-90px)]' : 'h-[calc(100vh-45px)]'}`}
                 >
                   <InformationSection 
                     onClose={() => setFilter('all')} 
@@ -4389,6 +4329,7 @@ export default function App() {
                       setFilter('featured');
                       setSelectedGame(null);
                     }}
+                    onDownloadWebsite={downloadEntireWebsite}
                   />
                 </motion.div>
               ) : filter === 'movies' ? (
@@ -4454,19 +4395,106 @@ export default function App() {
                   className="flex flex-col gap-6"
                 >
               
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-l-4 border-[var(--accent-color)] pl-3 gap-4">
-                <div>
-                  <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
-                    {filter === 'all' && 'All Portals'}
-                    {filter === 'favorites' && 'Bookmarked Games'}
-                    {filter === 'featured' && 'Featured Showcases'}
-                    {filter === 'single' && 'Singleplayer Arcades'}
-                    {filter === 'Emulated' && 'Emulated Archives'}
-                    {filter === 'minecraft' && 'Minecraft Platform'}
-                  </h2>
-                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                    Showing {filteredGames.length} unblocked resources · Page {safeGamePage} of {totalGamePages}
-                  </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Left group: Title & Subtitle + Combined Switcher & Pagination Bar */}
+                <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                  {/* Title & Subtitle with left white bar */}
+                  <div className="border-l-[3px] border-white pl-2.5 shrink-0">
+                    <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-[var(--text-primary)] leading-tight">
+                      {normalizedSearchQuery !== '' ? (
+                        `SEARCH: "${searchQuery}"`
+                      ) : (
+                        <>
+                          {filter === 'all' && (gameCatalogMode === 'original' ? 'ORIGINAL GAMES' : 'ALL GAMES')}
+                          {filter === 'favorites' && 'BOOKMARKED GAMES'}
+                          {filter === 'featured' && 'FEATURED SHOWCASES'}
+                          {filter === 'single' && 'SINGLEPLAYER ARCADES'}
+                          {filter === 'Emulated' && 'EMULATED ARCHIVES'}
+                          {filter === 'minecraft' && 'MINECRAFT PLATFORM'}
+                        </>
+                      )}
+                    </h2>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5 font-medium">
+                      {normalizedSearchQuery !== ''
+                        ? `Found ${filteredGames.length} games · Page ${safeGamePage} of ${totalGamePages}`
+                        : `Showing ${filteredGames.length} unblocked resources · Page ${safeGamePage} of ${totalGamePages}`}
+                    </p>
+                  </div>
+
+                  {/* Combined Switcher & Pagination Capsule */}
+                  <div className="flex items-center bg-[#121212] border border-zinc-800 p-0.5 rounded-xl shadow-sm select-none shrink-0 flex-wrap sm:flex-nowrap gap-0.5">
+                    {/* Catalog Mode Switcher */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGameCatalogMode('original');
+                        safeStorage.setItem('unblocked-game-catalog-mode', 'original');
+                        setCurrentGamePage(1);
+                      }}
+                      className={`text-[10px] font-mono font-black uppercase px-2.5 py-1 rounded-lg transition-all cursor-pointer tracking-wider ${
+                        gameCatalogMode === 'original'
+                          ? 'bg-white text-black shadow-sm'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      ORIGINAL GAMES
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGameCatalogMode('all');
+                        safeStorage.setItem('unblocked-game-catalog-mode', 'all');
+                        setCurrentGamePage(1);
+                      }}
+                      className={`text-[10px] font-mono font-black uppercase px-2.5 py-1 rounded-lg transition-all cursor-pointer tracking-wider ${
+                        gameCatalogMode === 'all'
+                          ? 'bg-white text-black shadow-sm'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      ALL GAMES (2708)
+                    </button>
+
+                    {/* Subtle divider */}
+                    <div className="h-4 w-[1px] bg-zinc-800 mx-1 hidden sm:block" />
+
+                    {/* Prev / Page / Next Integrated Controls */}
+                    <div className="flex items-center gap-1 font-mono pl-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentGamePage((page) => Math.max(1, page - 1))}
+                        disabled={safeGamePage === 1}
+                        className={`flex items-center gap-0.5 text-[10px] font-mono font-bold px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                          safeGamePage > 1
+                            ? 'bg-white text-black shadow-sm hover:bg-zinc-200'
+                            : 'text-zinc-600 opacity-40 pointer-events-none'
+                        }`}
+                        title="Previous Page"
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                        <span>Prev</span>
+                      </button>
+
+                      <span className="text-[10px] font-mono font-bold text-[var(--text-primary)] px-1.5 select-none tracking-wider whitespace-nowrap">
+                        {safeGamePage} / {totalGamePages}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentGamePage((page) => Math.min(totalGamePages, page + 1))}
+                        disabled={safeGamePage === totalGamePages}
+                        className={`flex items-center gap-0.5 text-[10px] font-mono font-bold px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                          safeGamePage < totalGamePages
+                            ? 'bg-white text-black shadow-sm hover:bg-zinc-200'
+                            : 'text-zinc-600 opacity-40 pointer-events-none'
+                        }`}
+                        title="Next Page"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -4483,14 +4511,16 @@ export default function App() {
                     return (
                       <motion.div 
                         key={game.id}
-                        initial={{ opacity: 0 }}
+                        initial={animationsEnabled ? { opacity: 0 } : false}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                        whileHover={{ scale: 1.03, y: -4, transition: { duration: 0.2 } }}
-                        whileTap={{ scale: 0.98 }}
+                        exit={animationsEnabled ? { opacity: 0 } : undefined}
+                        transition={animationsEnabled ? { duration: 0.15 } : { duration: 0 }}
+                        whileHover={animationsEnabled ? { scale: 1.03, y: -4, transition: { duration: 0.2 } } : undefined}
+                        whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
                         onClick={() => { setSelectedGame(game); setZoom(1); }}
-                        className={`custom-card flex flex-col rounded-xl overflow-hidden cursor-pointer h-full transition-all duration-300 ${
+                        className={`custom-card flex flex-col rounded-xl overflow-hidden cursor-pointer h-full ${
+                          animationsEnabled ? 'transition-all duration-300' : ''
+                        } ${
                           game.featured 
                             ? 'border-amber-500/20 hover:border-amber-500/50 shadow-md hover:shadow-amber-500/5' 
                             : ''
@@ -4615,26 +4645,26 @@ export default function App() {
               )}
 
               {filteredGames.length > GAMES_PER_PAGE && (
-                <div className="flex items-center justify-center gap-3 pt-2">
+                <div className="flex items-center justify-center gap-4 pt-6 border-t border-[var(--card-border)]/50">
                   <button
                     type="button"
                     onClick={() => setCurrentGamePage((page) => Math.max(1, page - 1))}
                     disabled={safeGamePage === 1}
-                    className="flex items-center gap-1.5 rounded-lg border border-[var(--card-border)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] transition-colors hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex items-center gap-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--bg-secondary)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] transition-colors hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
                   >
                     <ChevronLeft className="h-3.5 w-3.5" />
-                    Previous
+                    Go Back
                   </button>
-                  <span className="min-w-20 text-center font-mono text-xs text-[var(--text-muted)]">
-                    {safeGamePage} / {totalGamePages}
+                  <span className="min-w-28 text-center font-mono text-xs text-[var(--text-muted)] font-bold">
+                    Page {safeGamePage} of {totalGamePages}
                   </span>
                   <button
                     type="button"
                     onClick={() => setCurrentGamePage((page) => Math.min(totalGamePages, page + 1))}
                     disabled={safeGamePage === totalGamePages}
-                    className="flex items-center gap-1.5 rounded-lg border border-[var(--card-border)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] transition-colors hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex items-center gap-1.5 rounded-lg bg-[var(--accent-color)] px-4 py-2 text-xs font-extrabold text-[var(--bg-color)] transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
                   >
-                    Next
+                    Next Page
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -4759,27 +4789,23 @@ export default function App() {
                           }
                         }
                       }}
-                      className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
                       title="Toggle Fullscreen Arena"
                     >
-                      <Maximize2 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline text-[10px] font-bold">FS</span>
+                      <Expand className="w-3.5 h-3.5" />
                     </button>
 
                     {/* Window Fullscreen Button */}
                     <button
                       onClick={() => setWindowFullscreen(!windowFullscreen)}
-                      className={`flex items-center gap-1.5 border py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 border py-1.5 px-2.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
                         windowFullscreen
                           ? 'border-amber-500 bg-amber-500/15 text-amber-500 font-bold shadow-[0_0_8px_rgba(245,158,11,0.2)]'
                           : 'border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)]'
                       }`}
-                      title={windowFullscreen ? "Exit Window Fullscreen" : "Toggle Window Fullscreen"}
+                      title={windowFullscreen ? "Exit Window Fullscreen" : "Window Fullscreen Mode"}
                     >
                       {windowFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                      <span className="hidden sm:inline text-[10px] font-bold">
-                        {windowFullscreen ? 'EXIT WINDOW FS' : 'WINDOW FS'}
-                      </span>
                     </button>
 
                   {/* Open in New Tab button */}
@@ -4889,17 +4915,16 @@ export default function App() {
                           if (!win.closed) frame.srcdoc = createGameLoadErrorDocument(selectedGame.url).srcDoc;
                         });
                     }}
-                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
-                    title="Open Game in New Tab"
+                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                    title="Open Game in New Tab (about:blank)"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline text-[10px] font-bold">OPEN IN ABOUT:BLANK</span>
                   </button>
 
                   {/* Lobby Chat Toggle Button */}
                   <button
                     onClick={() => setDockedChatCollapsed(!dockedChatCollapsed)}
-                    className={`flex items-center gap-1.5 border py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 border py-1.5 px-2.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
                       !dockedChatCollapsed 
                         ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/10 text-[var(--accent-color)] font-bold shadow-[0_0_8px_rgba(0,229,176,0.15)]' 
                         : 'border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)]'
@@ -4907,11 +4932,6 @@ export default function App() {
                     title="Toggle Live Lobby Chat inside Game Arena"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    {!dockedChatCollapsed && (
-                      <span className="hidden sm:inline text-[10px] font-bold">
-                        CLOSE CHAT
-                      </span>
-                    )}
                   </button>
 
                   {/* Hide Header Button */}
@@ -4968,7 +4988,7 @@ export default function App() {
                         id="game-frame"
                         key={selectedGame.id}
                         {...gameFrame}
-                        className="w-full h-full flex-1 border-none block m-0 p-0"
+                        className={`w-full h-full flex-1 border-none block m-0 p-0 ${isDraggingDock ? 'pointer-events-none select-none' : ''}`}
                         title={selectedGame.title}
                         allowFullScreen
                         referrerPolicy="no-referrer"
@@ -4978,47 +4998,12 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* RESIZE HANDLE - only on desktop (lg) and when chat is NOT collapsed */}
-                {!dockedChatCollapsed && (
-                  <div 
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setIsDraggingDock(true);
-                    }}
-                    className={`hidden lg:block w-3 hover:w-3.5 self-stretch cursor-col-resize transition-all duration-150 relative z-30 shrink-0 select-none ${
-                      isDraggingDock ? 'bg-[var(--accent-color)]/20' : 'bg-transparent hover:bg-white/5'
-                    }`}
-                    title="Drag to resize chat"
-                  >
-                    {/* Vertical line indicator */}
-                    <div className={`absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 w-0.5 h-16 rounded-full transition-all ${
-                      isDraggingDock ? 'bg-[var(--accent-color)] h-24 w-1' : 'bg-neutral-700'
-                    }`} />
-                  </div>
-                )}
-
                 {/* DOCKED LIVE LOBBY CHAT */}
                 {!dockedChatCollapsed && (
                   <div 
-                    style={{ width: window.innerWidth >= 1024 ? `${dockedChatWidth}px` : '100%' }}
+                    style={{ width: window.innerWidth >= 1024 ? '235px' : '100%' }}
                     className="w-full lg:h-full h-[320px] shrink-0 flex flex-col bg-[#070a11] border-t lg:border-t-0 lg:border-l border-[var(--card-border)]/50 rounded-none overflow-hidden"
                   >
-                    <div className="bg-[#0b0f19] px-2.5 py-1.5 border-b border-white/5 flex items-center justify-between shrink-0">
-                      <span className="text-[9px] font-black text-[var(--accent-color)] uppercase tracking-wider flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Lobby Live Chat
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[8px] font-bold text-neutral-400">Play & Chat!</span>
-                        <button
-                          onClick={() => setDockedChatCollapsed(true)}
-                          className="p-1 hover:bg-white/10 text-neutral-400 hover:text-white rounded transition-all cursor-pointer flex items-center justify-center"
-                          title="Collapse Chat"
-                        >
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
                     <div className="flex-1 min-h-0">
                       <UserChat onClose={() => {}} isMini={true} />
                     </div>
