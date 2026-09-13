@@ -1,9 +1,8 @@
 import { games as gamesData, ogGames, isOgGame } from './games';
-import { slopeGames } from './slopeGames';
 
 const ogTitlesSet = new Set(ogGames.map(g => g.title));
 
-export const games = [...gamesData, ...slopeGames].map((game, index) => {
+export const games = [...gamesData].map((game, index) => {
   const isOriginal = Boolean(game.isOriginal || game.isOg || ogTitlesSet.has(game.title) || isOgGame(game));
   if (!game.id) {
     const slug = (game.title || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();

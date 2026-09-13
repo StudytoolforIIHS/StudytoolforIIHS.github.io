@@ -7,7 +7,7 @@ const legacyGameData: Game[] = [
     title: 'The Legend of Zelda Ocarina of Time',
     description: 'Travel through time to save Hyrule in the legendary Nintendo 64 masterpiece. Make sure you open in a seperate tab to play this game.',
     url: 'clocarinaoftime.html',
-    thumbnail: 'clocarinaoftime.webp',
+    thumbnail: '',
     category: 'Emulated',
     featured: true,
     isOriginal: true,
@@ -17,7 +17,7 @@ const legacyGameData: Game[] = [
     title: 'The Legend of Zelda',
     description: 'The classic original NES adventure that started it all. Make sure you open in a seperate tab to play this game.',
     url: 'clloz1.html',
-    thumbnail: 'clloz1.webp',
+    thumbnail: '',
     category: 'Emulated',
     featured: true,
     isOriginal: true,
@@ -27,7 +27,7 @@ const legacyGameData: Game[] = [
     title: 'Chrono Trigger',
     description: 'Travel across time eras in this masterpiece SNES RPG by Square. Make sure you open in a seperate tab to play this game.',
     url: 'clchronotrigger.html',
-    thumbnail: 'clchronotrigger.webp',
+    thumbnail: '',
     category: 'Emulated',
     featured: true,
     isOriginal: true,
@@ -37,7 +37,7 @@ const legacyGameData: Game[] = [
     title: 'EarthBound',
     description: 'Join Ness and his friends in this quirky, beloved SNES RPG classic. Make sure you open in a seperate tab to play this game.',
     url: 'clearthboundsnes.html',
-    thumbnail: 'clearthboundsnes.webp',
+    thumbnail: '',
     category: 'Emulated',
     featured: true,
     isOriginal: true,
@@ -47,7 +47,7 @@ const legacyGameData: Game[] = [
     title: 'Castlevania: Aria of Sorrow',
     description: 'Command tactical souls and explore Dracula\'s castle in this stellar GBA Metroidvania. Make sure you open in a seperate tab to play this game.',
     url: 'clcastlevaniaariaofsorrow.html',
-    thumbnail: 'clcastlevaniaariaofsorrow.webp',
+    thumbnail: '',
     category: 'Emulated',
     featured: true,
     isOriginal: true,
@@ -57,7 +57,7 @@ const legacyGameData: Game[] = [
     title: 'Cave Story',
     description: 'The legendary action-adventure platformer. Explore the underground caves and save the Mimigas.',
     url: 'clcavestory.html',
-    thumbnail: 'clcavestory.webp',
+    thumbnail: '',
     category: 'Solo',
     featured: true,
     isOriginal: true,
@@ -67,7 +67,7 @@ const legacyGameData: Game[] = [
     title: 'New Super Mario Bros',
     description: 'Make sure you open in a seperate tab to play this game.',
     url: 'clnewsupermariobros.html',
-    thumbnail: 'clnewsupermariobros.webp',
+    thumbnail: '',
     category: 'Emulated',
     featured: true,
     isOriginal: true,
@@ -77,7 +77,7 @@ const legacyGameData: Game[] = [
     title: 'Mario Kart DS',
     description: 'Make sure you open in a seperate tab to play this game.',
     url: 'clmariokartds.html',
-    thumbnail: 'clmariokartds.webp',
+    thumbnail: '',
     category: 'Emulated',
     featured: true,
     isOriginal: true,
@@ -117,7 +117,7 @@ const legacyGameData: Game[] = [
     title: 'Pokemon Stadium 2',
     description: 'Make sure you open in a seperate tab to play this game.',
     url: 'clpokemonstadium2.html',
-    thumbnail: 'clpokemonstadium2.jpeg',
+    thumbnail: '',
     category: 'Emulated',
     featured: false,
     isOriginal: true,
@@ -127,7 +127,7 @@ const legacyGameData: Game[] = [
     title: 'Gran Turismo 2',
     description: 'Make sure you open in a seperate tab to play this game.',
     url: 'clgranturismo2.html',
-    thumbnail: 'clgranturismo2.jpg',
+    thumbnail: '',
     category: 'Emulated',
     featured: false,
     isOriginal: true,
@@ -187,7 +187,7 @@ const legacyGameData: Game[] = [
     title: 'Ace Attorney: Investigations - Miles Edgeworth',
     description: 'Make sure you open in a seperate tab to play this game.',
     url: 'claceattorneymilesedgeworth.html',
-    thumbnail: 'claceattorneymilesedgeworth.webp',
+    thumbnail: '',
     category: 'Emulated',
     featured: true,
     isOriginal: true,
@@ -233,15 +233,17 @@ const gameData: Game[] = [
     title: 'City Skylines copy',
     description: 'I used ai to make some of the game.',
     url: 'https://urnperiodic.github.io/cityskylinesremake/',
-    thumbnail: 'cityskylinesremake.webp',
+    thumbnail: '',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
-    title: 'The Final Earth 2 Original',
+    title: 'The Final Earth 2 New',
     description: 'I love this game bro. Actually best game out there, please try atleast once!',
     url: 'https://urnperiodic.github.io/the-final-earth-2-2/',
-    thumbnail: 'The Final Earth 2.jpeg',
+    thumbnail: 'https://i.ytimg.com/vi/9lZ9dCxejp0/hqdefault.jpg',
     category: 'Solo',
     featured: true
   },
@@ -249,9 +251,11 @@ const gameData: Game[] = [
     title: 'The Final Earth 2',
     description: 'Modded version — easier to play and has more things to do!',
     url: 'The_Final_Earth_2_Standalone.html',
-    thumbnail: 'The_Final_Earth_2_Standalone.jpg',
+    thumbnail: 'Modded.png',
     category: 'Solo',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Shader Pilot',
@@ -259,7 +263,9 @@ const gameData: Game[] = [
     url: 'https://urnperiodic.github.io/shader-piolet/',
     thumbnail: 'https://i.ytimg.com/vi/cpsY9WQxh5U/maxresdefault.jpg',
     category: 'Solo',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
 
   // ─────────────────────────────────────────────────────────────
@@ -271,15 +277,19 @@ const gameData: Game[] = [
     url: 'clpaperio.html',
     thumbnail: 'paper.io-2-download-free-pc.png',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Cookie Clicker',
     description: '',
     url: 'clcookieclicker.html',
-    thumbnail: 'clcookieclicker.webp',
+    thumbnail: '',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: '99 Nights In The Forest',
@@ -287,7 +297,9 @@ const gameData: Game[] = [
     url: 'cl99nightsitf.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVcqmKa58thtYd3HWzjJd1MwokpvGspBxKPQ&s',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Slope',
@@ -295,7 +307,9 @@ const gameData: Game[] = [
     url: 'https://ubg365.github.io/slope/play.html',
     thumbnail: 'https://i.ytimg.com/vi/jvjZ4rnERmM/maxresdefault.jpg',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Epilepsy game',
@@ -303,7 +317,9 @@ const gameData: Game[] = [
     url: 'https://ubg365.github.io/death-run-3d/',
     thumbnail: 'https://play-lh.googleusercontent.com/IeGUGo20PsUgjtAajcZWsz09ypyAIITXS8jDzzLAFdoR65Zy_3PVOP-ckq5b_A_vPzuV=w526-h296-rw',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: '2048',
@@ -311,7 +327,9 @@ const gameData: Game[] = [
     url: 'https://ubg365.github.io/2048/play.html',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSuxqLfXqm07uXPH0qyPu_6MofiU9nlUoq9w&s',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Bitlife',
@@ -319,7 +337,9 @@ const gameData: Game[] = [
     url: 'https://ubg365.github.io/bitlife-life-simulator/play.html',
     thumbnail: 'https://i.ytimg.com/vi/WUTrv--kZtI/maxresdefault.jpg',
     category: 'Solo',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'OvO',
@@ -327,7 +347,9 @@ const gameData: Game[] = [
     url: 'https://mc0825.github.io/g5/class-456',
     thumbnail: 'https://play-lh.googleusercontent.com/v7KwGdPjJGjJjRXn46sck4DwDBdKSeRzGN44CjiXUtKV0jjOi51Bt4wcXud0m-SkXg',
     category: 'Solo',
-    featured: true
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Wordle Unlimited',
@@ -335,15 +357,19 @@ const gameData: Game[] = [
     url: 'https://bosorioo.github.io/wordle-unlimited/',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzXo17pL3S9PjcsR4V-ZPUr8nuQ622Lq0lhA&s',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Sandboxels',
     description: 'Fun to experiment',
     url: 'https://mr-funkinguy.github.io/sandboxels/',
     thumbnail: 'https://s3.amazonaws.com/production2.sciencegamecenter.org/games/boxarts/000/000/417/medium/TitleArt_SandBoxels.jpeg?1707496550',
-    category: 'Solo',
-    featured: true
+    category: 'Solo', 
+    featured: true,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Tanuki Sunset',
@@ -351,7 +377,9 @@ const gameData: Game[] = [
     url: 'https://mc0825.github.io/g26/class-488/',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBc_knTaEJfOEGjJPNFjIsNG5Mk95b6ua-vw&s',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Minecraft Launcher',
@@ -359,7 +387,9 @@ const gameData: Game[] = [
     url: 'https://irv77.github.io/AmplerLauncher/',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3i6T2Z3GQtOp-O6IC1qtggAoP3_-vm0RsPw&s',
     category: 'Minecraft',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Bloons TD6 copy',
@@ -367,7 +397,9 @@ const gameData: Game[] = [
     url: 'https://iims-sucksasaschool.github.io/BTD6/',
     thumbnail: 'bloons.jpg',
     category: 'Solo or Multiplayer.',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Bloons Tower Defense 5',
@@ -375,7 +407,9 @@ const gameData: Game[] = [
     url: 'clbtd5.html',
     thumbnail: 'capsule_616x353.jpg',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Tetris',
@@ -383,7 +417,9 @@ const gameData: Game[] = [
     url: 'https://ubg365.github.io/flash-tetris/',
     thumbnail: 'https://www.datocms-assets.com/145957/1744284280-tetris-mobile.png?auto=format&fit=max&w=1200',
     category: 'Solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Tomb of the Mask',
@@ -391,7 +427,9 @@ const gameData: Game[] = [
     url: 'https://doraedu52.github.io/g26/class-438',
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNHRR0Dx3LhBe3OA0pHR0U_VuPagdWjz1pOg&s',
     category: 'solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Crossy Road',
@@ -399,7 +437,9 @@ const gameData: Game[] = [
     url: 'https://crossy-road-unblock.github.io/crossy-road/',
     thumbnail: 'https://crossyroadonline.bitbucket.io/img/crossy-road.png',
     category: 'solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Champion Island',
@@ -407,7 +447,9 @@ const gameData: Game[] = [
     url: 'https://grandplat2.github.io/championisland/',
     thumbnail: 'https://www.gstatic.com/marketing-cms/c2/de/b1ea4f8d4314be89cbd66a6c94d7/4.gif',
     category: 'solo',
-    featured: false
+    featured: false,
+    isOriginal: true,
+    isOg: true
   },
   {
     title: 'Suika Watermelon copy',
@@ -6269,7 +6311,7 @@ const gameData: Game[] = [
     title: 'Sandboxels',
     description: '',
     url: 'clsandboxels.html',
-    thumbnail: 'clsandboxels.jpg',
+    thumbnail: '',
     category: 'Solo',
     featured: false
   },
@@ -8508,7 +8550,7 @@ const gameData: Game[] = [
   {
     title: 'Ayuncraft',
     description: '',
-    url: 'clclayuncraft.html',
+    url: 'clayuncraft.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8524,7 +8566,7 @@ const gameData: Game[] = [
   {
     title: 'EB Client',
     description: '',
-    url: 'EB.Client.V1.0.0R2.WASM.html',
+    url: 'clebclient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8548,7 +8590,7 @@ const gameData: Game[] = [
   {
     title: 'Eaglercraft Magic',
     description: '',
-    url: 'cleaglercraftmagic.html',
+    url: 'Cleaglercraftmagic.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8588,7 +8630,7 @@ const gameData: Game[] = [
   {
     title: 'Eaglercraft Tech',
     description: '',
-    url: 'clEaglerCraftTech.html',
+    url: 'cleaglercrafttech.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8628,7 +8670,7 @@ const gameData: Game[] = [
   {
     title: 'GX Client',
     description: '',
-    url: 'clGXclient.html',
+    url: 'clGXClient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8636,7 +8678,7 @@ const gameData: Game[] = [
   {
     title: 'JMO Client',
     description: '',
-    url: 'cljmocraft.html',
+    url: 'cljmoclient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8708,7 +8750,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft Prismarine Client',
     description: '',
-    url: 'clprismclient.html',
+    url: 'clprismarine.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8716,7 +8758,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft 1.11.2',
     description: '',
-    url: 'clEaglercraftZ_1112.html',
+    url: 'EaglercraftZ_1.11.2.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8724,7 +8766,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft 1.5.2',
     description: '',
-    url: 'cleaglercraft152.html',
+    url: 'eaglercraft.1.5.2.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8732,7 +8774,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft 1.7.3',
     description: '',
-    url: 'clEaglercraft-Beta-13-Offline.html',
+    url: 'Eaglercraft-Beta-1.7.3-Offline.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8740,7 +8782,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft 1.9',
     description: '',
-    url: 'clEaglercraftL_19_v0_7_0_Offline_Signed.html',
+    url: 'EaglercraftL_1.9_v0_7_0_Offline_Signed.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8748,7 +8790,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft Alpha 1.2.6',
     description: '',
-    url: 'clEaglercraft-Alpha-126-Offline.html',
+    url: 'Eaglercraft-Alpha-1.2.6-Offline.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8756,7 +8798,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft Beta 1.3',
     description: '',
-    url: 'clEaglercraft-Beta-1.3-Offline.html',
+    url: 'Eaglercraft-Beta-1.3-Offline.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8764,7 +8806,7 @@ const gameData: Game[] = [
   {
     title: 'Minecraft Indev',
     description: '',
-    url: 'clEaglercraft-Indev-Offline.html',
+    url: 'Eaglercraft-Indev-Offline.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8796,7 +8838,7 @@ const gameData: Game[] = [
   {
     title: 'Pixel Client',
     description: '',
-    url: 'clpixelclient.html',
+    url: 'clpixel.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8844,7 +8886,7 @@ const gameData: Game[] = [
   {
     title: 'Solar Client',
     description: '',
-    url: 'clsolarclient.html',
+    url: 'clsolar.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8860,7 +8902,7 @@ const gameData: Game[] = [
   {
     title: 'Tuff Client',
     description: '',
-    url: 'clTuff_Client_Offline_WASM.html',
+    url: 'cltuffclient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -8892,7 +8934,7 @@ const gameData: Game[] = [
   {
     title: 'Zeta Client',
     description: '',
-    url: 'clZetaClient.html',
+    url: 'clzetaclient.html',
     thumbnail: '',
     category: 'Minecraft',
     featured: false
@@ -19653,7 +19695,7 @@ const gameData: Game[] = [
     title: 'Gran Turismo',
     description: '',
     url: 'clgranturismo.html',
-    thumbnail: 'clgranturismo2.jpg',
+    thumbnail: '',
     category: 'Emulated',
     featured: false
   },
@@ -21772,9 +21814,8 @@ export const EXPLICIT_OG_TITLES: string[] = [
   'Phoenix Wright - Ace Attorney - Trials and Tribulations',
   'Tomodachi Collection',
   'City Skylines copy',
-  'The Final Earth 2 New',
+  'The Final Earth 2 Orginal ',
   'The Final Earth 2 (Modded)',
-  'The Final Earth 2',
   'Shader Pilot',
   'Paper.io',
   'Cookie Clicker',
