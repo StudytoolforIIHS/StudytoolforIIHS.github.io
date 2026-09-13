@@ -30,7 +30,7 @@ const prepareGameHtml = (html, baseUrl) => {
 };
 
 const createGameLoadErrorDocument = (url) => ({
-  srcDoc: `<html><body style="margin:0;background:#080b12;color:#e5e7eb;font:16px sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center"><main><h2>Game could not be loaded</h2><p>The remote game file did not respond.</p><a href="${url}" target="_blank" rel="noreferrer" style="color:#60a5fa">Open source file</a></main></body></html>`
+  srcDoc: `<html><body style="margin:0;background:#080b12;color:#e5e7eb;font:16px sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center"><main><h2>Portal could not be loaded</h2><p>The remote portal file did not respond.</p><a href="${url}" target="_blank" rel="noreferrer" style="color:#60a5fa">Open source piece</a></main></body></html>`
 });
 
 const loadGameFrame = async (url, signal) => {
@@ -38,7 +38,7 @@ const loadGameFrame = async (url, signal) => {
 
   const loadHtml = async (sourceUrl) => {
     const response = await fetch(sourceUrl, { signal });
-    if (!response.ok) throw new Error(`Game file request failed: ${response.status}`);
+    if (!response.ok) throw new Error(`Portal file request failed: ${response.status}`);
     const html = await response.text();
     const baseUrl = sourceUrl.slice(0, sourceUrl.lastIndexOf('/') + 1);
     return prepareGameHtml(html, baseUrl);
@@ -201,6 +201,45 @@ const decoyOptions = [
   { value: 'ixl', label: 'IXL', labelLong: 'IXL Learning', icon: 'https://www.google.com/s2/favicons?sz=64&domain=ixl.com' }
 ];
 
+function GoGuardianDecoyNotice({
+  mode,
+  onToggleMode,
+  onClose,
+  decoyType,
+  positionClass = "absolute top-full right-0 mt-2 w-64 sm:w-72"
+}) {
+  // Automatically dismiss the message after a few seconds (6s)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -6, scale: 0.96 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      onClick={onToggleMode}
+      className={`${positionClass} z-[99999] rounded-lg bg-[var(--card-bg)] border-2 border-red-500/90 shadow-xl shadow-red-500/10 p-2 text-left select-none cursor-pointer transition-all hover:border-red-400 group backdrop-blur-xl`}
+      title="Click anywhere to swap between Light and Dark mode"
+    >
+      <div className="text-red-500 font-bold underline tracking-wider mb-0.5" style={{ fontSize: '8px', lineHeight: '13px' }}>
+        READ THIS ONCE
+      </div>
+      {/* Exact Required Message Text with applied styling */}
+      <p
+        style={{ fontSize: '7px', lineHeight: '13.5px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className="text-[var(--text-primary)] font-medium leading-relaxed"
+      >
+        GoGuardian sees whatever them you are on, and if you are using Classroom/Google Docs/clever.com decoys, the mode automatically changes to white. These platforms do not have dark mode. So to stay hidden, please use white mode when GoGuardian is on. If GoGuardian is not on, you can just swap to dark mode.
+      </p>
+    </motion.div>
+  );
+}
+
 function CursorSpotlight({ active }) {
   const ref = useRef(null);
 
@@ -266,14 +305,16 @@ function DecoyDropdown({ value, onChange, mode, compact = false, showLabel = fal
         className={`flex items-center gap-1.5 rounded-full border cursor-pointer transition-all duration-200 select-none ${
           compact ? 'px-2 py-0.5 text-[10px] h-6' : 'px-3 py-1 text-xs h-8'
         } ${
-          isHighlighted
-            ? 'bg-[var(--accent-color)]/10 border-[var(--accent-color)] text-[var(--accent-color)] shadow-[0_1px_5px_var(--accent-shadow)] font-black'
-            : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-primary)] hover:border-[var(--accent-color)]/50'
+          mode === 'light'
+            ? 'bg-white border-neutral-300 text-neutral-900 shadow-sm hover:border-neutral-400'
+            : isHighlighted
+              ? 'bg-[var(--accent-color)]/10 border-[var(--accent-color)] text-[var(--accent-color)] shadow-[0_1px_5px_var(--accent-shadow)] font-black'
+              : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-primary)] hover:border-[var(--accent-color)]/50'
         }`}
         style={{ colorScheme: mode }}
       >
         {selectedOption.icon === 'school' ? (
-          <School className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isHighlighted ? 'text-[var(--accent-color)]' : 'text-neutral-400'}`} />
+          <School className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isHighlighted ? (mode === 'light' ? 'text-neutral-900' : 'text-[var(--accent-color)]') : 'text-neutral-400'}`} />
         ) : (
           <img src={selectedOption.icon} className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} object-contain shrink-0`} referrerPolicy="no-referrer" alt="" />
         )}
@@ -284,7 +325,7 @@ function DecoyDropdown({ value, onChange, mode, compact = false, showLabel = fal
           </span>
         )}
         
-        <ChevronDown className={`${compact ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'} transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-[var(--accent-color)]' : 'text-neutral-400'}`} />
+        <ChevronDown className={`${compact ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'} transition-transform duration-200 shrink-0 ${isOpen ? (mode === 'light' ? 'rotate-180 text-neutral-900' : 'rotate-180 text-[var(--accent-color)]') : 'text-neutral-400'}`} />
       </button>
 
       <AnimatePresence>
@@ -294,7 +335,11 @@ function DecoyDropdown({ value, onChange, mode, compact = false, showLabel = fal
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute top-full right-0 mt-1.5 w-48 rounded-xl bg-[#12121a]/95 backdrop-blur-md border border-white/10 p-1 shadow-2xl z-[2600] overflow-hidden select-none"
+            className={`absolute top-full right-0 mt-1.5 w-48 rounded-xl border p-1 shadow-2xl z-[2600] overflow-hidden select-none ${
+              mode === 'light'
+                ? 'bg-white border-neutral-200 shadow-xl'
+                : 'bg-[#12121a]/95 backdrop-blur-md border-white/10'
+            }`}
           >
             <div className="flex flex-col gap-0.5">
               {decoyOptions.map((opt) => {
@@ -308,12 +353,16 @@ function DecoyDropdown({ value, onChange, mode, compact = false, showLabel = fal
                     }}
                     className={`flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 cursor-pointer ${
                       isSelected 
-                        ? 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold' 
-                        : 'text-neutral-300 hover:text-white hover:bg-white/5'
+                        ? mode === 'light'
+                          ? 'bg-neutral-900 text-white font-bold'
+                          : 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold' 
+                        : mode === 'light'
+                          ? 'text-neutral-700 hover:text-black hover:bg-neutral-100'
+                          : 'text-neutral-300 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     {opt.icon === 'school' ? (
-                      <School className={`w-3.5 h-3.5 ${isSelected ? 'text-[var(--bg-color)]' : 'text-[var(--accent-color)]'}`} />
+                      <School className={`w-3.5 h-3.5 ${isSelected ? (mode === 'light' ? 'text-white' : 'text-[var(--bg-color)]') : (mode === 'light' ? 'text-neutral-900' : 'text-[var(--accent-color)]')}`} />
                     ) : (
                       <img src={opt.icon} className="w-3.5 h-3.5 object-contain shrink-0" referrerPolicy="no-referrer" alt="" />
                     )}
@@ -373,9 +422,13 @@ function AutoRandomizeDecoyButton({
         className={`flex items-center gap-1 rounded-full border cursor-pointer transition-all duration-200 select-none ${
           compact ? 'px-1.5 py-0.5 text-[10px] h-6' : 'px-2.5 py-1 text-xs h-8'
         } ${
-          autoRandomize
-            ? 'bg-[var(--accent-color)]/15 border-[var(--accent-color)] text-[var(--accent-color)] shadow-[0_0_8px_var(--accent-shadow)] font-black'
-            : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-[var(--accent-color)]/50 hover:text-[var(--accent-color)]'
+          mode === 'light'
+            ? autoRandomize
+              ? 'bg-white border-neutral-900 text-neutral-900 shadow-sm font-black'
+              : 'bg-white border-neutral-300 text-neutral-600 shadow-sm hover:border-neutral-400 hover:text-neutral-900'
+            : autoRandomize
+              ? 'bg-[var(--accent-color)]/15 border-[var(--accent-color)] text-[var(--accent-color)] shadow-[0_0_8px_var(--accent-shadow)] font-black'
+              : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-muted)] hover:border-[var(--accent-color)]/50 hover:text-[var(--accent-color)]'
         }`}
         title={autoRandomize ? `Auto Randomize: ON (${formatInterval(interval)}) • Next in ${countdown}s` : "Auto Randomize Decoy (Settings)"}
         aria-label="Auto Randomize Decoy"
@@ -634,6 +687,17 @@ export default function App() {
     }
     return 'classroom';
   });
+
+  const isWhiteDecoy = decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'clever';
+  const [showGoGuardianNotice, setShowGoGuardianNotice] = useState(() => isWhiteDecoy);
+
+  // Automatically switch to white mode on classroom, google docs, and clever decoys
+  useEffect(() => {
+    if (decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'clever') {
+      setMode('light');
+      setShowGoGuardianNotice(true);
+    }
+  }, [decoyType]);
 
   // Persist decoy state to localStorage
   useEffect(() => {
@@ -916,6 +980,113 @@ export default function App() {
     }
   };
 
+  const openGameInAboutBlank = (gameToOpen) => {
+    if (!gameToOpen) return;
+    const win = window.open("about:blank", "_blank");
+    if (!win) {
+      alert("Popup blocked. Allow popups for this site.");
+      return;
+    }
+    const classroomFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
+    let tabTitle = gameToOpen.title;
+    let tabFavicon = classroomFavicon;
+    if (decoyType === 'classroom') {
+      tabTitle = "Home - Classroom";
+      tabFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
+    } else if (decoyType === 'canva') {
+      tabTitle = "Home - Canva";
+      tabFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
+    } else if (decoyType === 'clever') {
+      tabTitle = "Clever | Log in with Clever";
+      tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
+    } else if (decoyType === 'campus') {
+      tabTitle = "Campus Student";
+      tabFavicon = "https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png";
+    } else if (decoyType === 'docs') {
+      tabTitle = "Google Docs";
+      tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=docs.google.com";
+    } else if (decoyType === 'gmail') {
+      tabTitle = "Inbox - Jersey City Public Schools";
+      tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=mail.google.com";
+    } else if (decoyType === 'duolingo') {
+      tabTitle = "Duolingo - Learn a language for free";
+      tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=duolingo.com";
+    } else if (decoyType === 'ixl') {
+      tabTitle = "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
+      tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
+    }
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${tabTitle}</title>
+        <link rel="icon" type="image/png" href="${tabFavicon}">
+        <link rel="shortcut icon" type="image/png" href="${tabFavicon}">
+        <meta charset="utf-8">
+        <style>
+          html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
+          iframe { width: 100vw; height: 100vh; border: none; display: block; }
+        </style>
+        <script>
+          function forceFavicon() {
+            const head = document.head || document.getElementsByTagName('head')[0];
+            const links = document.querySelectorAll("link[rel*='icon']");
+            links.forEach(function(el) { el.remove(); });
+
+            const newLink = document.createElement('link');
+            newLink.rel = 'icon';
+            newLink.type = 'image/png';
+            newLink.href = '${tabFavicon}';
+            head.appendChild(newLink);
+
+            const shortcutLink = document.createElement('link');
+            shortcutLink.rel = 'shortcut icon';
+            shortcutLink.type = 'image/png';
+            shortcutLink.href = '${tabFavicon}';
+            head.appendChild(shortcutLink);
+
+            document.title = "${tabTitle}";
+          }
+
+          forceFavicon();
+          window.onload = forceFavicon;
+          setTimeout(forceFavicon, 50);
+          setTimeout(forceFavicon, 150);
+          setTimeout(forceFavicon, 500);
+        </script>
+      </head>
+      <body>
+        <iframe id="about-blank-game-frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation" referrerpolicy="no-referrer"></iframe>
+      </body>
+      </html>
+    `);
+    win.document.close();
+
+    const frame = win.document.getElementById('about-blank-game-frame');
+    const cachedFrame = gameHtmlCache.get(gameToOpen.url);
+    const loadGameHtml = cachedFrame
+      ? Promise.resolve(cachedFrame)
+      : loadGameFrame(gameToOpen.url).then((gameFrame) => {
+          gameHtmlCache.set(gameToOpen.url, gameFrame);
+          return gameFrame;
+        });
+
+    loadGameHtml
+      .then((gameFrameData) => {
+        if (!win.closed) {
+          if (gameFrameData.src) {
+            frame.src = gameFrameData.src;
+          } else {
+            frame.srcdoc = gameFrameData.srcDoc;
+          }
+        }
+      })
+      .catch(() => {
+        if (!win.closed) frame.srcdoc = createGameLoadErrorDocument(gameToOpen.url).srcDoc;
+      });
+  };
+
   // States for collapsible & resizable docked game chat
   const [dockedChatWidth, setDockedChatWidth] = useState(235); // 235px lowest width
   const [dockedChatCollapsed, setDockedChatCollapsed] = useState(true);
@@ -1168,14 +1339,18 @@ export default function App() {
   const [articleSearch, setArticleSearch] = useState('');
   const [selectedArticleCategory, setSelectedArticleCategory] = useState('All');
 
-  // Set white as the main starting color for articles (light mode), and black for games (dark mode)
+  // Set white as the main starting color for articles (light mode), and for classroom/docs decoys
   useEffect(() => {
     if (viewMode === 'articles') {
       setMode('light');
     } else if (viewMode === 'games') {
-      setMode('dark');
+      if (decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'clever') {
+        setMode('light');
+      } else {
+        setMode('dark');
+      }
     }
-  }, [viewMode]);
+  }, [viewMode, decoyType]);
 
   const handlePasswordSubmit = (customPass) => {
     const inputPass = (customPass !== undefined ? customPass : passcode).trim().toLowerCase();
@@ -1222,7 +1397,7 @@ export default function App() {
         win.document.write(`<html><head><title>${parentTitle}</title><link rel="icon" href="${parentFavicon}"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0c0a09;}iframe{width:100vw;height:100vh;border:none;display:block;}</style></head><body><iframe src="${iframeSrc}" allow="fullscreen"></iframe></body></html>`);
         win.document.close();
       } else {
-        alert("Popup blocked! Please allow popups to open the games in a cloaked tab.");
+        alert("Popup blocked! Please allow popups to open the portals in a cloaked tab.");
       }
       setPasscode('');
     } else if (inputPass === 'tt0609' || inputPass === '1378') {
@@ -2541,7 +2716,20 @@ export default function App() {
           </div>
 
           {/* Light/Dark Slider */}
-          <div className="flex items-center gap-2 border border-[var(--card-border)] bg-[var(--bg-secondary)] py-1.5 px-2.5 rounded-full shadow-sm">
+          <div className="relative flex items-center gap-1.5 border border-[var(--card-border)] bg-[var(--bg-secondary)] py-1.5 px-2.5 rounded-full shadow-sm">
+            {isWhiteDecoy && (
+              <button
+                type="button"
+                onClick={() => setShowGoGuardianNotice(prev => !prev)}
+                className={`p-1 rounded-full text-amber-500 hover:scale-115 transition-all cursor-pointer ${
+                  showGoGuardianNotice ? 'opacity-100 ring-2 ring-amber-500/40 bg-amber-500/10' : 'opacity-80 hover:opacity-100 animate-pulse'
+                }`}
+                title="GoGuardian Decoy Shield Notice (Click to open/close)"
+              >
+                <Shield className="w-3.5 h-3.5 fill-amber-500/20" />
+              </button>
+            )}
+
             <div 
               onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
               className="relative w-[50px] h-6 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
@@ -2555,6 +2743,18 @@ export default function App() {
                 {mode === 'dark' ? '🌙' : '☀️'}
               </div>
             </div>
+
+            <AnimatePresence>
+              {isWhiteDecoy && showGoGuardianNotice && (
+                <GoGuardianDecoyNotice
+                  mode={mode}
+                  onToggleMode={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+                  onClose={() => setShowGoGuardianNotice(false)}
+                  decoyType={decoyType}
+                  positionClass="absolute top-full right-0 mt-3 w-80 sm:w-96"
+                />
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -2562,7 +2762,7 @@ export default function App() {
         <div className={`w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 md:p-8 shadow-2xl transition-all duration-300 flex flex-col items-center gap-6 flex-shrink-0 ${isShake ? 'animate-shake' : ''}`}>
           
           <div className="text-center">
-            <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Games Secured</h2>
+            <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Portals Secured</h2>
             <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed">This is a paid Science, Math, ELA, and Social Studies article website. Please enter a correct password to continue to the website.</p>
           </div>
 
@@ -2833,7 +3033,7 @@ export default function App() {
           </div>
           <div className="flex flex-row items-baseline gap-2 flex-wrap">
             <h1 className="font-extrabold tracking-tight text-[var(--text-primary)] leading-none group-hover:text-[var(--accent-color)] transition-colors text-left" style={{ fontSize: '12px', textAlign: 'left' }}>
-              StudyTools Games
+              StudyTools Portals
             </h1>
           </div>
         </div>
@@ -3000,23 +3200,23 @@ export default function App() {
               title="Go to homepage"
             >
               <div className="p-1 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-md border border-[var(--card-border)] shadow-sm group-hover:rotate-12 transition-all duration-300 transform flex items-center justify-center shrink-0">
-                <School className="w-3.5 h-3.5" />
+                <School className="w-3.5 h-3.5" style={{ fontFamily: 'Verdana', fontWeight: 'normal' }} />
               </div>
               <div className="flex flex-col items-start justify-center">
                 <span className="text-left whitespace-nowrap flex flex-col justify-center select-none">
                   <span 
                     className="text-[8px] leading-[11px] tracking-tight flex items-center gap-1 transition-colors"
-                    style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                    style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                   >
-                    <span className="text-neutral-400 font-normal">Leadcreator:</span>
-                    <span className="font-bold text-[var(--text-primary)]">Thorne Wail</span>
+                    <span className="text-neutral-400 font-bold" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 'bold' }}>Leadcreator:</span>
+                    <span className="font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Thorne Wail</span>
                   </span>
                   <span 
                     className="text-[8px] leading-[11px] tracking-tight flex items-center gap-1 transition-colors"
-                    style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}
+                    style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                   >
-                    <span className="text-neutral-400 font-normal">Cocreator:</span>
-                    <span className="font-bold text-[var(--accent-color)]">Grandplat2</span>
+                    <span className="text-neutral-400 font-bold" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 'bold' }}>Cocreator:</span>
+                    <span className="font-bold text-[var(--accent-color)]" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Grandplat2</span>
                   </span>
                 </span>
               </div>
@@ -3071,14 +3271,16 @@ export default function App() {
 
               <button
                 onClick={() => { setFilter(filter === 'chat' ? 'all' : 'chat'); setSelectedGame(null); }}
-                className={`p-1 px-1.5 rounded-md text-xs font-sans font-black transition-all duration-200 ${
+                className={`p-1 px-1.5 rounded-md text-xs font-sans font-black transition-all duration-200 flex items-center justify-center ${
                   filter === 'chat'
                     ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_1px_5px_var(--accent-shadow)]'
                     : 'bg-transparent text-[var(--text-primary)] hover:text-[var(--accent-color)]'
                 }`}
-                title="Chat"
+                title="Gemini AI Chat"
               >
-                <span>AI</span>
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="currentColor" />
+                </svg>
               </button>
 
               <button
@@ -3266,9 +3468,11 @@ export default function App() {
                     ? 'bg-[var(--accent-color)] text-[var(--bg-color)] border-[var(--accent-color)] shadow-[0_2px_8px_var(--accent-shadow)]'
                     : 'bg-[var(--card-bg)] text-[var(--text-primary)] border-[var(--card-border)] hover:border-[var(--accent-color)]/50 hover:text-[var(--accent-color)]'
                 }`}
-                title="Chat Tutor"
+                title="Gemini AI Chat Tutor"
               >
-                <span>AI</span>
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="currentColor" />
+                </svg>
               </button>
 
               {/* Lobby Chat Button */}
@@ -3538,21 +3742,24 @@ export default function App() {
                 aria-checked={animationsEnabled}
                 aria-label="Toggle Animations"
               >
-                <span className="text-[10px] font-mono font-bold tracking-tight text-white transition-colors whitespace-nowrap">
+                <span 
+                  className={`tracking-tight transition-colors whitespace-nowrap ${mode === 'light' ? 'text-black font-extrabold' : 'text-[var(--text-primary)]'}`}
+                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '8px', fontWeight: 'bold', color: mode === 'light' ? '#000000' : undefined }}
+                >
                   Anim
                 </span>
                 <div 
                   className={`relative w-7 h-4 rounded-full border transition-all duration-200 flex items-center px-0.5 ${
                     animationsEnabled 
-                      ? 'bg-white border-white' 
-                      : 'bg-neutral-850 bg-[#1e1e1e] border-neutral-700'
+                      ? mode === 'light' ? 'bg-black border-black' : 'bg-[var(--accent-color)] border-[var(--accent-color)]' 
+                      : mode === 'light' ? 'bg-neutral-200 border-neutral-300' : 'bg-[var(--input-fill)] border-[var(--card-border)]'
                   }`}
                 >
                   <div 
                     className={`w-3 h-3 rounded-full transition-all duration-200 ease-out transform ${
                       animationsEnabled 
-                        ? 'translate-x-3 bg-black' 
-                        : 'translate-x-0 bg-neutral-400'
+                        ? mode === 'light' ? 'translate-x-3 bg-white' : 'translate-x-3 bg-[var(--bg-color)]' 
+                        : mode === 'light' ? 'translate-x-0 bg-black' : 'translate-x-0 bg-[var(--text-muted)]'
                     }`}
                   />
                 </div>
@@ -3564,21 +3771,29 @@ export default function App() {
               {/* Settings Gear Button */}
               <button
                 onClick={() => setIsGlobalSettingsOpen(!isGlobalSettingsOpen)}
-                className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)] transition-all cursor-pointer flex items-center justify-center shrink-0"
+                className={`p-1 rounded-md transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                  mode === 'light' 
+                    ? 'text-black hover:text-black hover:bg-black/5' 
+                    : 'text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)]'
+                }`}
                 title="System Settings"
               >
-                <Settings className="w-3 h-3" />
+                <Settings className="w-3 h-3" style={{ color: mode === 'light' ? '#000000' : undefined }} />
               </button>
 
               {/* Download website button */}
               <div className="relative">
                 <button
                   onClick={downloadEntireWebsite}
-                  className={`p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)] transition-all cursor-pointer flex items-center justify-center shrink-0 ${showNotices && noticeStep === 0 ? 'ring-2 ring-[var(--accent-color)] ring-offset-2 ring-offset-[#0d0d12] animate-pulse' : ''}`}
+                  className={`p-1 rounded-md transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                    mode === 'light'
+                      ? 'text-black hover:text-black hover:bg-black/5'
+                      : 'text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)]'
+                  } ${showNotices && noticeStep === 0 ? 'ring-2 ring-[var(--accent-color)] ring-offset-2 ring-offset-[#0d0d12] animate-pulse' : ''}`}
                   title="Download Website"
                   aria-label="Download Website"
                 >
-                  <Download className="w-3.5 h-3.5" style={{ color: '#a3a3a3' }} />
+                  <Download className="w-3.5 h-3.5" style={{ color: mode === 'light' ? '#000000' : undefined }} />
                 </button>
 
                 {showNotices && noticeStep === 0 && (
@@ -3711,7 +3926,7 @@ export default function App() {
                       <span className="text-xs font-bold text-white">Auto Hide Header</span>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-neutral-400 leading-normal max-w-[150px]">
-                          Automatically hide header when launching a game.
+                          Automatically hide header when launching a portal.
                         </span>
                         <div
                           onClick={() => {
@@ -3759,7 +3974,7 @@ export default function App() {
                         </div>
                       </div>
                       <span className="text-[10px] text-neutral-400 leading-normal">
-                        Prevents game titles and sub-paths from accumulating in browser history via <code className="text-[var(--accent-color)] font-mono">history.replaceState()</code>.
+                        Prevents portal titles and sub-paths from accumulating in browser history via <code className="text-[var(--accent-color)] font-mono">history.replaceState()</code>.
                       </span>
                     </div>
 
@@ -3786,10 +4001,14 @@ export default function App() {
 
               <button
                 onClick={() => setViewModeAndSave('articles')}
-                className="p-1 rounded-md text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--card-bg)] transition-all cursor-pointer flex items-center justify-center shrink-0"
+                className={`p-1 rounded-md transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                  mode === 'light'
+                    ? 'text-black hover:text-black hover:bg-black/5'
+                    : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--card-bg)]'
+                }`}
                 title="Sign Out (Lock Workspace)"
               >
-                <LogOut className="w-3 h-3" />
+                <LogOut className="w-3 h-3" style={{ color: mode === 'light' ? '#000000' : undefined }} />
               </button>
 
               <div className="w-[1px] h-3 bg-[var(--card-border)]/80" />
@@ -3820,19 +4039,46 @@ export default function App() {
               {/* Subtle divider */}
               <div className="w-[1px] h-3 bg-[var(--card-border)]/80" />
 
-              {/* Light/Dark slider (Joined with color palette bar) */}
-              <div 
-                onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
-                className="relative w-[34px] h-4 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300 shrink-0"
-                title="Slide to change Light/Dark Mode"
-              >
+              {/* Light/Dark slider with GoGuardian Decoy notice (Joined with color palette bar) */}
+              <div className="relative flex items-center gap-1">
+                {isWhiteDecoy && (
+                  <button
+                    type="button"
+                    onClick={() => setShowGoGuardianNotice(prev => !prev)}
+                    className={`p-0.5 rounded-full text-amber-500 hover:scale-120 transition-all cursor-pointer ${
+                      showGoGuardianNotice ? 'opacity-100 ring-2 ring-amber-500/40 bg-amber-500/10' : 'opacity-80 hover:opacity-100 animate-pulse'
+                    }`}
+                    title="GoGuardian Decoy Shield Notice (Click to open/close)"
+                  >
+                    <Shield className="w-3.5 h-3.5 fill-amber-500/20" />
+                  </button>
+                )}
+
                 <div 
-                  className={`w-3 h-3 rounded-full bg-[var(--accent-color)] shadow-sm transition-all duration-300 ease-out flex items-center justify-center text-[7px] transform ${
-                    mode === 'dark' ? 'translate-x-4' : 'translate-x-0'
-                  }`}
+                  onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+                  className="relative w-[34px] h-4 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300 shrink-0"
+                  title="Slide to change Light/Dark Mode"
                 >
-                  {mode === 'dark' ? '🌙' : '☀️'}
+                  <div 
+                    className={`w-3 h-3 rounded-full bg-[var(--accent-color)] shadow-sm transition-all duration-300 ease-out flex items-center justify-center text-[7px] transform ${
+                      mode === 'dark' ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  >
+                    {mode === 'dark' ? '🌙' : '☀️'}
+                  </div>
                 </div>
+
+                <AnimatePresence>
+                  {isWhiteDecoy && showGoGuardianNotice && (
+                    <GoGuardianDecoyNotice
+                      mode={mode}
+                      onToggleMode={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+                      onClose={() => setShowGoGuardianNotice(false)}
+                      decoyType={decoyType}
+                      positionClass="absolute top-full right-0 mt-3 w-80 sm:w-96"
+                    />
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -3857,11 +4103,11 @@ export default function App() {
                 id="chat-back-button"
                 onClick={() => setFilter('all')}
                 className="flex items-center gap-1.5 text-xs font-mono font-bold py-1.5 px-3.5 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-all cursor-pointer shadow-[0_2px_8.5px_rgba(0,0,0,0.1)] active:scale-98"
-                title="Go back to games list"
+                title="Go back to portals list"
                 aria-label="Back"
               >
                 <ArrowLeft className="w-3.5 h-3.5 text-[var(--accent-color)]" />
-                <span>Go back to games</span>
+                <span>Go back to portals</span>
               </button>
             )}
 
@@ -3904,7 +4150,7 @@ export default function App() {
                 <Search className="absolute left-2.5 w-3 h-3 text-[var(--accent-color)] pointer-events-none shrink-0" />
                 <input
                   type="text"
-                  placeholder="Search games..."
+                  placeholder="Search portals..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-[var(--accent-color)]/50 focus:border-[var(--accent-color)] text-[var(--text-primary)] text-xs rounded-lg pl-7 pr-6 py-1 outline-none transition-all duration-200 placeholder:text-[var(--text-muted)]/60 min-w-0"
@@ -3931,21 +4177,21 @@ export default function App() {
               aria-checked={animationsEnabled}
               aria-label="Toggle Animations"
             >
-              <span className="text-[10px] font-mono font-bold tracking-tight text-white transition-colors whitespace-nowrap">
+              <span className={`text-[10px] font-mono font-bold tracking-tight transition-colors whitespace-nowrap ${mode === 'light' ? 'text-black font-extrabold' : 'text-[var(--text-primary)]'}`} style={{ color: mode === 'light' ? '#000000' : undefined }}>
                 Animations
               </span>
               <div 
                 className={`relative w-7 h-4 rounded-full border transition-all duration-200 flex items-center px-0.5 ${
                   animationsEnabled 
-                    ? 'bg-white border-white' 
-                    : 'bg-neutral-850 bg-[#1e1e1e] border-neutral-700'
+                    ? mode === 'light' ? 'bg-black border-black' : 'bg-[var(--accent-color)] border-[var(--accent-color)]' 
+                    : mode === 'light' ? 'bg-neutral-200 border-neutral-300' : 'bg-[var(--input-fill)] border-[var(--card-border)]'
                 }`}
               >
                 <div 
                   className={`w-3 h-3 rounded-full transition-all duration-200 ease-out transform ${
                     animationsEnabled 
-                      ? 'translate-x-3 bg-black' 
-                      : 'translate-x-0 bg-neutral-400'
+                      ? mode === 'light' ? 'translate-x-3 bg-white' : 'translate-x-3 bg-[var(--bg-color)]' 
+                      : mode === 'light' ? 'translate-x-0 bg-black' : 'translate-x-0 bg-[var(--text-muted)]'
                   }`}
                 />
               </div>
@@ -3954,10 +4200,14 @@ export default function App() {
               {/* Settings Gear Button (opens System Settings Dropdown) */}
               <button
                 onClick={() => setIsGlobalSettingsOpen(!isGlobalSettingsOpen)}
-                className="p-1.5 rounded-full text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)] transition-all cursor-pointer flex items-center justify-center shrink-0"
+                className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                  mode === 'light'
+                    ? 'text-black hover:text-black hover:bg-black/5'
+                    : 'text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)]'
+                }`}
                 title="System Settings"
               >
-                <Settings className="w-3.5 h-3.5" />
+                <Settings className="w-3.5 h-3.5" style={{ color: mode === 'light' ? '#000000' : undefined }} />
               </button>
 
               {/* Download website button */}
@@ -3966,13 +4216,13 @@ export default function App() {
                   onClick={downloadEntireWebsite}
                   className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                     filter === 'download' 
-                      ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_2px_8px_var(--accent-shadow)] font-bold' 
-                      : 'text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)]'
+                      ? mode === 'light' ? 'bg-black text-white font-bold' : 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_2px_8px_var(--accent-shadow)] font-bold' 
+                      : mode === 'light' ? 'text-black hover:text-black hover:bg-black/5' : 'text-[var(--text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--card-bg)]'
                   }`}
-                  title={filter === 'download' ? "Back to Games" : "Download Website"}
+                  title={filter === 'download' ? "Back to Portals" : "Download Website"}
                   aria-label="Download Website"
                 >
-                  <Download className={`w-3.5 h-3.5 ${filter === 'download' ? 'text-[var(--bg-color)]' : 'text-[var(--accent-color)]'}`} />
+                  <Download className="w-3.5 h-3.5" style={{ color: mode === 'light' ? (filter === 'download' ? '#ffffff' : '#000000') : undefined }} />
                 </button>
               </div>
 
@@ -4037,7 +4287,7 @@ export default function App() {
                       <span className="text-xs font-bold text-white">Auto Hide Header</span>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-neutral-400 leading-normal max-w-[150px]">
-                          Automatically hide header when launching a game.
+                          Automatically hide header when launching a portal.
                         </span>
                         <div
                           onClick={() => {
@@ -4085,7 +4335,7 @@ export default function App() {
                         </div>
                       </div>
                       <span className="text-[10px] text-neutral-400 leading-normal">
-                        Prevents game titles and sub-paths from accumulating in browser history via <code className="text-[var(--accent-color)] font-mono">history.replaceState()</code>.
+                        Prevents portal titles and sub-paths from accumulating in browser history via <code className="text-[var(--accent-color)] font-mono">history.replaceState()</code>.
                       </span>
                     </div>
 
@@ -4112,10 +4362,14 @@ export default function App() {
 
               <button
                 onClick={() => setViewModeAndSave('articles')}
-                className="p-1.5 rounded-full text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--card-bg)] transition-all cursor-pointer flex items-center justify-center shrink-0"
+                className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                  mode === 'light'
+                    ? 'text-black hover:text-black hover:bg-black/5'
+                    : 'text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--card-bg)]'
+                }`}
                 title="Sign Out (Lock Workspace)"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-3.5 h-3.5" style={{ color: mode === 'light' ? '#000000' : undefined }} />
               </button>
 
               <div className="w-[1px] h-3.5 bg-[var(--card-border)]/80" />
@@ -4145,8 +4399,21 @@ export default function App() {
             </div>
           
 
-            {/* Light/Dark Mode slider */}
-            <div className="flex items-center gap-1 border border-[var(--card-border)] bg-[var(--bg-secondary)] p-1 rounded-full shadow-sm">
+            {/* Light/Dark Mode slider with GoGuardian indicator */}
+            <div className="relative flex items-center gap-1.5 border border-[var(--card-border)] bg-[var(--bg-secondary)] p-1 rounded-full shadow-sm">
+              {isWhiteDecoy && (
+                <button
+                  type="button"
+                  onClick={() => setShowGoGuardianNotice(prev => !prev)}
+                  className={`p-0.5 rounded-full text-amber-500 hover:scale-115 transition-all cursor-pointer ${
+                    showGoGuardianNotice ? 'opacity-100 ring-2 ring-amber-500/40 bg-amber-500/10' : 'opacity-80 hover:opacity-100 animate-pulse'
+                  }`}
+                  title="GoGuardian Decoy Shield Notice (Click to open/close)"
+                >
+                  <Shield className="w-3 h-3 fill-amber-500/20" />
+                </button>
+              )}
+
               <div 
                 onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
                 className="relative w-[38px] h-5 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
@@ -4160,6 +4427,18 @@ export default function App() {
                   {mode === 'dark' ? '🌙' : '☀️'}
                 </div>
               </div>
+
+              <AnimatePresence>
+                {isWhiteDecoy && showGoGuardianNotice && (
+                  <GoGuardianDecoyNotice
+                    mode={mode}
+                    onToggleMode={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
+                    onClose={() => setShowGoGuardianNotice(false)}
+                    decoyType={decoyType}
+                    positionClass="absolute top-full right-0 mt-3 w-80 sm:w-96"
+                  />
+                )}
+              </AnimatePresence>
             </div>
 
             </div>
@@ -4184,7 +4463,7 @@ export default function App() {
             <div className="flex items-center justify-between px-2 py-1 min-h-[36px]">
               {sidebarOpen ? (
                 <span className="text-[10px] font-mono tracking-wider opacity-50 uppercase whitespace-nowrap" style={{ borderColor: '#ffffff', color: '#ffffff', fontFamily: 'Verdana', fontWeight: 'normal' }}>
-                  Browse Games
+                  Browse Portals
                 </span>
               ) : (
                 <span className="hidden md:inline text-[9px] font-mono tracking-wider opacity-50 uppercase text-center mx-auto font-bold text-[var(--accent-color)]" style={{ borderColor: '#ffffff', color: '#ffffff', fontFamily: 'Verdana', fontWeight: 'normal' }}>
@@ -4222,7 +4501,7 @@ export default function App() {
               className="w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80"
             >
               <ExternalLink className="w-4.5 h-4.5 shrink-0" />
-              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Request a Game</span>
+              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Request a Portal</span>
             </motion.button>
 
             <motion.button
@@ -4246,7 +4525,7 @@ export default function App() {
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'favorites' && !selectedGame
                 ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80 text-rose-500/90 hover:text-rose-400'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
             }`}
           >
             <Heart className="w-4.5 h-4.5 shrink-0" />
@@ -4260,7 +4539,7 @@ export default function App() {
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'featured' && !selectedGame
                 ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80 text-amber-400/90 hover:text-amber-300'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
             }`}
           >
             <Sparkles className="w-4.5 h-4.5 shrink-0" />
@@ -4274,11 +4553,11 @@ export default function App() {
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'og' && !selectedGame
                 ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80 text-emerald-400/90 hover:text-emerald-300'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
             }`}
           >
             <Crown className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>OG Games</span>
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>OG Classics</span>
           </motion.button>
 
           <motion.button
@@ -4436,7 +4715,7 @@ export default function App() {
                       className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/10 hover:bg-[var(--accent-color)] text-white hover:text-black font-bold font-mono transition-all cursor-pointer"
                     >
                       <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>Go back to games</span>
+                      <span>Go back to portals</span>
                     </button>
                     <span className="font-mono text-[11px] text-neutral-400">Download Workspace</span>
                   </div>
@@ -4460,18 +4739,18 @@ export default function App() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 {/* Left group: Title & Subtitle + Combined Switcher & Pagination Bar */}
                 <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-                  {/* Title & Subtitle with left white bar */}
-                  <div className="border-l-[3px] border-white pl-2.5 shrink-0">
+                  {/* Title & Subtitle with left accent bar */}
+                  <div className="border-l-[3px] border-[var(--accent-color)] pl-2.5 shrink-0 transition-colors">
                     <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-[var(--text-primary)] leading-tight">
                       {normalizedSearchQuery !== '' ? (
                         `SEARCH: "${searchQuery}"`
                       ) : (
                         <>
-                          {filter === 'all' && (gameCatalogMode === 'original' ? 'ORIGINAL GAMES' : 'ALL GAMES')}
-                          {filter === 'favorites' && 'BOOKMARKED GAMES'}
+                          {filter === 'all' && (gameCatalogMode === 'original' ? 'ORIGINALS' : 'ALL PORTALS')}
+                          {filter === 'favorites' && 'BOOKMARKS'}
                           {filter === 'featured' && 'FEATURED SHOWCASES'}
-                          {filter === 'og' && 'OG CLASSICS & ORIGINAL GAMES'}
-                          {filter === 'single' && 'SINGLEPLAYER ARCADES'}
+                          {filter === 'og' && 'OG CLASSICS & ORIGINALS'}
+                          {filter === 'single' && 'SINGLEPLAYER PORTALS'}
                           {filter === 'Emulated' && 'EMULATED ARCHIVES'}
                           {filter === 'minecraft' && 'MINECRAFT PLATFORM'}
                         </>
@@ -4479,13 +4758,13 @@ export default function App() {
                     </h2>
                     <p className="text-[11px] text-[var(--text-muted)] mt-0.5 font-medium">
                       {normalizedSearchQuery !== ''
-                        ? `Found ${filteredGames.length} games · Page ${safeGamePage} of ${totalGamePages}`
+                        ? `Found ${filteredGames.length} portals · Page ${safeGamePage} of ${totalGamePages}`
                         : `Showing ${filteredGames.length} unblocked resources · Page ${safeGamePage} of ${totalGamePages}`}
                     </p>
                   </div>
 
                   {/* Combined Switcher & Pagination Capsule */}
-                  <div className="flex items-center bg-[#121212] border border-zinc-800 p-0.5 rounded-xl shadow-sm select-none shrink-0 flex-wrap sm:flex-nowrap gap-0.5">
+                  <div className="flex items-center bg-[var(--bg-secondary)] border border-[var(--card-border)] p-0.5 rounded-xl shadow-sm select-none shrink-0 flex-wrap sm:flex-nowrap gap-0.5 transition-colors">
                     {/* Catalog Mode Switcher */}
                     <button
                       type="button"
@@ -4496,11 +4775,11 @@ export default function App() {
                       }}
                       className={`text-[10px] font-mono font-black uppercase px-2.5 py-1 rounded-lg transition-all cursor-pointer tracking-wider ${
                         gameCatalogMode === 'original'
-                          ? 'bg-white text-black shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
+                          ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
                       }`}
                     >
-                      ORIGINAL GAMES
+                      ORIGINALS
                     </button>
                     <button
                       type="button"
@@ -4511,15 +4790,15 @@ export default function App() {
                       }}
                       className={`text-[10px] font-mono font-black uppercase px-2.5 py-1 rounded-lg transition-all cursor-pointer tracking-wider ${
                         gameCatalogMode === 'all'
-                          ? 'bg-white text-black shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
+                          ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
                       }`}
                     >
-                      ALL GAMES (2708)
+                      ALL PORTALS (2708)
                     </button>
 
                     {/* Subtle divider */}
-                    <div className="h-4 w-[1px] bg-zinc-800 mx-1 hidden sm:block" />
+                    <div className="h-4 w-[1px] bg-[var(--card-border)] mx-1 hidden sm:block" />
 
                     {/* Prev / Page / Next Integrated Controls */}
                     <div className="flex items-center gap-1 font-mono pl-0.5">
@@ -4529,8 +4808,8 @@ export default function App() {
                         disabled={safeGamePage === 1}
                         className={`flex items-center gap-0.5 text-[10px] font-mono font-bold px-2 py-1 rounded-lg transition-all cursor-pointer ${
                           safeGamePage > 1
-                            ? 'bg-white text-black shadow-sm hover:bg-zinc-200'
-                            : 'text-zinc-600 opacity-40 pointer-events-none'
+                            ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm hover:opacity-90'
+                            : 'text-[var(--text-muted)] opacity-30 pointer-events-none'
                         }`}
                         title="Previous Page"
                       >
@@ -4548,8 +4827,8 @@ export default function App() {
                         disabled={safeGamePage === totalGamePages}
                         className={`flex items-center gap-0.5 text-[10px] font-mono font-bold px-2 py-1 rounded-lg transition-all cursor-pointer ${
                           safeGamePage < totalGamePages
-                            ? 'bg-white text-black shadow-sm hover:bg-zinc-200'
-                            : 'text-zinc-600 opacity-40 pointer-events-none'
+                            ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm hover:opacity-90'
+                            : 'text-[var(--text-muted)] opacity-30 pointer-events-none'
                         }`}
                         title="Next Page"
                       >
@@ -4564,7 +4843,7 @@ export default function App() {
               {filteredGames.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 border border-dashed border-[var(--card-border)] rounded-2xl bg-[var(--bg-secondary)]">
                   <Gamepad2 className="w-16 h-16 text-[var(--text-muted)] stroke-1 opacity-40 animate-pulse" />
-                  <p className="text-sm font-semibold mt-4 text-[var(--text-primary)]">No games found matches filter</p>
+                  <p className="text-sm font-semibold mt-4 text-[var(--text-primary)]">No portals found matching filter</p>
                   <p className="text-xs text-[var(--text-muted)] mt-1">Try searching a different keyword or resetting filters.</p>
                 </div>
               ) : (
@@ -4619,8 +4898,8 @@ export default function App() {
                           )}
 
                           {game.featured && (
-                            <span className="absolute top-2.5 left-2.5 text-[12px] font-black uppercase tracking-widest bg-black/85 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-md inline-block z-10 shadow-sm font-mono">
-                              ★ FEATURED
+                            <span className="absolute top-2.5 left-2.5 text-[12px] font-black bg-black/85 text-amber-400 border border-amber-500/30 w-6 h-6 rounded-md inline-flex items-center justify-center z-10 shadow-sm font-mono">
+                              ★
                             </span>
                           )}
 
@@ -4630,15 +4909,18 @@ export default function App() {
 
                           <button
                             onClick={(e) => toggleFavorite(e, game.id)}
-                            className={`absolute top-2.5 ${game.featured ? 'left-[120px]' : 'left-2.5'} p-1.5 rounded-full bg-black/40 hover:bg-black/80 text-white/90 border border-white/10 hover:text-rose-500 hover:scale-110 active:scale-95 transition-all duration-200 z-10`}
+                            className={`absolute top-2.5 ${game.featured ? 'left-[38px]' : 'left-2.5'} p-1.5 rounded-full bg-black/40 hover:bg-black/80 text-white/90 border border-white/10 hover:text-rose-500 hover:scale-110 active:scale-95 transition-all duration-200 z-10`}
                             title={isFav ? "Remove Bookmark" : "Add Bookmark"}
                           >
                             <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
                           </button>
 
                           {game.isAiGenerated && (
-                            <span className="absolute bottom-2.5 left-2.5 text-[8px] font-extrabold tracking-widest bg-purple-950/85 backdrop-blur-sm text-purple-400 border border-purple-500/40 px-2 py-0.5 rounded-full inline-block z-10 shadow-sm font-mono uppercase">
-                              ✧ AI Generated
+                            <span className="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-[8px] font-extrabold tracking-wider bg-black/85 backdrop-blur-sm text-white border border-white/20 px-2 py-0.5 rounded-full inline-flex z-10 shadow-sm font-mono uppercase">
+                              <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="currentColor" />
+                              </svg>
+                              <span>Gemini</span>
                             </span>
                           )}
 
@@ -4654,15 +4936,20 @@ export default function App() {
                             }`}>
                               <span className="min-w-0 flex-1 truncate">{game.title}</span>
                               {game.isAiGenerated && (
-                                <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 whitespace-nowrap">
-                                  AI
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-[var(--accent-color)]/10 border border-[var(--card-border)] text-[var(--text-primary)]" title="Gemini AI Generated">
+                                  <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="currentColor" />
+                                  </svg>
                                 </span>
                               )}
-                              <div className="ml-auto flex items-center gap-1 shrink-0">
+                              <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                                <span className="text-[9px] font-mono text-[var(--text-muted)] font-medium select-none tracking-tight">
+                                  (Dev tools)
+                                </span>
                                 <button
                                   type="button"
-                                  aria-label={`Copy game path for ${game.title}`}
-                                  title={`Copy game path for ${game.title}`}
+                                  aria-label={`Copy piece path for ${game.title} (Dev tools)`}
+                                  title={`Copy piece path for ${game.title} (Dev tools)`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     copyTextToClipboard(getGamePathName(game.url));
@@ -4673,8 +4960,8 @@ export default function App() {
                                 </button>
                                 <button
                                   type="button"
-                                  aria-label={`Copy game title for ${game.title}`}
-                                  title={`Copy game title for ${game.title}`}
+                                  aria-label={`Copy piece title for ${game.title} (Dev tools)`}
+                                  title={`Copy piece title for ${game.title} (Dev tools)`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     copyTextToClipboard(game.title);
@@ -4694,7 +4981,7 @@ export default function App() {
                             {game.featured ? (
                               <button
                                 onClick={() => { setSelectedGame(game); setZoom(1); }}
-                                className="flex-1 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500 hover:text-black hover:font-bold hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)] text-[11px] font-semibold tracking-wider text-amber-400 py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 uppercase cursor-pointer"
+                                className="flex-1 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500 hover:text-black hover:font-bold hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)] text-[11px] font-semibold tracking-wider text-amber-500 dark:text-amber-400 py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 uppercase cursor-pointer"
                               >
                                 <Play className="w-3 h-3 fill-current" />
                                 <span>Play</span>
@@ -4702,12 +4989,25 @@ export default function App() {
                             ) : (
                               <button
                                 onClick={() => { setSelectedGame(game); setZoom(1); }}
-                                className="flex-1 border border-[var(--accent-color)]/60 bg-[var(--accent-color)]/10 hover:bg-[var(--accent-color)] hover:text-black hover:font-bold hover:shadow-[0_4px_14px_var(--accent-shadow)] text-[11px] font-semibold tracking-wider text-[var(--accent-color)] py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 uppercase cursor-pointer"
+                                className="flex-1 border border-[var(--card-border)] bg-[var(--accent-color)]/5 hover:bg-[var(--accent-color)] hover:text-[var(--bg-color)] hover:font-bold hover:shadow-[0_4px_14px_var(--accent-shadow)] text-[11px] font-semibold tracking-wider text-[var(--text-primary)] py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 uppercase cursor-pointer"
                               >
                                 <Play className="w-3 h-3 fill-current" />
                                 <span>Play</span>
                               </button>
                             )}
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openGameInAboutBlank(game);
+                              }}
+                              className="p-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--card-bg)] rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                              title="Open Portal in about:blank"
+                              aria-label={`Open ${game.title} in about:blank`}
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </button>
 
                             {isLocalGame(game.url) && (
                               <>
@@ -4736,7 +5036,7 @@ export default function App() {
                                     document.body.removeChild(link);
                                   }}
                                   className="p-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--card-bg)] rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer"
-                                  title="Download Offline Game (.html)"
+                                  title="Download Offline Piece (.html)"
                                 >
                                   <Download className="w-4 h-4" />
                                 </button>
@@ -4815,8 +5115,11 @@ export default function App() {
                         {selectedGame.category}
                       </span>
                       {selectedGame.isAiGenerated && (
-                        <span className="text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded border border-purple-500/30 bg-purple-500/10 text-purple-400">
-                          ✧ AI Generated
+                        <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded border border-[var(--card-border)] bg-[var(--accent-color)]/10 text-[var(--text-primary)]">
+                          <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="currentColor" />
+                          </svg>
+                          <span>Gemini AI</span>
                         </span>
                       )}
                     </span>
@@ -4859,7 +5162,7 @@ export default function App() {
                         if (iframe) iframe.src = iframe.src;
                       }}
                       className="p-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] rounded-lg text-[var(--text-primary)] transition-all cursor-pointer"
-                      title="Reload game frame session"
+                      title="Reload portal frame session"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
@@ -4892,10 +5195,10 @@ export default function App() {
                           document.body.removeChild(link);
                         }}
                         className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
-                        title="Download Offline Game (.html)"
+                        title="Download Offline Piece (.html)"
                       >
                         <Download className="w-3.5 h-3.5 text-[var(--accent-color)]" />
-                        <span className="hidden sm:inline text-[10px] font-bold text-[var(--accent-color)]">DOWNLOAD GAME</span>
+                        <span className="hidden sm:inline text-[10px] font-bold text-[var(--accent-color)]">DOWNLOAD PIECE</span>
                       </button>
                     )}
 
@@ -4932,113 +5235,9 @@ export default function App() {
 
                   {/* Open in New Tab button */}
                   <button
-                    onClick={() => {
-                      const win = window.open("about:blank", "_blank");
-                      if (!win) {
-                        alert("Popup blocked. Allow popups for this site.");
-                        return;
-                      }
-                      const classroomFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-                      let tabTitle = selectedGame.title;
-                      let tabFavicon = classroomFavicon;
-                      if (decoyType === 'classroom') {
-                        tabTitle = "Home - Classroom";
-                        tabFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-                      } else if (decoyType === 'canva') {
-                        tabTitle = "Home - Canva";
-                        tabFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
-                      } else if (decoyType === 'clever') {
-                        tabTitle = "Clever | Log in with Clever";
-                        tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
-                      } else if (decoyType === 'campus') {
-                        tabTitle = "Campus Student";
-                        tabFavicon = "https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png";
-                      } else if (decoyType === 'docs') {
-                        tabTitle = "Google Docs";
-                        tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=docs.google.com";
-                      } else if (decoyType === 'gmail') {
-                        tabTitle = "Inbox - Jersey City Public Schools";
-                        tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=mail.google.com";
-                      } else if (decoyType === 'duolingo') {
-                        tabTitle = "Duolingo - Learn a language for free";
-                        tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=duolingo.com";
-                      } else if (decoyType === 'ixl') {
-                        tabTitle = "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
-                        tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
-                      }
-
-                      win.document.write(`
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                          <title>${tabTitle}</title>
-                          <link rel="icon" type="image/png" href="${tabFavicon}">
-                          <link rel="shortcut icon" type="image/png" href="${tabFavicon}">
-                          <meta charset="utf-8">
-                          <style>
-                            html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
-                            iframe { width: 100vw; height: 100vh; border: none; display: block; }
-                          </style>
-                          <script>
-                            function forceFavicon() {
-                              const head = document.head || document.getElementsByTagName('head')[0];
-                              const links = document.querySelectorAll("link[rel*='icon']");
-                              links.forEach(function(el) { el.remove(); });
-
-                              const newLink = document.createElement('link');
-                              newLink.rel = 'icon';
-                              newLink.type = 'image/png';
-                              newLink.href = '${tabFavicon}';
-                              head.appendChild(newLink);
-
-                              const shortcutLink = document.createElement('link');
-                              shortcutLink.rel = 'shortcut icon';
-                              shortcutLink.type = 'image/png';
-                              shortcutLink.href = '${tabFavicon}';
-                              head.appendChild(shortcutLink);
-
-                              document.title = "${tabTitle}";
-                            }
-
-                            forceFavicon();
-                            window.onload = forceFavicon;
-                            setTimeout(forceFavicon, 50);
-                            setTimeout(forceFavicon, 150);
-                            setTimeout(forceFavicon, 500);
-                          <\/script>
-                        </head>
-                        <body>
-                          <iframe id="about-blank-game-frame" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
-                        </body>
-                        </html>
-                      `);
-                      win.document.close();
-
-                      const frame = win.document.getElementById('about-blank-game-frame');
-                      const cachedFrame = gameHtmlCache.get(selectedGame.url);
-                      const loadGameHtml = cachedFrame
-                        ? Promise.resolve(cachedFrame)
-                        : loadGameFrame(selectedGame.url).then((gameFrame) => {
-                            gameHtmlCache.set(selectedGame.url, gameFrame);
-                            return gameFrame;
-                          });
-
-                      loadGameHtml
-                        .then((gameFrameData) => {
-                          if (!win.closed) {
-                            if (gameFrameData.src) {
-                              frame.src = gameFrameData.src;
-                            } else {
-                              frame.srcdoc = gameFrameData.srcDoc;
-                            }
-                          }
-                        })
-                        .catch(() => {
-                          if (!win.closed) frame.srcdoc = createGameLoadErrorDocument(selectedGame.url).srcDoc;
-                        });
-                    }}
+                    onClick={() => openGameInAboutBlank(selectedGame)}
                     className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
-                    title="Open Game in New Tab (about:blank)"
+                    title="Open Portal in New Tab (about:blank)"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
@@ -5051,31 +5250,27 @@ export default function App() {
                         ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/10 text-[var(--accent-color)] font-bold shadow-[0_0_8px_rgba(0,229,176,0.15)]' 
                         : 'border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)]'
                     }`}
-                    title="Toggle Live Lobby Chat inside Game Arena"
+                    title="Toggle Live Lobby Chat inside Portal Arena"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                   </button>
 
-                  {/* Hide Header Button */}
+                  {/* Hide / Show Header Button */}
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => setGameHeaderHidden(!gameHeaderHidden)}
-                    className={`flex items-center gap-1.5 border py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all duration-300 cursor-pointer relative ${
-                      gameHeaderHidden 
-                        ? 'border-white bg-white/10 text-white font-black hover:bg-white/20' 
-                        : 'border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)]'
-                    }`}
+                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all duration-200 cursor-pointer relative"
                     title={gameHeaderHidden ? "Show Main Website Header" : "Hide Main Website Header"}
                   >
                     <motion.div
-                      animate={gameHeaderHidden ? { rotate: 180, scale: 1.1 } : { rotate: 0, scale: 1 }}
+                      animate={gameHeaderHidden ? { rotate: 180, scale: 1.05 } : { rotate: 0, scale: 1 }}
                       transition={{ type: "spring", stiffness: 200, damping: 15 }}
                       className="flex items-center justify-center"
                     >
                       {gameHeaderHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </motion.div>
-                    <span className="hidden sm:inline text-[10px] font-bold">
+                    <span className="hidden sm:inline text-[10px] font-bold tracking-tight">
                       {gameHeaderHidden ? 'SHOW HEADER' : 'HIDE HEADER'}
                     </span>
                   </motion.button>
