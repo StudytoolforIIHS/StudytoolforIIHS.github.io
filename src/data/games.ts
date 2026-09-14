@@ -1,6 +1,22 @@
 import { Game } from '../types';
+import { GMFILES_PATH_LOOKUP } from './gmfilesPaths';
 
 export const PUBLIC_GAMES_BASE_URL = '/Gmfiles/';
+
+const resolveLocalGmfilesUrl = (url: string): string => {
+  if (!url || url.startsWith('http') || url.startsWith('/')) {
+    return url;
+  }
+
+  if (url.includes('/')) {
+    return `${PUBLIC_GAMES_BASE_URL}${url}`;
+  }
+
+  const fileName = url.split('/').pop() || url;
+  const mappedPath = GMFILES_PATH_LOOKUP[fileName];
+
+  return mappedPath ? `${PUBLIC_GAMES_BASE_URL}${mappedPath}` : `${PUBLIC_GAMES_BASE_URL}${url}`;
+};
 
 const legacyGameData: Game[] = [
   {
@@ -21901,7 +21917,7 @@ export const games: Game[] = gameData.map((game) => {
     ...game,
     isOriginal: isOg,
     isOg: isOg,
-    url: game.url.startsWith('http') ? game.url : `${PUBLIC_GAMES_BASE_URL}${game.url}`
+    url: resolveLocalGmfilesUrl(game.url)
   };
 });
 
