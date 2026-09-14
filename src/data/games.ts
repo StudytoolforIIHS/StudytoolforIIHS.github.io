@@ -26,7 +26,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clocarinaoftime.webp',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -36,7 +35,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clloz1.webp',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -46,7 +44,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clchronotrigger.webp',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -56,7 +53,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clearthboundsnes.webp',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -66,7 +62,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clcastlevaniaariaofsorrow.webp',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -76,7 +71,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clcavestory.webp',
     category: 'Solo',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -86,7 +80,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clnewsupermariobros.webp',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -96,7 +89,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clmariokartds.webp',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -106,7 +98,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQt28qRa0-4kRzGsgiZ76XHYAhuNG6jYlt-Ud40owAzpJrXl4dHHRDHcavTsyQYjsBmvXu1Sw&s=10',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -116,7 +107,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuOhDpOLhmmSUkCuI-aDpmhwF7iygOrqUqeg&s',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -126,7 +116,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://media.gamestop.com/i/gamestop/10077723/Pokemon-SoulSilver-Game-Only---Nintendo-DS?w=768&h=768&fmt=auto',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -136,7 +125,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clpokemonstadium2.jpeg',
     category: 'Emulated',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -146,7 +134,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'clgranturismo2.jpg',
     category: 'Emulated',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -156,7 +143,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1262560/capsule_616x353.jpg?t=1777484382',
     category: 'Emulated',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -166,7 +152,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://m.media-amazon.com/images/M/MV5BNjRhYzk1ODItYjFhNy00OGU4LWE2YjAtZTk3NmRlNDhiZTFjXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
     category: 'Emulated',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -176,7 +161,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://m.media-amazon.com/images/I/61bs4F5yOIL._AC_UF1000,1000_QL80_.jpg',
     category: 'Emulated',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -186,7 +170,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNXrI6cQ7sBJyZenq-Ur4Cz3V8ZQHgWpFf4XEnWDQgkiSMjE37CiA0g7Ew7Lz1dp78kCcWRRIPo179hdLl4G8XJmFxmwSaZ2Gpt97hkw&s=10',
     category: 'Emulated',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -196,7 +179,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpOYk7hDNvaL46ncyl7PbEdtncc_EaXvXsCw&s',
     category: 'Emulated',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -206,7 +188,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'public/thumbnails/claceattorneymilesedgeworth.webp',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -216,7 +197,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS_YlHon89nCvWBzs71pzFmcJWQ4O7zmvfo07Zv85mpQddjo0kLlNWmLEIRqMj1o3BSTy0zsWyLEgrjQUt8ssfh-nkPFBxhKcM216lujQ&s=10',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -226,7 +206,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'Mia_Happy-1.jpg',
     category: 'Emulated',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -236,7 +215,6 @@ const legacyGameData: Game[] = [
     thumbnail: 'https://i.ytimg.com/vi/H96rM_liOHo/maxresdefault.jpg',
     category: 'Emulated',
     featured: false,
-    isOriginal: true,
     isOg: true
   }
 ];
@@ -252,7 +230,6 @@ const gameData: Game[] = [
     thumbnail: 'cityskylinesremake.webp',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -270,7 +247,6 @@ const gameData: Game[] = [
     thumbnail: 'The Final Earth 2.jpeg',
     category: 'Solo',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -280,7 +256,6 @@ const gameData: Game[] = [
     thumbnail: 'The_Final_Earth_2_Standalone.jpg',
     category: 'Solo',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -290,7 +265,6 @@ const gameData: Game[] = [
     thumbnail: 'https://i.ytimg.com/vi/cpsY9WQxh5U/maxresdefault.jpg',
     category: 'Solo',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
 
@@ -304,7 +278,6 @@ const gameData: Game[] = [
     thumbnail: 'paper.io-2-download-free-pc.png',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -314,7 +287,6 @@ const gameData: Game[] = [
     thumbnail: 'clcookieclicker.webp',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -324,7 +296,6 @@ const gameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVcqmKa58thtYd3HWzjJd1MwokpvGspBxKPQ&s',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -334,7 +305,6 @@ const gameData: Game[] = [
     thumbnail: 'https://i.ytimg.com/vi/jvjZ4rnERmM/maxresdefault.jpg',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -344,7 +314,6 @@ const gameData: Game[] = [
     thumbnail: 'https://play-lh.googleusercontent.com/IeGUGo20PsUgjtAajcZWsz09ypyAIITXS8jDzzLAFdoR65Zy_3PVOP-ckq5b_A_vPzuV=w526-h296-rw',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -354,7 +323,6 @@ const gameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSuxqLfXqm07uXPH0qyPu_6MofiU9nlUoq9w&s',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -364,7 +332,6 @@ const gameData: Game[] = [
     thumbnail: 'https://i.ytimg.com/vi/WUTrv--kZtI/maxresdefault.jpg',
     category: 'Solo',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -374,7 +341,6 @@ const gameData: Game[] = [
     thumbnail: 'https://play-lh.googleusercontent.com/v7KwGdPjJGjJjRXn46sck4DwDBdKSeRzGN44CjiXUtKV0jjOi51Bt4wcXud0m-SkXg',
     category: 'Solo',
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -384,7 +350,6 @@ const gameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzXo17pL3S9PjcsR4V-ZPUr8nuQ622Lq0lhA&s',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -394,7 +359,6 @@ const gameData: Game[] = [
     thumbnail: 'clsandboxels.jpg',
     category: 'Solo', 
     featured: true,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -404,7 +368,6 @@ const gameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBc_knTaEJfOEGjJPNFjIsNG5Mk95b6ua-vw&s',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -414,7 +377,6 @@ const gameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3i6T2Z3GQtOp-O6IC1qtggAoP3_-vm0RsPw&s',
     category: 'Minecraft',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -424,7 +386,6 @@ const gameData: Game[] = [
     thumbnail: 'bloons.jpg',
     category: 'Solo or Multiplayer.',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -434,7 +395,6 @@ const gameData: Game[] = [
     thumbnail: 'capsule_616x353.jpg',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -444,7 +404,6 @@ const gameData: Game[] = [
     thumbnail: 'https://www.datocms-assets.com/145957/1744284280-tetris-mobile.png?auto=format&fit=max&w=1200',
     category: 'Solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -454,7 +413,6 @@ const gameData: Game[] = [
     thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNHRR0Dx3LhBe3OA0pHR0U_VuPagdWjz1pOg&s',
     category: 'solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -464,7 +422,6 @@ const gameData: Game[] = [
     thumbnail: 'https://crossyroadonline.bitbucket.io/img/crossy-road.png',
     category: 'solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -474,7 +431,6 @@ const gameData: Game[] = [
     thumbnail: 'https://www.gstatic.com/marketing-cms/c2/de/b1ea4f8d4314be89cbd66a6c94d7/4.gif',
     category: 'solo',
     featured: false,
-    isOriginal: true,
     isOg: true
   },
   {
@@ -561,55 +517,10 @@ const gameData: Game[] = [
     title: 'Angry Birds',
     description: 'Launch your birds to smash the structures and defeat the green pigs!',
     url: 'clangrybirds.html',
-    thumbnail: '',
+    thumbnail: 'a2bb257a-ac1b-11ed-8a97-02420a00012d.webp',
     category: 'Solo',
     featured: false
   },
-
-  // ─────────────────────────────────────────────────────────────
-  // ── AI-GENERATED / CUSTOM ──
-  // ─────────────────────────────────────────────────────────────
-  {
-    id: 'neon-breakout',
-    title: 'Neon Breakout',
-    description: 'A retro cyber-neon brick shatterer with synthesized Web Audio sound.',
-    url: 'clneonbreaker.html',
-    thumbnail: '',
-    category: 'Solo',
-    featured: false,
-    isAiGenerated: true
-  },
-  {
-    id: 'synthwave-runner',
-    title: 'Synthwave Runner',
-    description: 'A high-speed perspective retro runner on an endless cyber sunset grid.',
-    url: 'clsynthrunner.html',
-    thumbnail: '',
-    category: 'Solo',
-    featured: false,
-    isAiGenerated: true
-  },
-  {
-    id: 'tron-lightcycle',
-    title: 'TRON Lightcycle Trail',
-    description: 'Avoid trail lines and grow your neon lightcycle barrier on the digital grid grid.',
-    url: 'cllightcycle.html',
-    thumbnail: '',
-    category: 'Solo',
-    featured: false,
-    isAiGenerated: true
-  },
-  {
-    id: 'cyber-defenders',
-    title: 'Cyber Defenders Arcade',
-    description: 'Endless waves of glowing alien invaders in a high-energy space shooter.',
-    url: 'clcyberdefenders.html',
-    thumbnail: '',
-    category: 'Solo',
-    featured: false,
-    isAiGenerated: true
-  },
-
   // ─────────────────────────────────────────────────────────────
   // ── MULTIPLAYER / PARTY / SPORTS ──
   // ─────────────────────────────────────────────────────────────
@@ -21872,10 +21783,6 @@ export const EXPLICIT_OG_TITLES: string[] = [
   'Yandere Simulator',
   'Adventure Capitalist',
   'Angry Birds',
-  'Neon Breakout',
-  'Synthwave Runner',
-  'TRON Lightcycle Trail',
-  'Cyber Defenders Arcade',
   'Animals Volleyball',
   'Tag',
   'Basket Random',
@@ -21906,17 +21813,16 @@ const legacyTitlesSet = new Set([
 
 export const isOgGame = (game: Game): boolean => {
   if (!game) return false;
-  if (game.isOriginal || game.isOg) return true;
+  if (game.isOg) return true;
   const titleNorm = (game.title || '').toLowerCase().trim();
   return legacyTitlesSet.has(titleNorm);
 };
 
 export const games: Game[] = gameData.map((game) => {
-  const isOg = game.isOriginal || game.isOg || legacyTitlesSet.has((game.title || '').toLowerCase().trim());
+  const isOg = game.isOg || legacyTitlesSet.has((game.title || '').toLowerCase().trim());
   return {
     ...game,
-    isOriginal: isOg,
-    isOg: isOg,
+    isOg,
     url: resolveLocalGmfilesUrl(game.url)
   };
 });

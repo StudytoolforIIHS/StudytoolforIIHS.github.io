@@ -8,9 +8,7 @@ export interface Game {
   featured?: boolean;
   pointerLock?: boolean;
   isAiGenerated?: boolean;
-  isOriginal?: boolean;
   isOg?: boolean;
-  original?: boolean;
 }
 
 export interface Article {

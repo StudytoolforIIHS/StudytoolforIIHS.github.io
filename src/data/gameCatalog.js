@@ -1,22 +1,20 @@
-import { games as gamesData, ogGames, isOgGame } from './games';
+import { games as gamesData, ogGames } from './games';
 
 const ogTitlesSet = new Set(ogGames.map(g => g.title));
 
 export const games = [...gamesData].map((game, index) => {
-  const isOriginal = Boolean(game.isOriginal || game.isOg || ogTitlesSet.has(game.title) || isOgGame(game));
+  const isOg = Boolean(game.isOg || ogTitlesSet.has(game.title));
   if (!game.id) {
     const slug = (game.title || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     return {
       ...game,
       id: `game-gen-${index}-${slug}`,
-      isOriginal,
-      isOg: isOriginal
+      isOg
     };
   }
   return {
     ...game,
-    isOriginal,
-    isOg: isOriginal
+    isOg
   };
 }).sort((a, b) => {
   const aAi = a.isAiGenerated === true || a.isAiGenerated === 'true';

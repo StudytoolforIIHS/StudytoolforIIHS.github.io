@@ -2052,9 +2052,9 @@ export default function App() {
     }
 
     if (filter === 'og') {
-      if (!game.isOriginal && !game.isOg && (game.category || '').toLowerCase().trim() !== 'og') return false;
+      if (!game.isOg && (game.category || '').toLowerCase().trim() !== 'og') return false;
     } else {
-      if (gameCatalogMode === 'original' && !game.isOriginal && !game.isOg) {
+      if (gameCatalogMode === 'original' && !game.isOg) {
         return false;
       }
       if (filter === 'single') {
