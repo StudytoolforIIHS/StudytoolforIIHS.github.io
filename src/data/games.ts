@@ -248,6 +248,16 @@ const gameData: Game[] = [
     featured: true
   },
   {
+    title: 'The Final Earth 2 Original',
+    description: 'Original standalone version of the classic Final Earth 2 experience.',
+    url: 'The_Final_Earth_2_Standalone.html',
+    thumbnail: 'Modded.png',
+    category: 'Solo',
+    featured: true,
+    isOriginal: true,
+    isOg: true
+  },
+  {
     title: 'The Final Earth 2',
     description: 'Modded version — easier to play and has more things to do!',
     url: 'The_Final_Earth_2_Standalone.html',
@@ -21814,7 +21824,7 @@ export const EXPLICIT_OG_TITLES: string[] = [
   'Phoenix Wright - Ace Attorney - Trials and Tribulations',
   'Tomodachi Collection',
   'City Skylines copy',
-  'The Final Earth 2 Orginal ',
+  'The Final Earth 2 Original',
   'The Final Earth 2 (Modded)',
   'Shader Pilot',
   'Paper.io',
