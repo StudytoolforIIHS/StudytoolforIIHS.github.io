@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-mono">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Portal Chat — Live Network</title>
+<meta name="description" content="Realtime multi-channel chat with GIF search, custom password-protected rooms, and themeable UI." />
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Lucide Icons -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+<!-- Google Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    /* Theme tokens — default Monochrome (Black & White) */
+    --bg:            #000000;
+    --bg-deep:       #000000;
+    --bg-elev:       #0f0f0f;
+    --bg-elev2:      #171717;
+    --border:        rgba(255,255,255,.18);
+    --border-2:      rgba(255,255,255,.28);
+    --text:          #ffffff;
+    --text-dim:      #d4d4d4;
+    --text-mute:     #a3a3a3;
+    --accent:        #ffffff;
+    --accent-ink:    #000000;
+    --accent-soft:   rgba(255,255,255,.16);
+    --accent-glow:   rgba(255,255,255,.25);
+    --scheme:        dark;
+  }
+
+  html, body { height:100%; }
+  body{
+    margin:0;
+    font-family:'Inter',system-ui,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
+      var(--bg-deep);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  .font-mono{ font-family:'JetBrains Mono',monospace; }
+
+  /* Scrollbars */
+  .scrollbar-thin::-webkit-scrollbar{ width:6px; height:6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb{ background:var(--border-2); border-radius:99px; }
+  .scrollbar-none::-webkit-scrollbar{ display:none; }
+  .scrollbar-none{ -ms-overflow-style:none; scrollbar-width:none; }
+
+  /* Animations */
+  @keyframes fade-in{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  .animate-fade-in{ animation:fade-in .18s ease-out; }
+  @keyframes shake{ 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-5px);} 40%,80%{transform:translateX(5px);} }
+  .animate-shake{ animation:shake .4s ease-in-out; }
+  @keyframes pop-in{ from{opacity:0; transform:scale(.94);} to{opacity:1; transform:scale(1);} }
+  .animate-pop{ animation:pop-in .16s ease-out; }
+
+  /* theme-aware helpers */
+  .surface       { background:var(--bg); }
+  .surface-deep  { background:var(--bg-deep); }
+  .surface-elev  { background:var(--bg-elev); }
+  .surface-elev2 { background:var(--bg-elev2); }
+  .bd            { border-color:var(--border); }
+  .bd2           { border-color:var(--border-2); }
+  .txt           { color:var(--text); }
+  .txt-dim       { color:var(--text-dim); }
+  .txt-mute      { color:var(--text-mute); }
+  .accent        { color:var(--accent); }
+  .accent-bg     { background:var(--accent); color:var(--accent-ink); }
+  .accent-bd     { border-color:color-mix(in srgb, var(--accent) 45%, transparent); }
+
+  ::selection{ background:var(--accent-soft); }
+
+  /* Light scheme readability tweaks */
+  [data-scheme="light"] .msg-text{ color:#1f2733; }
+  [data-scheme="light"] .placeholder-mute::placeholder{ color:#94a3b8; }
+</style>
+</head>
+
+<body>
+<div id="chat-root" class="fixed inset-0">
+  <div class="flex w-full h-full surface txt overflow-hidden select-none relative">
+
+    <!-- ============ LEFT SIDEBAR: CHANNEL RAIL ============ -->
+    <aside class="hidden md:flex flex-col w-14 border-r bd surface-deep shrink-0 items-center py-3 gap-2">
+      <nav id="channel-rail" class="flex flex-col gap-1.5 w-full px-1 items-center justify-start overflow-y-auto max-h-[60vh] scrollbar-none"></nav>
+
+      <div class="w-6 h-px bg-white/10 my-1"></div>
+
+      <button id="add-channel-rail"
+        class="w-9 h-9 flex items-center justify-center rounded-xl transition-all border border-dashed border-white/20 hover:accent-bd txt-mute hover:accent hover:bg-white/5 cursor-pointer shrink-0"
+        title="Create Custom Channel">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Theme trigger -->
+      <button id="theme-trigger"
+        class="w-9 h-9 flex items-center justify-center rounded-xl transition-all txt-mute hover:accent hover:bg-white/5 cursor-pointer shrink-0"
+        title="Change Theme">
+        <i data-lucide="palette" class="w-4 h-4"></i>
+      </button>
+    </aside>
+
+    <!-- ============ MAIN PANEL ============ -->
+    <section class="flex-1 flex flex-col h-full overflow-hidden surface">
+
+      <!-- HEADER -->
+      <header class="px-3 py-2 border-b bd surface-deep flex items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="txt-mute font-extrabold text-[11px] hidden md:inline">#</span>
+          <h1 id="active-channel-name" class="text-[11px] font-black txt tracking-tight flex items-center gap-1 uppercase truncate"></h1>
+          <!-- 1-Hour Auto-Delete Badge -->
+          <span class="inline-flex items-center gap-1 text-[9px] font-mono txt-mute bg-white/5 border bd px-1.5 py-0.5 rounded shrink-0 opacity-70 hover:opacity-100 transition-opacity" title="Messages are automatically deleted 1 hour after sending">
+            <i data-lucide="clock" class="w-2.5 h-2.5 txt-mute"></i>
+            <span class="hidden sm:inline">1h auto-delete</span>
+          </span>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-2 shrink-0">
+          <!-- Desktop Nickname Input -->
+          <div class="flex items-center gap-1.5 surface-elev border bd rounded-lg px-2.5 py-1 focus-within:accent-bd" title="Your temporary chat nickname">
+            <span class="text-[9px] uppercase font-black txt-mute tracking-wider">Nick:</span>
+            <input id="nickname-desktop" type="text" placeholder="Set nickname" minlength="2" maxlength="16"
+              class="bg-transparent text-[11px] txt outline-none w-24 placeholder-mute font-bold focus:accent" />
+          </div>
+
+          <div class="flex items-center gap-1 surface-elev border bd rounded-lg px-2 py-1">
+            <i data-lucide="search" class="w-3 h-3 txt-mute shrink-0"></i>
+            <input id="filter-input" type="text" placeholder="Filter…"
+              class="bg-transparent text-[10px] txt-dim outline-none w-16 md:w-20 placeholder-mute" />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1 shrink-0">
+          <div id="custom-channel-dropdown" class="md:hidden relative shrink-0">
+            <button id="channel-dropdown-btn" type="button"
+              class="surface-elev border bd py-1 px-2.5 rounded-lg text-[10px] font-extrabold uppercase outline-none accent flex items-center gap-1.5 cursor-pointer hover:bg-white/5 active:scale-95 transition-all shadow-sm">
+              <span id="channel-dropdown-current" class="truncate max-w-[95px] font-mono">#GENERAL</span>
+              <i data-lucide="chevron-down" class="w-3 h-3 txt-mute shrink-0"></i>
+            </button>
+            <div id="channel-dropdown-menu" class="hidden absolute right-0 top-full mt-1.5 w-60 surface-elev border bd rounded-xl shadow-2xl p-1.5 z-50 animate-fade-in flex-col gap-1">
+            </div>
+          </div>
+          <button id="theme-trigger-mobile" class="md:hidden p-1.5 hover:bg-white/10 txt-dim rounded transition-all cursor-pointer" title="Theme">
+            <i data-lucide="palette" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- NICKNAME BAR -->
+      <div id="nickname-bar" class="flex items-center justify-between p-2 px-3 border-b bd bg-amber-500/10 border-amber-500/20 shrink-0 transition-all">
+        <span class="text-[9px] sm:text-[10px] uppercase font-black text-amber-400 tracking-wider">Enter a Nickname to speak, DO NOT USE YOUR REAL NAME</span>
+        <div class="flex items-center gap-1.5 shrink-0 ml-2">
+          <input id="nickname-mobile" type="text" placeholder="Name" minlength="2" maxlength="16"
+            class="surface-deep text-[11px] px-2.5 py-1 rounded-lg outline-none border bd focus:accent-bd text-right max-w-[120px] font-extrabold txt placeholder-mute" />
+          <button id="nickname-save-btn" type="button" class="accent-bg text-[10px] font-extrabold px-2.5 py-1 rounded-lg transition-all active:scale-95 cursor-pointer">OK</button>
+        </div>
+      </div>
+
+      <!-- UNLOCK GATE -->
+      <div id="unlock-gate" class="hidden flex-1 flex-col items-center justify-center p-6 text-center select-none">
+        <div class="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4 border border-amber-500/20">
+          <i data-lucide="lock" class="w-7 h-7 text-amber-500 animate-pulse"></i>
+        </div>
+        <h2 class="text-sm font-black uppercase txt tracking-wider"><span id="gate-name"></span></h2>
+        <p id="gate-desc" class="txt-dim text-[11px] mt-1 max-w-xs leading-relaxed"></p>
+        <form id="unlock-form" class="mt-5 w-full max-w-[220px] space-y-2">
+          <div class="relative flex items-center">
+            <i data-lucide="key" class="absolute left-3 w-4 h-4 txt-mute"></i>
+            <input id="unlock-input" type="password" placeholder="Join Code" required
+              class="w-full surface-elev border bd focus:accent-bd rounded-xl py-2.5 pl-10 pr-4 text-sm txt outline-none placeholder-mute font-mono tracking-widest text-center" />
+          </div>
+          <button type="submit" class="w-full accent-bg text-sm font-black uppercase py-2.5 rounded-xl transition-all active:scale-95 cursor-pointer">Join Channel</button>
+        </form>
+
+        <div class="mt-4 pt-3 border-t bd w-full max-w-[220px] flex flex-col items-center gap-1.5">
+          <span class="text-[9px] txt-mute font-semibold">Have an invite link?</span>
+          <button id="gate-invite-btn" type="button" class="w-full surface-elev border bd hover:accent-bd rounded-xl py-2 px-3 text-[10px] font-bold accent flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+            <i data-lucide="link" class="w-3.5 h-3.5"></i>
+            <span>Copy / Share Invite Link</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div id="messages-panel" class="flex-1 overflow-y-auto px-3 py-3 space-y-3 scrollbar-thin"></div>
+
+      <!-- COMPOSER -->
+      <footer id="composer" class="p-2.5 border-t bd surface-deep shrink-0">
+
+        <!-- REPLY PREVIEW BANNER -->
+        <div id="reply-preview-bar" class="hidden items-center justify-between p-2 rounded-xl surface-elev border accent-bd mb-2 text-left animate-fade-in">
+          <div class="min-w-0 flex-1 border-l-2 accent-bd pl-2">
+            <span class="text-[9.5px] font-bold txt-mute block uppercase tracking-wider flex items-center gap-1">
+              <i data-lucide="reply" class="w-3 h-3 accent"></i>
+              <span>Replying to <span id="reply-target-name" class="accent font-extrabold font-mono">@User</span></span>
+            </span>
+            <p id="reply-target-text" class="text-[11px] txt-dim truncate font-mono mt-0.5"></p>
+          </div>
+          <button id="reply-cancel-btn" type="button" class="p-1 txt-mute hover:txt hover:bg-white/10 rounded-lg cursor-pointer shrink-0 ml-2" title="Cancel Reply">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- input row -->
+        <form id="compose-form" class="flex items-center gap-1.5 surface-elev border bd rounded-xl p-1 transition-all focus-within:accent-bd">
+          <input id="compose-input" type="text" placeholder="⚠️ Set nickname" maxlength="500"
+            class="flex-1 bg-transparent border-none text-[12px] txt placeholder-mute pl-2 py-1.5 outline-none font-medium min-w-0" />
+          <button id="send-btn" type="submit"
+            class="p-2 rounded-lg transition-all flex items-center justify-center shrink-0 bg-neutral-700 text-neutral-400">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          </button>
+        </form>
+      </footer>
+    </section>
+
+
+
+    <!-- TOAST -->
+    <div id="toast" class="hidden absolute bottom-24 left-1/2 -translate-x-1/2 z-[60]">
+      <div class="bg-rose-500 text-white font-mono text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-lg shadow-lg shadow-black/50 animate-fade-in border border-rose-400">
+        <span id="toast-text"></span>
+      </div>
+    </div>
+
+    <!-- ============ CREATE CHANNEL MODAL ============ -->
+    <div id="create-modal" class="hidden absolute inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-fade-in backdrop-blur-sm">
+      <div class="surface border bd2 rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-4 text-left animate-pop">
+        <div class="flex items-center justify-between border-b bd pb-2.5">
+          <h2 class="text-xs font-black uppercase accent tracking-wider flex items-center gap-1.5">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Create Custom Channel
+          </h2>
+          <button id="create-close" class="txt-mute hover:txt p-0.5 rounded hover:bg-white/5 transition-all cursor-pointer">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+        <form id="create-form" class="space-y-3.5">
+          <div class="space-y-1">
+            <label class="text-[10px] font-black uppercase tracking-wider txt-dim block">Channel Name <span class="text-rose-500">*</span></label>
+            <div class="relative flex items-center">
+              <span class="absolute left-3 txt-mute font-black text-xs">#</span>
+              <input id="new-chan-name" type="text" required maxlength="20" placeholder="e.g. secret-lounge"
+                class="w-full surface-deep border bd focus:accent-bd rounded-xl py-2 pl-7 pr-3 text-xs txt outline-none placeholder-mute font-bold" />
+            </div>
+            <span class="text-[8px] txt-mute block">Letters, numbers, dashes. Formatted lowercase.</span>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] font-black uppercase tracking-wider txt-dim block">Description</label>
+            <input id="new-chan-desc" type="text" maxlength="60" placeholder="e.g. Discussion room for cool stuff"
+              class="w-full surface-deep border bd focus:accent-bd rounded-xl py-2 px-3 text-xs txt outline-none placeholder-mute" />
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] font-black uppercase tracking-wider txt-dim block flex items-center justify-between">
+              <span>Passcode <span class="txt-mute font-normal">(Optional)</span></span>
+              <span class="text-[8px] text-amber-500 font-bold flex items-center gap-0.5"><i data-lucide="lock" class="w-2 h-2"></i> Protect</span>
+            </label>
+            <div class="relative flex items-center">
+              <i data-lucide="key" class="absolute left-3 w-3.5 h-3.5 txt-mute"></i>
+              <input id="new-chan-pass" type="text" maxlength="16" placeholder="Leave empty for public"
+                class="w-full surface-deep border bd focus:accent-bd rounded-xl py-2 pl-9 pr-3 text-xs txt outline-none placeholder-mute font-mono" />
+            </div>
+          </div>
+          <div class="p-2 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2 text-rose-400 text-[9px] font-mono">
+            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 animate-pulse"></i>
+            <span>Ephemeral Room: Custom rooms automatically disappear 1 hour after creation.</span>
+          </div>
+          <div class="flex gap-2 pt-2 border-t bd">
+            <button type="button" id="create-cancel" class="flex-1 bg-white/5 hover:bg-white/10 txt text-[10px] font-black uppercase py-2 rounded-xl transition-all cursor-pointer">Cancel</button>
+            <button type="submit" class="flex-1 accent-bg text-[10px] font-black uppercase py-2 rounded-xl transition-all cursor-pointer">Create Channel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ============ THEME MODAL ============ -->
+    <div id="theme-modal" class="hidden absolute inset-0 bg-black/80 flex items-center justify-center p-4 z-[70] animate-fade-in backdrop-blur-sm">
+      <div class="surface border bd2 rounded-2xl w-full max-w-md p-5 shadow-2xl flex flex-col gap-4 text-left animate-pop">
+        <div class="flex items-center justify-between border-b bd pb-2.5">
+          <h2 class="text-xs font-black uppercase accent tracking-wider flex items-center gap-1.5">
+            <i data-lucide="palette" class="w-3.5 h-3.5"></i> Theme
+          </h2>
+          <button id="theme-close" class="txt-mute hover:txt p-0.5 rounded hover:bg-white/5 transition-all cursor-pointer">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Compact dot picker (matches 2nd reference image) -->
+        <div id="theme-dots" class="flex items-center gap-2 surface-deep border bd rounded-full px-3 py-2 self-start"></div>
+
+        <!-- Swatch grid (matches 1st reference image) -->
+        <div id="theme-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+/* ============================================================
+   PORTAL CHAT — standalone (converted from React UserChat)
+   ============================================================ */
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+  getAuth,
+  signInAnonymously,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  limitToLast,
+  getDocFromServer
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+/* ---------- Firebase Error Handler ---------- */
+const OperationType = {
+  CREATE: 'create',
+  UPDATE: 'update',
+  DELETE: 'delete',
+  LIST: 'list',
+  GET: 'get',
+  WRITE: 'write',
+};
+
+function handleFirestoreError(error, operationType, path) {
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  return errInfo;
+}
+
+/* ---------- Firebase Configuration (Firestore + Auth) ---------- */
+const firebaseConfig = {
+  projectId: "ultra-framework-zw1xt",
+  appId: "1:435315435216:web:b8746108ed875a8d25e0d5",
+  apiKey: "AIzaSyAu5Oe190oojQUnWPajnzfEF2lNoBrFafs",
+  authDomain: "ultra-framework-zw1xt.firebaseapp.com",
+  storageBucket: "ultra-framework-zw1xt.firebasestorage.app",
+  messagingSenderId: "435315435216"
+};
+const firestoreDbId = "ai-studio-chat1-72af77fd-eebc-43fa-8925-e79796be2d79";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+// Initialize Firestore with named database
+const db = getFirestore(app, firestoreDbId);
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration.");
+    }
+  }
+}
+testConnection();
+
+/* ---------- Blocked Words Management (Disabled) ---------- */
+function isBlocked(text){ return false; }
+function renderBlockedWordsList(){}
+
+/* ---------- Channels ---------- */
+const CHANNELS = [
+  { id:'general', name:'general', description:'Main chat lobby connected with site network' }
+];
+
+const ROOM_TTL_MS = 60 * 60 * 1000; // 1 Hour Room TTL for custom user rooms
+const DISALLOWED_ROOM_NAMES = ['gaming-hub','cinema-club','memes','gaming','cinema'];
+
+function filterValidRooms(channelList) {
+  const now = Date.now();
+  return (channelList || []).filter(c => {
+    if (DISALLOWED_ROOM_NAMES.includes((c.name || '').toLowerCase())) return false;
+    if (c.createdAt && (now - c.createdAt) >= ROOM_TTL_MS) return false;
+    return true;
+  });
+}
+
+/* ---------- Themes ---------- */
+const THEMES = {
+  mono:     { label:'Black & White', scheme:'dark', swatch:['#000000','#1c1c1c'], accent:'#ffffff',
+    vars:{ '--bg':'#000000','--bg-deep':'#000000','--bg-elev':'#0f0f0f','--bg-elev2':'#171717','--accent':'#ffffff','--accent-ink':'#000000','--text':'#ffffff','--text-dim':'#d4d4d4','--text-mute':'#a3a3a3','--border':'rgba(255,255,255,.18)','--border-2':'rgba(255,255,255,.28)' }
+  },
+  midnight: { label:'Midnight', scheme:'dark',  swatch:['#111625','#1B2336'], accent:'#00e5b0',
+    vars:{ '--bg':'#0a0d16','--bg-deep':'#070a11','--bg-elev':'#0d1222','--bg-elev2':'#0e1627','--accent':'#00e5b0','--accent-ink':'#05131b','--text':'#e2e8f0','--text-dim':'#94a3b8','--text-mute':'#64748b','--border':'rgba(255,255,255,.06)','--border-2':'rgba(255,255,255,.10)' }
+  },
+  slate:    { label:'Slate', scheme:'dark', swatch:['#1C212E','#252C3B'], accent:'#93a4bd',
+    vars:{ '--bg':'#141922','--bg-deep':'#0f131b','--bg-elev':'#1c212e','--bg-elev2':'#222838','--accent':'#93a4bd','--accent-ink':'#0f131b','--text':'#e6eaf2','--text-dim':'#9aa5b8','--text-mute':'#6b7280','--border':'rgba(255,255,255,.06)','--border-2':'rgba(255,255,255,.10)' }
+  },
+  ocean:    { label:'Ocean', scheme:'dark', swatch:['#0E273B','#143B59'], accent:'#4fb0e6',
+    vars:{ '--bg':'#081722','--bg-deep':'#050f18','--bg-elev':'#0e273b','--bg-elev2':'#123049','--accent':'#4fb0e6','--accent-ink':'#04121c','--text':'#e2edf5','--text-dim':'#8fb6d0','--text-mute':'#546e7a','--border':'rgba(255,255,255,.06)','--border-2':'rgba(255,255,255,.10)' }
+  },
+  emerald:  { label:'Emerald', scheme:'dark', swatch:['#0C2B1B','#154C2D'], accent:'#3ddc84',
+    vars:{ '--bg':'#08160e','--bg-deep':'#050f0a','--bg-elev':'#0c2b1b','--bg-elev2':'#123c26','--accent':'#3ddc84','--accent-ink':'#04120a','--text':'#e0f2e8','--text-dim':'#8fc7a5','--text-mute':'#558b6f','--border':'rgba(255,255,255,.06)','--border-2':'rgba(255,255,255,.10)' }
+  },
+  sunset:   { label:'Sunset', scheme:'dark', swatch:['#331F16','#6E351C'], accent:'#ff8a4c',
+    vars:{ '--bg':'#1c1109','--bg-deep':'#150c06','--bg-elev':'#2b1a11','--bg-elev2':'#3a2216','--accent':'#ff8a4c','--accent-ink':'#1c0d04','--text':'#f5e6dc','--text-dim':'#d39c80','--text-mute':'#9a7066','--border':'rgba(255,255,255,.06)','--border-2':'rgba(255,255,255,.10)' }
+  },
+  lavender: { label:'Lavender', scheme:'dark', swatch:['#241C3B','#493975'], accent:'#a78bfa',
+    vars:{ '--bg':'#150f26','--bg-deep':'#0f0b1c','--bg-elev':'#241c3b','--bg-elev2':'#2f2650','--accent':'#a78bfa','--accent-ink':'#120b24','--text':'#ece7f7','--text-dim':'#b6a9d6','--text-mute':'#7c7a95','--border':'rgba(255,255,255,.06)','--border-2':'rgba(255,255,255,.10)' }
+  },
+  light:    { label:'Light', scheme:'light', swatch:['#eaf0f6','#ffffff'], accent:'#2563eb',
+    vars:{ '--bg':'#f4f6fa','--bg-deep':'#eaf0f6','--bg-elev':'#ffffff','--bg-elev2':'#f0f3f8','--accent':'#2563eb','--accent-ink':'#ffffff','--text':'#1f2733','--text-dim':'#5a6273','--text-mute':'#8492a6','--border':'rgba(0,0,0,.08)','--border-2':'rgba(0,0,0,.12)' }
+  },
+  amoled:   { label:'AMOLED', scheme:'dark', swatch:['#080808','#000000'], accent:'#00e5b0',
+    vars:{ '--bg':'#000000','--bg-deep':'#000000','--bg-elev':'#0a0a0a','--bg-elev2':'#111111','--accent':'#00e5b0','--accent-ink':'#00120c','--text':'#f0f0f0','--text-dim':'#9aa0aa','--text-mute':'#6f7a89','--border':'rgba(255,255,255,.04)','--border-2':'rgba(255,255,255,.08)' }
+  }
+};
+const THEME_ORDER = ['mono','midnight','slate','ocean','emerald','sunset','lavender','light','amoled'];
+
+/* ---------- State ---------- */
+let savedTheme = localStorage.getItem('chat_theme');
+if (!savedTheme || savedTheme === 'midnight') {
+  savedTheme = 'mono';
+  localStorage.setItem('chat_theme', 'mono');
+}
+
+let savedName = (localStorage.getItem('chat_name') || '').trim();
+// Clean out any legacy default/placeholder usernames
+if (savedName && (savedName.toLowerCase().startsWith('user') || savedName.toLowerCase().startsWith('guest') || savedName === 'anonymous')) {
+  savedName = '';
+  localStorage.removeItem('chat_name');
+}
+
+const state = {
+  activeChannel: CHANNELS[0],
+  messages: [],
+  chatName: savedName,
+  replyTo: null,
+  searchFilter: '',
+  customChannels: [],
+  localChannels: safeParse('local_custom_channels', []),
+  unlocked: safeParse('unlocked_chat_channels', {}),
+  theme: savedTheme
+};
+
+function safeParse(key, fallback){ try{ const s=localStorage.getItem(key); return s?JSON.parse(s):fallback; }catch(e){ return fallback; } }
+
+
+
+/* ---------- Helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function allChannels(){
+  const validLocals = filterValidRooms(state.localChannels);
+  const validCustoms = filterValidRooms(state.customChannels);
+  return [
+    ...CHANNELS,
+    ...validLocals,
+    ...validCustoms.filter(c => !validLocals.some(lc => lc.id===c.id || lc.name===c.name))
+  ];
+}
+function currentChannel(){
+  return allChannels().find(c => c.id === state.activeChannel.id) || state.activeChannel;
+}
+function isCurrentLocked(){
+  const c = currentChannel();
+  return c.isPasswordProtected && !state.unlocked[c.id];
+}
+
+function getUsernameHue(name){
+  let h=0; const n = name || 'anonymous';
+  for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))&0xffff;
+  return [160,180,200,260,290,320,340][h%7];
+}
+function formatDateLabel(ts){
+  const d=new Date(ts), t=new Date();
+  if(d.toDateString()===t.toDateString()) return 'Today';
+  const y=new Date(t); y.setDate(t.getDate()-1);
+  if(d.toDateString()===y.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});
+}
+const formatTime = (ts) => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+function isImageUrl(url){
+  if(typeof url!=='string') return false;
+  const u=url.trim().toLowerCase();
+  return u.endsWith('.gif')||u.endsWith('.png')||u.endsWith('.jpg')||u.endsWith('.jpeg')||u.endsWith('.webp')||
+    u.startsWith('data:image/')||
+    (u.startsWith('http') && (u.includes('media.giphy.com')||u.includes('tenor.com/view')||u.includes('media.tenor.com')));
+}
+function getLocalMessages(id){ return safeParse(`local_messages_${id}`, []); }
+
+/* ============================================================
+   ALWAYS-ENCRYPTED E2EE (AES-GCM-256) & 1-HOUR AUTO-DELETE TTL
+   ============================================================ */
+const MESSAGE_TTL_MS = 60 * 60 * 1000; // 1 Hour TTL
+const SYSTEM_CRYPTO_SECRET = 'PortalChat_E2E_AlwaysEncrypted_2026';
+const cryptoKeyCache = new Map();
+
+async function getChannelCryptoKey(channelId) {
+  if (cryptoKeyCache.has(channelId)) return cryptoKeyCache.get(channelId);
+  try {
+    const enc = new TextEncoder();
+    const rawSecret = enc.encode(`${SYSTEM_CRYPTO_SECRET}_${channelId || 'global'}`);
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw', rawSecret, { name: 'PBKDF2' }, false, ['deriveKey']
+    );
+    const derivedKey = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: enc.encode(`salt_${channelId}`), iterations: 1000, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    cryptoKeyCache.set(channelId, derivedKey);
+    return derivedKey;
+  } catch(e) {
+    console.warn('CryptoKey derivation error:', e);
+    return null;
+  }
+}
+
+function bufToHex(buf) {
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function hexToBuf(hex) {
+  const bytes = new Uint8Array(Math.ceil(hex.length / 2));
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  return bytes;
+}
+
+async function encryptPayload(text, channelId) {
+  if (!text) return '';
+  try {
+    const key = await getChannelCryptoKey(channelId);
+    if (!key) return text;
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const enc = new TextEncoder();
+    const encryptedBuf = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv }, key, enc.encode(text)
+    );
+    return `ENC:v1:${bufToHex(iv)}:${bufToHex(encryptedBuf)}`;
+  } catch(err) {
+    console.warn('Encryption fallback:', err);
+    return text;
+  }
+}
+
+async function decryptPayload(cipherText, channelId) {
+  if (typeof cipherText !== 'string' || !cipherText.startsWith('ENC:v1:')) {
+    return { text: cipherText || '', encrypted: false };
+  }
+  try {
+    const parts = cipherText.split(':');
+    if (parts.length !== 4) return { text: cipherText, encrypted: false };
+    const iv = hexToBuf(parts[2]);
+    const encryptedData = hexToBuf(parts[3]);
+    const key = await getChannelCryptoKey(channelId);
+    if (!key) return { text: cipherText, encrypted: false };
+    const decryptedBuf = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv }, key, encryptedData
+    );
+    const dec = new TextDecoder();
+    return { text: dec.decode(decryptedBuf), encrypted: true };
+  } catch(err) {
+    return { text: '[Encrypted Message]', encrypted: true };
+  }
+}
+
+let toastTimer=null;
+function toast(msg){
+  $('toast-text').textContent = msg;
+  $('toast').classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=> $('toast').classList.add('hidden'), 2800);
+}
+function refreshIcons(){ if(window.lucide) lucide.createIcons(); }
+
+/* ============================================================
+   THEME
+   ============================================================ */
+function applyTheme(key){
+  const t = THEMES[key] || THEMES.mono || THEMES.midnight;
+  const root = document.documentElement;
+  Object.entries(t.vars).forEach(([k,v]) => root.style.setProperty(k, v));
+  root.style.setProperty('--accent-soft', `color-mix(in srgb, ${t.vars['--accent']} 16%, transparent)`);
+  root.style.setProperty('--accent-glow', `color-mix(in srgb, ${t.vars['--accent']} 22%, transparent)`);
+  root.setAttribute('data-scheme', t.scheme);
+  state.theme = key;
+  localStorage.setItem('chat_theme', key);
+  renderThemePickers();
+}
+
+function renderThemePickers(){
+  const dots = THEME_ORDER.map(key => {
+    const t = THEMES[key];
+    const active = state.theme===key;
+    return `<button data-theme="${key}" title="${t.label} Theme"
+      class="theme-dot w-6 h-6 rounded-full shrink-0 transition-all ${active?'ring-2 ring-white scale-110':'hover:scale-110 opacity-80 hover:opacity-100'}"
+      style="background:linear-gradient(135deg, ${t.swatch[0]}, ${t.swatch[1]}); border:1px solid rgba(255,255,255,.15)"></button>`;
+  }).join('');
+  $('theme-dots').innerHTML = dots;
+
+  const grid = THEME_ORDER.map(key => {
+    const t = THEMES[key];
+    const active = state.theme===key;
+    return `<button data-theme="${key}"
+      class="theme-swatch group relative rounded-xl p-3 h-20 flex flex-col justify-end text-left border transition-all cursor-pointer ${active?'ring-2 ring-offset-1':''}"
+      style="background:linear-gradient(135deg, ${t.swatch[0]}, ${t.swatch[1]}); border-color:rgba(255,255,255,.10); ${active?`--tw-ring-color:${t.accent}; ring-offset-color:var(--bg);`:''}">
+      <span class="text-[11px] font-black tracking-tight" style="color:${t.accent}">${t.label}</span>
+      ${active?`<span class="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style="background:${t.accent}"><i data-lucide="check" class="w-2.5 h-2.5" style="color:#000"></i></span>`:''}
+    </button>`;
+  }).join('');
+  $('theme-grid').innerHTML = grid;
+
+  document.querySelectorAll('.theme-dot,.theme-swatch').forEach(el=>{
+    el.addEventListener('click', ()=> applyTheme(el.dataset.theme));
+  });
+  refreshIcons();
+}
+
+/* ============================================================
+   NICKNAME STATE
+   ============================================================ */
+function updateNicknameUI(){
+  const name = (state.chatName || '').trim();
+  ['nickname-desktop', 'nickname-mobile'].forEach(id => {
+    const el = $(id);
+    if (el && el.value !== name) el.value = name;
+  });
+  refreshIcons();
+}
+
+// Background anonymous auth to ensure Firestore realtime rules work seamlessly
+signInAnonymously(auth).catch(err => console.info('Anonymous connection note:', err.message));
+
+/* ============================================================
+   RENDER: channels
+   ============================================================ */
+function channelIcon(ch, locked){
+  if(ch.isDirectMessage) return 'message-circle';
+  if(ch.id==='general') return 'message-square';
+  if(ch.isPasswordProtected) return locked?'lock':'unlock';
+  return 'hash';
+}
+
+function renderChannels(){
+  const rail = $('channel-rail');
+  const cur = currentChannel();
+  const now = Date.now();
+  rail.innerHTML = allChannels().map(ch => {
+    const active = cur.id===ch.id;
+    const locked = ch.isPasswordProtected && !state.unlocked[ch.id];
+    const isCustom = ch.id !== 'general' && !ch.isDirectMessage;
+
+    let remainingMinsHtml = '';
+    let remainingBadge = '';
+    if (isCustom && ch.createdAt) {
+      const remainingMs = Math.max(0, ROOM_TTL_MS - (now - ch.createdAt));
+      const remainingMins = Math.max(1, Math.ceil(remainingMs / 60000));
+      remainingMinsHtml = `<span class="block text-[7px] font-mono text-rose-400 font-bold mt-0.5"><i data-lucide="clock" class="inline w-2 h-2 mr-0.5"></i>Auto-deletes in ${remainingMins}m</span>`;
+      remainingBadge = `<span class="absolute -top-1 -right-1 text-[7px] font-mono font-black bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1 py-0.2 rounded-full">1h</span>`;
+    }
+
+    return `<button data-chan="${ch.id}"
+      class="chan-btn w-9 h-9 flex items-center justify-center rounded-xl transition-all relative group cursor-pointer shrink-0 ${active?'accent border accent-bd':'txt-mute hover:txt hover:bg-white/5'}"
+      style="${active?'background:var(--accent-soft)':''}"
+      title="${esc(ch.name)} — ${esc(ch.description)}">
+      <i data-lucide="${channelIcon(ch,locked)}" class="w-4 h-4 shrink-0"></i>
+      ${remainingBadge}
+      <span class="absolute left-11 top-1/2 -translate-y-1/2 surface border bd2 text-[9px] txt font-semibold rounded px-2 py-1 shadow-lg whitespace-nowrap hidden group-hover:block z-50">
+        <span class="font-extrabold uppercase accent">${ch.isDirectMessage ? '' : '#'}${esc(ch.name)}</span>
+        ${ch.isPasswordProtected?'<span class="text-[7px] text-amber-500 font-bold ml-1">(Protected)</span>':''}
+        <span class="block text-[8px] txt-mute font-normal max-w-[160px] truncate">${esc(ch.description)}</span>
+        ${remainingMinsHtml}
+      </span>
+    </button>`;
+  }).join('');
+
+  rail.querySelectorAll('.chan-btn').forEach(b=>{
+    b.addEventListener('click', ()=> switchChannel(b.dataset.chan));
+  });
+
+  // Custom Header Dropdown renderer
+  const dropdownCurrent = $('channel-dropdown-current');
+  if (dropdownCurrent) {
+    const locked = cur.isPasswordProtected && !state.unlocked[cur.id];
+    dropdownCurrent.innerHTML = `${locked ? '🔒 ' : ''}#${esc(cur.name)}`;
+  }
+
+  const dropdownMenu = $('channel-dropdown-menu');
+  if (dropdownMenu) {
+    const channelItems = allChannels().map(c => {
+      const active = cur.id === c.id;
+      const locked = c.isPasswordProtected && !state.unlocked[c.id];
+      const isCustom = c.id !== 'general' && !c.isDirectMessage;
+      let labelExtra = '';
+      if (isCustom && c.createdAt) {
+        const remainingMins = Math.max(1, Math.ceil((ROOM_TTL_MS - (now - c.createdAt)) / 60000));
+        labelExtra = `<span class="text-[8.5px] font-mono text-rose-400 font-bold ml-auto shrink-0 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">${remainingMins}m left</span>`;
+      }
+      return `
+        <button data-chan-item="${c.id}" type="button"
+          class="w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-[11px] font-bold transition-all cursor-pointer ${active ? 'accent-bg shadow-sm' : 'txt-dim hover:txt hover:bg-white/5'}">
+          <div class="flex items-center gap-2 min-w-0 truncate">
+            <i data-lucide="${channelIcon(c, locked)}" class="w-3.5 h-3.5 shrink-0 ${locked ? 'text-amber-400' : 'opacity-80'}"></i>
+            <span class="truncate font-mono uppercase tracking-wide">#${esc(c.name)}</span>
+          </div>
+          ${labelExtra}
+        </button>
+      `;
+    }).join('');
+
+    const createItem = `
+      <div class="my-1 border-t bd opacity-30"></div>
+      <button id="dropdown-create-btn" type="button"
+        class="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 text-[10.5px] font-black uppercase text-white bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all cursor-pointer shadow-md">
+        <i data-lucide="plus" class="w-3.5 h-3.5 text-white"></i>
+        <span>CREATE CHANNEL (1H TTL)</span>
+      </button>
+    `;
+
+    dropdownMenu.innerHTML = channelItems + createItem;
+
+    dropdownMenu.querySelectorAll('[data-chan-item]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchChannel(btn.dataset.chanItem);
+        toggleChannelDropdown(false);
+      });
+    });
+
+    const createBtn = $('dropdown-create-btn');
+    if (createBtn) {
+      createBtn.addEventListener('click', () => {
+        toggleChannelDropdown(false);
+        $('create-modal').classList.remove('hidden');
+        refreshIcons();
+      });
+    }
+  }
+
+  refreshIcons();
+}
+
+function toggleChannelDropdown(show) {
+  const menu = $('channel-dropdown-menu');
+  if (!menu) return;
+  const isHidden = menu.classList.contains('hidden');
+  const shouldShow = show !== undefined ? show : isHidden;
+  if (shouldShow) {
+    menu.classList.remove('hidden');
+    menu.classList.add('flex');
+  } else {
+    menu.classList.add('hidden');
+    menu.classList.remove('flex');
+  }
+}
+
+/* ============================================================
+   INVITE LINK & BYPASS LOGIC
+   ============================================================ */
+function copyInviteLink(channelId) {
+  const c = allChannels().find(x => x.id === channelId) || currentChannel();
+  const url = `${window.location.origin}${window.location.pathname}?channel=${encodeURIComponent(c.id)}&invite=true`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      toast(`📋 Invite link for #${c.name} copied! Bypasses password.`);
+    }).catch(() => {
+      prompt('Copy invite link (bypasses password):', url);
+    });
+  } else {
+    prompt('Copy invite link (bypasses password):', url);
+  }
+}
+
+function checkInviteUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const channelParam = params.get('channel') || params.get('room');
+    const isInvite = params.get('invite') === '1' || params.get('invite') === 'true' || params.get('invite') === 'code';
+
+    if (channelParam && isInvite) {
+      state.unlocked[channelParam] = true;
+      localStorage.setItem('unlocked_chat_channels', JSON.stringify(state.unlocked));
+
+      // Clean URL query without page reload
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+
+      setTimeout(() => {
+        const found = allChannels().find(c => c.id === channelParam || c.name.toLowerCase() === channelParam.toLowerCase());
+        if (found) {
+          switchChannel(found.id);
+          toast(`🔓 Joined #${found.name} via invite link!`);
+        } else {
+          state.activeChannel = { id: channelParam, name: channelParam, description: 'Private room via invite link', isPasswordProtected: true };
+          subscribeChannel();
+          toast(`🔓 Joined private room via invite link!`);
+        }
+      }, 300);
+    }
+  } catch(e) {
+    console.warn('Invite URL check error:', e);
+  }
+}
+
+function renderHeader(){
+  const c = currentChannel();
+  const prefix = c.isDirectMessage ? '' : '#';
+  const inviteBtnHtml = !c.isDirectMessage ? `
+    <button id="invite-channel-btn" type="button" title="Share invite link (bypasses password)"
+      class="ml-2 px-2 py-0.5 rounded-lg accent-bg text-[9px] font-bold flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0">
+      <i data-lucide="user-plus" class="w-3 h-3"></i>
+      <span class="hidden sm:inline">Invite</span>
+    </button>
+  ` : '';
+
+  $('active-channel-name').innerHTML =
+    (c.isPasswordProtected?'<i data-lucide="lock" class="w-3 h-3 text-amber-500 shrink-0"></i>':'') +
+    (c.isDirectMessage ? '<i data-lucide="message-circle" class="w-3.5 h-3.5 accent shrink-0"></i>' : '') +
+    `<span class="truncate">${prefix}${esc(c.name)}</span>` +
+    inviteBtnHtml;
+
+  const inviteBtn = $('invite-channel-btn');
+  if (inviteBtn) {
+    inviteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyInviteLink(c.id);
+    });
+  }
+
+  refreshIcons();
+}
+
+/* ============================================================
+   REPLY HELPERS
+   ============================================================ */
+function getReplyInfo(m) {
+  if (m.replyTo && m.replyTo.name) {
+    return {
+      replyToName: m.replyTo.name,
+      replyToText: m.replyTo.text || '',
+      cleanBody: m.text || ''
+    };
+  }
+  if (m.text) {
+    let currentText = m.text;
+    let extractedName = null;
+    let extractedText = null;
+
+    while (true) {
+      const match = currentText.match(/^>\s*@([^:]+):\s*"([^"]*)"\s*(.*)$/s);
+      if (match) {
+        extractedName = match[1].trim();
+        extractedText = match[2].trim();
+        currentText = match[3].trim();
+      } else {
+        break;
+      }
+    }
+
+    if (extractedName) {
+      return {
+        replyToName: extractedName,
+        replyToText: extractedText,
+        cleanBody: currentText
+      };
+    }
+  }
+  return null;
+}
+
+function setReplyTarget(name, text) {
+  let cleanSnippet = text || '';
+  const match = cleanSnippet.match(/^>\s*@[^:]+:\s*"[^"]*"\s*(.*)$/s);
+  if (match) cleanSnippet = match[3];
+  cleanSnippet = cleanSnippet.replace(/[\r\n]+/g, ' ').trim();
+  if (cleanSnippet.length > 80) cleanSnippet = cleanSnippet.substring(0, 80) + '…';
+
+  state.replyTo = { name: name, text: cleanSnippet };
+  syncReplyPreviewBar();
+  const input = $('compose-input');
+  if (input) input.focus();
+}
+
+function clearReplyTarget() {
+  state.replyTo = null;
+  syncReplyPreviewBar();
+}
+
+function syncReplyPreviewBar() {
+  const bar = $('reply-preview-bar');
+  if (!bar) return;
+  if (state.replyTo && state.replyTo.name) {
+    const nameEl = $('reply-target-name');
+    const textEl = $('reply-target-text');
+    if (nameEl) nameEl.textContent = `@${state.replyTo.name}`;
+    if (textEl) textEl.textContent = state.replyTo.text || '';
+    bar.classList.remove('hidden');
+    bar.classList.add('flex');
+  } else {
+    bar.classList.add('hidden');
+    bar.classList.remove('flex');
+  }
+  refreshIcons();
+}
+
+/* ============================================================
+   RENDER: messages
+   ============================================================ */
+function displayedMessages(){
+  const now = Date.now();
+  // Filter out any messages older than 1 hour (3,600,000 ms)
+  const validMsgs = state.messages.filter(m => (now - (m.timestamp || now)) < MESSAGE_TTL_MS);
+
+  const q = state.searchFilter.trim().toLowerCase();
+  if(!q) return validMsgs;
+  return validMsgs.filter(m =>
+    (m.name||'').toLowerCase().includes(q) ||
+    (m.text||'').toLowerCase().includes(q));
+}
+
+function renderMessages(){
+  const panel = $('messages-panel');
+  const gate = $('unlock-gate');
+  const composer = $('composer');
+
+  if(isCurrentLocked()){
+    const c = currentChannel();
+    panel.classList.add('hidden');
+    composer.classList.add('hidden');
+    gate.classList.remove('hidden'); gate.classList.add('flex');
+    $('gate-name').textContent = '#'+c.name;
+    $('gate-desc').textContent = c.description || 'This channel is password protected. Enter the passcode to join.';
+    refreshIcons();
+    return;
+  }
+  gate.classList.add('hidden'); gate.classList.remove('flex');
+  panel.classList.remove('hidden');
+  composer.classList.remove('hidden');
+
+  const msgs = displayedMessages();
+  if(msgs.length===0){
+    const c = currentChannel();
+    panel.innerHTML = `
+      <div class="h-full flex flex-col items-center justify-center text-center p-6 select-none max-w-sm mx-auto animate-fade-in">
+        <div class="w-12 h-12 rounded-2xl surface-elev border bd flex items-center justify-center mb-3 shadow-sm">
+          <i data-lucide="${c.isDirectMessage ? 'message-circle' : 'hash'}" class="w-6 h-6 accent"></i>
+        </div>
+        <h3 class="text-sm font-black uppercase tracking-wider txt">
+          ${state.searchFilter ? 'No Messages Found' : (c.isDirectMessage ? esc(c.name) : `#${esc(c.name)}`)}
+        </h3>
+        <p class="text-[11px] txt-dim mt-1.5 leading-relaxed">
+          ${state.searchFilter ? 'Try searching for a different keyword or clear the search filter.' : 'All messages are temporary and automatically delete 1 hour after being sent.'}
+        </p>
+      </div>`;
+    refreshIcons();
+    return;
+  }
+
+  let html='', prevDate=null;
+  const now = Date.now();
+  msgs.forEach(m=>{
+    const label = formatDateLabel(m.timestamp||now);
+    if(label!==prevDate){
+      html += `<div class="flex items-center gap-2 py-1.5 select-none">
+        <div class="flex-1 h-px bg-white/5"></div>
+        <span class="text-[8px] font-bold font-mono txt-mute uppercase tracking-wider">${label}</span>
+        <div class="flex-1 h-px bg-white/5"></div></div>`;
+      prevDate=label;
+    }
+    const hue = getUsernameHue(m.name);
+    const color = `hsl(${hue}, 70%, 65%)`;
+
+    const elapsed = now - (m.timestamp || now);
+    const remainingMs = Math.max(0, MESSAGE_TTL_MS - elapsed);
+    const remainingMins = Math.max(0, Math.ceil(remainingMs / 60000));
+    const timeRemainingStr = remainingMins <= 1 ? '<1m' : `${remainingMins}m`;
+
+    const replyInfo = getReplyInfo(m);
+    const bodyText = replyInfo ? replyInfo.cleanBody : (m.text || '');
+
+    let replyHeaderHtml = '';
+    if (replyInfo && replyInfo.replyToName) {
+      const isMe = (m.name || '').trim().toLowerCase() === (state.chatName || '').trim().toLowerCase();
+      const senderText = isMe ? 'You' : esc(m.name || 'User');
+      replyHeaderHtml = `
+        <div class="border-l-2 accent-bd pl-2.5 py-0.5 my-1 rounded-r bg-white/[0.03]">
+          <span class="text-[9.5px] font-bold txt-mute block tracking-tight">${senderText} replied to <span class="accent font-extrabold font-mono">@${esc(replyInfo.replyToName)}</span></span>
+          <p class="text-[11px] txt-dim truncate font-mono mt-0.5">${esc(replyInfo.replyToText)}</p>
+        </div>
+      `;
+    }
+
+    const textContentHtml = bodyText ? `<div class="msg-text text-[12px] leading-normal break-words" style="color:var(--text)">${esc(bodyText)}</div>` : '';
+
+    html += `
+      <div class="relative flex flex-col gap-0.5 hover:bg-white/[0.03] px-2.5 py-1.5 rounded-xl transition-all group">
+        <!-- Message Hover Action Menu -->
+        <div class="absolute right-2 -top-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 flex items-center gap-1 surface-elev border bd rounded-lg px-1.5 py-0.5 shadow-md z-10 transition-opacity backdrop-blur-xs">
+          <button type="button" class="reply-msg-btn flex items-center gap-1 text-[9px] font-bold txt-dim hover:accent hover:bg-white/10 px-1.5 py-0.5 rounded transition-all cursor-pointer"
+            data-sender="${esc(m.name||'anonymous')}"
+            data-content="${esc(bodyText)}"
+            title="Reply to ${esc(m.name||'anonymous')}">
+            <i data-lucide="reply" class="w-3 h-3 accent"></i>
+            <span>Reply</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="text-[11px] font-extrabold font-mono tracking-tight" style="color:${color}">
+            ${esc(m.name||'anonymous')}
+          </span>
+          <span class="inline-flex items-center gap-1 text-[8px] font-mono txt-mute" title="Message auto-deletes in ${timeRemainingStr}">
+            <i data-lucide="clock" class="w-2.5 h-2.5 opacity-60"></i>
+            <span>${timeRemainingStr}</span>
+          </span>
+          <span class="text-[8px] txt-mute font-mono ml-auto">${formatTime(m.timestamp||now)}</span>
+        </div>
+        ${replyHeaderHtml}
+        ${textContentHtml}
+      </div>
+    `;
+  });
+  panel.innerHTML = html;
+  panel.scrollTop = panel.scrollHeight;
+
+  // Wire up Reply button clicks
+  panel.querySelectorAll('.reply-msg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setReplyTarget(btn.dataset.sender || 'User', btn.dataset.content || '');
+    });
+  });
+
+  refreshIcons();
+}
+
+/* ============================================================
+   CHANNEL SUBSCRIPTION (FIRESTORE)
+   ============================================================ */
+let unsubscribeMessages = null;
+
+function subscribeChannel(){
+  if(unsubscribeMessages){
+    try { unsubscribeMessages(); } catch(e){}
+    unsubscribeMessages = null;
+  }
+  state.messages = [];
+
+  const c = currentChannel();
+  renderHeader();
+  renderChannels();
+
+  if(isCurrentLocked()){
+    renderMessages();
+    return;
+  }
+
+  // Load local cache & decrypt non-expired
+  const rawLocals = getLocalMessages(c.id);
+  const now = Date.now();
+  const validLocals = rawLocals.filter(m => (now - (m.timestamp || now)) < MESSAGE_TTL_MS);
+
+  Promise.all(validLocals.map(async m => {
+    const decText = await decryptPayload(m.text || '', c.id);
+    const decImg = m.imageUrl ? await decryptPayload(m.imageUrl, c.id) : { text: null };
+    return {
+      ...m,
+      text: decText.text,
+      isEncrypted: decText.encrypted,
+      imageUrl: decImg.text
+    };
+  })).then(decryptedLocals => {
+    if (state.messages.length === 0 && decryptedLocals.length > 0) {
+      state.messages = decryptedLocals;
+      renderMessages();
+    }
+  });
+
+  try {
+    const colRef = collection(db, 'channels', c.id, 'messages');
+    const q = query(colRef, orderBy('timestamp', 'asc'), limitToLast(100));
+    unsubscribeMessages = onSnapshot(q, async (snapshot) => {
+      const msgs = [];
+      const currentNow = Date.now();
+      const expiredDocIds = [];
+
+      for (const docSnap of snapshot.docs) {
+        const data = docSnap.data();
+        const ts = data.timestamp || currentNow;
+
+        // Auto-delete check for messages older than 1 hour (3,600,000 ms)
+        if (currentNow - ts >= MESSAGE_TTL_MS) {
+          expiredDocIds.push(docSnap.id);
+          continue;
+        }
+
+        const decTextObj = await decryptPayload(data.text || '', c.id);
+        const decImgObj = data.imageUrl ? await decryptPayload(data.imageUrl, c.id) : { text: null };
+
+        msgs.push({
+          id: docSnap.id,
+          key: docSnap.id,
+          name: data.name || 'anonymous',
+          userId: data.userId || null,
+          isRegistered: !!data.isRegistered,
+          text: decTextObj.text,
+          isEncrypted: decTextObj.encrypted,
+          imageUrl: decImgObj.text,
+          timestamp: ts
+        });
+      }
+
+      // Execute actual deletion from Firestore
+      expiredDocIds.forEach(expiredId => {
+        try {
+          deleteDoc(doc(db, 'channels', c.id, 'messages', expiredId)).catch(e => {});
+        } catch(e){}
+      });
+
+      state.messages = msgs;
+      renderMessages();
+    }, (err) => {
+      console.warn('Firestore messages subscription error:', err);
+    });
+  } catch(err) {
+    console.warn('Subscription error:', err);
+  }
+}
+
+// Real-time listener for user-created custom rooms from Firestore
+try {
+  onSnapshot(collection(db, 'channels'), (snapshot) => {
+    const list = [];
+    const now = Date.now();
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.isDirectMessage) return; // DM channels handled separately
+      
+      const lowerName = (data.name || '').toLowerCase();
+      if (DISALLOWED_ROOM_NAMES.includes(lowerName)) {
+        deleteDoc(doc(db, 'channels', docSnap.id)).catch(() => {});
+        return;
+      }
+      
+      const createdAt = data.createdAt || now;
+      const elapsed = now - createdAt;
+      if (elapsed >= ROOM_TTL_MS) {
+        deleteDoc(doc(db, 'channels', docSnap.id)).catch(() => {});
+      } else {
+        list.push({
+          id: docSnap.id,
+          name: data.name,
+          description: data.description || 'Custom chat room',
+          isPasswordProtected: !!data.isPasswordProtected,
+          password: data.password || null,
+          createdAt: createdAt
+        });
+      }
+    });
+
+    state.customChannels = list;
+    
+    // Check if current active channel was removed or expired
+    const cur = currentChannel();
+    if (!allChannels().some(c => c.id === cur.id)) {
+      switchChannel('general');
+    } else {
+      renderChannels();
+    }
+  }, (err) => {
+    console.warn('Channels collection listener error:', err);
+  });
+} catch(e) {
+  console.warn('Channels collection listener init error:', e);
+}
+
+// Periodic 1-Hour Ephemeral Purge Loop (Messages & Rooms)
+setInterval(() => {
+  const now = Date.now();
+  const c = currentChannel();
+
+  // Purge expired messages from current state
+  const prevCount = state.messages.length;
+  state.messages = state.messages.filter(m => (now - (m.timestamp || now)) < MESSAGE_TTL_MS);
+  if (state.messages.length !== prevCount) {
+    renderMessages();
+  }
+
+  // Purge expired local storage entries
+  const locals = getLocalMessages(c.id);
+  const validLocals = locals.filter(m => (now - (m.timestamp || now)) < MESSAGE_TTL_MS);
+  if (validLocals.length !== locals.length) {
+    localStorage.setItem(`local_messages_${c.id}`, JSON.stringify(validLocals));
+  }
+
+  // Purge expired user-created rooms
+  let channelsChanged = false;
+
+  const validLocalChans = state.localChannels.filter(ch => {
+    if (DISALLOWED_ROOM_NAMES.includes((ch.name || '').toLowerCase())) return false;
+    if (ch.createdAt && (now - ch.createdAt) >= ROOM_TTL_MS) return false;
+    return true;
+  });
+  if (validLocalChans.length !== state.localChannels.length) {
+    state.localChannels = validLocalChans;
+    localStorage.setItem('local_custom_channels', JSON.stringify(validLocalChans));
+    channelsChanged = true;
+  }
+
+  const validCustomChans = state.customChannels.filter(ch => {
+    if (DISALLOWED_ROOM_NAMES.includes((ch.name || '').toLowerCase())) return false;
+    if (ch.createdAt && (now - ch.createdAt) >= ROOM_TTL_MS) {
+      deleteDoc(doc(db, 'channels', ch.id)).catch(() => {});
+      return false;
+    }
+    return true;
+  });
+  if (validCustomChans.length !== state.customChannels.length) {
+    state.customChannels = validCustomChans;
+    channelsChanged = true;
+  }
+
+  if (!allChannels().some(ch => ch.id === c.id)) {
+    switchChannel('general');
+    toast('⏰ The custom room expired after 1 hour.');
+  } else if (channelsChanged) {
+    renderChannels();
+  }
+}, 10000);
+
+function switchChannel(id){
+  const target = allChannels().find(c=>c.id===id);
+  if(!target) return;
+  if(target.isDirectMessage && (!state.currentUser || !state.currentUser.isRegistered)) {
+    toast('🔒 Please sign in to access direct messages!');
+    openAuthModal('signin');
+    return;
+  }
+  state.activeChannel = target;
+  state.searchFilter=''; $('filter-input').value='';
+  subscribeChannel();
+}
+
+/* ============================================================
+   CUSTOM CHANNELS SYNC (FIRESTORE)
+   ============================================================ */
+// Note: Handled in active channels onSnapshot listener above
+
+/* ============================================================
+   SEND MESSAGE
+   ============================================================ */
+function setSendState(){
+  const btn = $('send-btn');
+  const validName = (state.chatName || '').trim().length >= 2;
+  const hasContent = $('compose-input').value.trim() || state.mediaUrl;
+  const form = $('compose-form');
+  const input = $('compose-input');
+
+  input.disabled = false;
+  input.placeholder = validName ? 'Write message… (type @ to mention)' : '⚠️ Enter nickname to speak (do not use real name)';
+  form.classList.toggle('opacity-60', !validName);
+
+  if(validName && hasContent){
+    btn.className = "p-2 rounded-lg transition-all flex items-center justify-center shrink-0 accent-bg hover:scale-105 active:scale-95 cursor-pointer font-bold shadow";
+  } else {
+    btn.className = "p-2 rounded-lg transition-all flex items-center justify-center shrink-0 bg-neutral-700 text-neutral-400";
+  }
+}
+
+async function sendMessage(){
+  const c = currentChannel();
+
+  const currentName = (state.chatName || '').trim();
+  if(currentName.length < 2){
+    const form=$('compose-form');
+    if (form) form.classList.add('animate-shake');
+    const nickInp = $('nickname-desktop') || $('nickname-mobile');
+    if (nickInp) nickInp.focus();
+    toast('⚠️ Nickname must be at least 2 characters!');
+    setTimeout(()=>{ if (form) form.classList.remove('animate-shake'); },900);
+    return;
+  }
+  const text = $('compose-input').value.trim();
+  if(!text) return;
+
+  const ts = Date.now();
+  const replyTarget = state.replyTo ? { name: state.replyTo.name, text: state.replyTo.text } : null;
+
+  // Always encrypt payload client-side before dispatching
+  const encryptedText = await encryptPayload(text, c.id);
+
+  const msgData = {
+    name: currentName,
+    userId: 'guest',
+    isRegistered: false,
+    text: text,
+    replyTo: replyTarget,
+    isEncrypted: true,
+    timestamp: ts,
+    isLocalTemp: true,
+    key: `local_${ts}_${Math.random()}`
+  };
+
+  // Cache locally with encrypted payload
+  const localEncryptedMsg = {
+    ...msgData,
+    text: encryptedText
+  };
+  const locals = getLocalMessages(c.id);
+  const validLocals = [...locals, localEncryptedMsg].filter(m => (ts - (m.timestamp || ts)) < MESSAGE_TTL_MS);
+  localStorage.setItem(`local_messages_${c.id}`, JSON.stringify(validLocals.slice(-100)));
+
+  if(!state.messages.some(m=>m.timestamp===ts && m.name===msgData.name)){
+    state.messages.push(msgData);
+    renderMessages();
+  }
+
+  // Clear inputs and active reply target
+  clearReplyTarget();
+  $('compose-input').value='';
+  setSendState();
+  $('compose-input').focus();
+
+  // Persist encrypted payload in Firestore
+  try {
+    const msgsCol = collection(db, 'channels', c.id, 'messages');
+    await addDoc(msgsCol, {
+      name: msgData.name,
+      userId: msgData.userId,
+      isRegistered: false,
+      text: encryptedText,
+      replyTo: replyTarget,
+      isEncrypted: true,
+      timestamp: ts,
+      channelId: c.id
+    });
+  } catch(err) {
+    console.warn('Firestore send failed (local kept):', err);
+  }
+}
+
+/* ============================================================
+   CREATE CHANNEL (FIRESTORE)
+   ============================================================ */
+async function createChannel(e){
+  if(e) e.preventDefault();
+  const raw = $('new-chan-name').value.trim();
+  if(!raw){ toast('Channel name is required!'); return; }
+  const clean = raw.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-_]/g,'');
+  if(!clean){ toast('Invalid channel name.'); return; }
+  if(DISALLOWED_ROOM_NAMES.includes(clean)){ toast('That room topic is not permitted.'); return; }
+  if(allChannels().some(c=>c.name.toLowerCase()===clean)){ toast('Channel name already exists!'); return; }
+
+  const pass = $('new-chan-pass').value.trim();
+  const desc = $('new-chan-desc').value.trim() || 'A custom chat room';
+  const now = Date.now();
+
+  try {
+    const docRef = await addDoc(collection(db, 'channels'), {
+      name: clean,
+      description: desc,
+      password: pass || null,
+      isPasswordProtected: !!pass,
+      createdAt: now
+    });
+
+    const obj = { id: docRef.id, name: clean, description: desc, isPasswordProtected: !!pass, password: pass, createdAt: now };
+    state.localChannels = [...state.localChannels, obj];
+    localStorage.setItem('local_custom_channels', JSON.stringify(state.localChannels));
+
+    if(pass){
+      state.unlocked[docRef.id] = true;
+      localStorage.setItem('unlocked_chat_channels', JSON.stringify(state.unlocked));
+    }
+
+    state.activeChannel = obj;
+    $('new-chan-name').value=''; $('new-chan-desc').value=''; $('new-chan-pass').value='';
+    $('create-modal').classList.add('hidden');
+    if (pass) {
+      copyInviteLink(docRef.id);
+      toast(`Channel #${clean} created! Invite link copied to clipboard.`);
+    } else {
+      toast(`Channel #${clean} created! (Auto-deletes in 1 hour)`);
+    }
+    subscribeChannel();
+  } catch(err) {
+    console.warn('Firestore channel creation error, using local fallback:', err);
+    const id = `local_chan_${now}_${Math.random().toString(36).substr(2,9)}`;
+    const obj = { id, name: clean, description: desc, isPasswordProtected: !!pass, password: pass, createdAt: now };
+    state.localChannels = [...state.localChannels, obj];
+    localStorage.setItem('local_custom_channels', JSON.stringify(state.localChannels));
+
+    if(pass){
+      state.unlocked[id] = true;
+      localStorage.setItem('unlocked_chat_channels', JSON.stringify(state.unlocked));
+    }
+
+    state.activeChannel = obj;
+    $('new-chan-name').value=''; $('new-chan-desc').value=''; $('new-chan-pass').value='';
+    $('create-modal').classList.add('hidden');
+    if (pass) {
+      copyInviteLink(id);
+      toast(`Channel #${clean} created! Invite link copied to clipboard.`);
+    } else {
+      toast(`Channel #${clean} created! (Auto-deletes in 1 hour)`);
+    }
+    subscribeChannel();
+  }
+}
+
+/* ============================================================
+   UNLOCK
+   ============================================================ */
+function unlockChannel(e){
+  if(e) e.preventDefault();
+  const c = currentChannel();
+  if($('unlock-input').value === c.password){
+    state.unlocked[c.id]=true;
+    localStorage.setItem('unlocked_chat_channels', JSON.stringify(state.unlocked));
+    $('unlock-input').value='';
+    toast('🔓 Channel unlocked!');
+    subscribeChannel();
+  } else toast('❌ Incorrect passcode!');
+}
+
+/* ============================================================
+   WIRE UP EVENTS
+   ============================================================ */
+function syncNicknameBar(){
+  const bar = $('nickname-bar');
+  if (!bar) return;
+  const valid = (state.chatName || '').trim().length >= 2;
+  if (valid) {
+    bar.classList.add('hidden');
+    bar.classList.remove('flex');
+  } else {
+    bar.classList.remove('hidden');
+    bar.classList.add('flex');
+  }
+}
+
+function saveNickname(rawVal){
+  const trimmed = (rawVal || '').trim();
+  if (trimmed.length < 2) {
+    toast('⚠️ Nickname must be at least 2 characters');
+    return false;
+  }
+  state.chatName = trimmed;
+  localStorage.setItem('chat_name', trimmed);
+  ['nickname-desktop','nickname-mobile'].forEach(id=>{
+    const el = $(id);
+    if(el) el.value = trimmed;
+  });
+  setSendState();
+  updateNicknameUI();
+  syncNicknameBar();
+  toast(`✓ Nickname set to "${trimmed}"`);
+  const compose = $('compose-input');
+  if (compose) compose.focus();
+  return true;
+}
+
+function bindNick(inp){
+  if(!inp) return;
+  inp.value = state.chatName || '';
+  inp.addEventListener('input', ()=>{
+    const val = inp.value;
+    ['nickname-desktop','nickname-mobile'].forEach(id=>{
+      const el = $(id);
+      if(el && el !== inp) el.value = val;
+    });
+  });
+
+  inp.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      saveNickname(inp.value);
+    }
+  });
+
+  inp.addEventListener('blur', ()=>{
+    const trimmed = (inp.value || '').trim();
+    if (trimmed.length >= 2 && !state.chatName) {
+      saveNickname(trimmed);
+    } else if (state.chatName && trimmed.length < 2) {
+      inp.value = state.chatName;
+    }
+  });
+}
+
+function init(){
+  applyTheme(state.theme);
+  renderBlockedWordsList();
+  bindNick($('nickname-desktop'));
+  bindNick($('nickname-mobile'));
+  syncNicknameBar();
+
+  const saveBtn = $('nickname-save-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const mobInp = $('nickname-mobile');
+      if (mobInp) saveNickname(mobInp.value);
+    });
+  }
+
+  setSendState();
+  subscribeChannel();
+  updateNicknameUI();
+
+  // Check for invite URL parameters to bypass password protection
+  checkInviteUrl();
+
+  // Event binding helper
+  const safeOn = (id, event, handler) => {
+    const el = $(id);
+    if (el) el.addEventListener(event, handler);
+  };
+
+  // Header controls
+  safeOn('filter-input', 'input', (e)=>{ state.searchFilter=e.target.value; renderMessages(); });
+  safeOn('channel-dropdown-btn', 'click', (e) => {
+    e.stopPropagation();
+    toggleChannelDropdown();
+  });
+  document.addEventListener('click', (e) => {
+    const dropdown = $('custom-channel-dropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+      toggleChannelDropdown(false);
+    }
+  });
+
+  // Compose & Send
+  safeOn('compose-form', 'submit', (e)=>{ e.preventDefault(); sendMessage(); });
+  safeOn('compose-input', 'input', setSendState);
+  safeOn('compose-input', 'keydown', (e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMessage(); }});
+  safeOn('reply-cancel-btn', 'click', clearReplyTarget);
+
+  // Create Channel modal
+  safeOn('add-channel-rail', 'click', ()=>{ $('create-modal').classList.remove('hidden'); refreshIcons(); });
+  safeOn('create-close', 'click', ()=> $('create-modal').classList.add('hidden'));
+  safeOn('create-cancel', 'click', ()=> $('create-modal').classList.add('hidden'));
+  safeOn('create-form', 'submit', createChannel);
+
+  // Unlock channel
+  safeOn('unlock-form', 'submit', unlockChannel);
+  safeOn('gate-invite-btn', 'click', () => {
+    const c = currentChannel();
+    copyInviteLink(c.id);
+  });
+
+  // Theme modal
+  safeOn('theme-trigger', 'click', ()=>{ $('theme-modal').classList.remove('hidden'); refreshIcons(); });
+  safeOn('theme-trigger-mobile', 'click', ()=>{ $('theme-modal').classList.remove('hidden'); refreshIcons(); });
+  safeOn('theme-close', 'click', ()=> $('theme-modal').classList.add('hidden'));
+
+  // Close modals on backdrop click
+  ['create-modal','theme-modal'].forEach(id=>{
+    const el = $(id);
+    if(el) el.addEventListener('click', (e)=>{ if(e.target.id===id) el.classList.add('hidden'); });
+  });
+
+  // Periodically update countdown timers and prune expired messages
+  setInterval(() => {
+    if (state.messages && state.messages.length > 0) {
+      renderMessages();
+    }
+  }, 30000);
+
+  refreshIcons();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>

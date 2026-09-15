@@ -1,5 +1,8 @@
 import { lazy, Suspense, useDeferredValue, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getApps, initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+import { collection, getFirestore, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { PUBLIC_GAMES_BASE_URL } from './data/gameSource';
 import defaultThumbnail from './assets/images/defaultthumbnail.png';
 const GAMES_PER_PAGE = 36;
@@ -63,10 +66,26 @@ const FlashcardsWorkspace = lazy(() => import('./components/FlashcardsWorkspace'
 const QuizWorkspace = lazy(() => import('./components/QuizWorkspace'));
 const NotesWorkspace = lazy(() => import('./components/NotesWorkspace'));
 const StudyTimer = lazy(() => import('./components/StudyTimer'));
-const ChatWorkspace = lazy(() => import('./components/ChatWorkspace'));
+const AiChatWorkspace = lazy(() => import('./components/AiChatWorkspace'));
 import UserChat from './components/UserChat';
 const MoviesWorkspace = lazy(() => import('./components/MoviesWorkspace'));
 import InformationSection from './components/InformationSection';
+const firebaseConfig = {
+  projectId: 'ultra-framework-zw1xt',
+  appId: '1:435315435216:web:b8746108ed875a8d25e0d5',
+  apiKey: 'AIzaSyAu5Oe190oojQUnWPajnzfEF2lNoBrFafs',
+  authDomain: 'ultra-framework-zw1xt.firebaseapp.com',
+  storageBucket: 'ultra-framework-zw1xt.firebasestorage.app',
+  messagingSenderId: '435315435216',
+};
+const firebaseApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const lobbyAuth = getAuth(firebaseApp);
+const lobbyDb = getFirestore(firebaseApp, 'ai-studio-chat1-72af77fd-eebc-43fa-8925-e79796be2d79');
+
+function LobbyUnreadIndicator({ visible }) {
+  if (!visible) return null;
+  return <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-[var(--bg-secondary)] shadow-[0_0_6px_rgba(239,68,68,0.8)]" aria-label="New lobby message" />;
+}
 import { 
   School, 
   Search, 
@@ -810,6 +829,60 @@ export default function App() {
       return 'info';
     }
   });
+  const [hasUnreadLobby, setHasUnreadLobby] = useState(() => {
+    const latest = Number(safeStorage.getItem('lobby-chat-latest') || 0);
+    const lastRead = Number(safeStorage.getItem('lobby-chat-last-read') || 0);
+    return latest > lastRead;
+  });
+  const filterRef = useRef(filter);
+  useEffect(() => {
+    filterRef.current = filter;
+    if (filter === 'lobbychat') {
+      const latest = Number(safeStorage.getItem('lobby-chat-latest') || 0);
+      if (latest > 0) safeStorage.setItem('lobby-chat-last-read', String(latest));
+      setHasUnreadLobby(false);
+    }
+  }, [filter]);
+  useEffect(() => {
+    let unsubscribe;
+    let cancelled = false;
+
+    const subscribeToLobby = async () => {
+      try {
+        await signInAnonymously(lobbyAuth);
+        if (cancelled) return;
+        const messagesQuery = query(
+          collection(lobbyDb, 'channels', 'general', 'messages'),
+          orderBy('timestamp', 'desc'),
+          limit(1),
+        );
+        unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+          const latest = Number(snapshot.docs[0]?.data()?.timestamp || 0);
+          if (!latest) return;
+          safeStorage.setItem('lobby-chat-latest', String(latest));
+          const storedLastRead = safeStorage.getItem('lobby-chat-last-read');
+          if (storedLastRead === null) {
+            safeStorage.setItem('lobby-chat-last-read', String(latest));
+            return;
+          }
+          const lastRead = Number(storedLastRead || 0);
+          if (filterRef.current !== 'lobbychat' && latest > lastRead) {
+            setHasUnreadLobby(true);
+          }
+        }, (error) => {
+          console.warn('Lobby unread listener error:', error);
+        });
+      } catch (error) {
+        console.warn('Lobby unread auth error:', error);
+      }
+    };
+
+    subscribeToLobby();
+    return () => {
+      cancelled = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [currentGamePage, setCurrentGamePage] = useState(1);
@@ -3048,7 +3121,7 @@ export default function App() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => { setFilter(filter === 'movies' ? 'all' : 'movies'); setSelectedGame(null); }}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200 ${
+              className={`relative px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200 ${
                 filter === 'movies'
                   ? 'bg-[var(--accent-color)] text-[var(--bg-color)] border-[var(--accent-color)] shadow-[0_2px_8px_var(--accent-shadow)]'
                   : 'bg-[var(--card-bg)] text-[var(--text-primary)] border-[var(--card-border)] hover:border-[var(--accent-color)]/50 hover:text-[var(--accent-color)]'
@@ -3072,6 +3145,7 @@ export default function App() {
               title="Lobby Chat"
             >
               <MessageSquare className="w-3.5 h-3.5" />
+              <LobbyUnreadIndicator visible={hasUnreadLobby} />
               <span>Lobby Chat</span>
             </motion.button>
 
@@ -3259,7 +3333,7 @@ export default function App() {
             <div className="flex md:hidden items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--card-border)]/50 p-0.5 rounded-lg shadow-sm shrink-0">
               <button
                 onClick={() => { setFilter(filter === 'movies' ? 'all' : 'movies'); setSelectedGame(null); }}
-                className={`p-1 rounded-md text-xs transition-all duration-200 ${
+                className={`relative p-1 rounded-md text-xs transition-all duration-200 ${
                   filter === 'movies'
                     ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_1px_5px_var(--accent-shadow)] font-bold'
                     : 'bg-transparent text-[var(--text-primary)] hover:text-[var(--accent-color)]'
@@ -3293,6 +3367,7 @@ export default function App() {
                 title="Lobby Chat"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
+                <LobbyUnreadIndicator visible={hasUnreadLobby} />
               </button>
 
               <button
@@ -3478,7 +3553,7 @@ export default function App() {
               {/* Lobby Chat Button */}
               <button
                 onClick={() => { setFilter(filter === 'lobbychat' ? 'all' : 'lobbychat'); setSelectedGame(null); }}
-                className={`p-1.5 rounded-lg border text-xs font-mono font-bold flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                className={`relative p-1.5 rounded-lg border text-xs font-mono font-bold flex items-center justify-center cursor-pointer transition-all duration-200 ${
                   filter === 'lobbychat'
                     ? 'bg-[var(--accent-color)] text-[var(--bg-color)] border-[var(--accent-color)] shadow-[0_2px_8px_var(--accent-shadow)]'
                     : 'bg-[var(--card-bg)] text-[var(--text-primary)] border-[var(--card-border)] hover:border-[var(--accent-color)]/50 hover:text-[var(--accent-color)]'
@@ -3486,6 +3561,7 @@ export default function App() {
                 title="Lobby Chat"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
+                <LobbyUnreadIndicator visible={hasUnreadLobby} />
               </button>
 
               {/* YouTube Workspace Button */}
@@ -4637,7 +4713,7 @@ export default function App() {
                   transition={{ duration: 0.2 }}
                   className={`flex flex-col w-full min-h-[550px] bg-[var(--bg-secondary)] ${headerOpen ? 'h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]' : 'h-[calc(100vh-100px)] md:h-[calc(100vh-80px)]'}`}
                 >
-                  <ChatWorkspace onClose={() => setFilter('all')} />
+                  <AiChatWorkspace onClose={() => setFilter('all')} />
                 </motion.div>
               ) : filter === 'lobbychat' ? (
                 <motion.div 
