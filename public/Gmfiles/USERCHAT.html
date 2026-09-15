@@ -1350,6 +1350,9 @@ async function sendMessage(){
   const locals = getLocalMessages(c.id);
   const validLocals = [...locals, localEncryptedMsg].filter(m => (ts - (m.timestamp || ts)) < MESSAGE_TTL_MS);
   localStorage.setItem(`local_messages_${c.id}`, JSON.stringify(validLocals.slice(-100)));
+  if (c.id === 'general') {
+    localStorage.setItem('lobby-chat-notification', String(ts));
+  }
 
   if(!state.messages.some(m=>m.timestamp===ts && m.name===msgData.name)){
     state.messages.push(msgData);

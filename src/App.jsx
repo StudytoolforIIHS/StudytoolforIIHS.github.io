@@ -859,8 +859,17 @@ export default function App() {
         markLobbyUnread(event.data.timestamp);
       }
     };
+    const handleLobbyStorage = (event) => {
+      if (event.key === 'lobby-chat-notification' && event.newValue) {
+        markLobbyUnread(event.newValue);
+      }
+    };
     window.addEventListener('message', handleLobbyMessage);
-    return () => window.removeEventListener('message', handleLobbyMessage);
+    window.addEventListener('storage', handleLobbyStorage);
+    return () => {
+      window.removeEventListener('message', handleLobbyMessage);
+      window.removeEventListener('storage', handleLobbyStorage);
+    };
   }, []);
   useEffect(() => {
     let unsubscribe;
@@ -3152,7 +3161,7 @@ export default function App() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => { setFilter(filter === 'lobbychat' ? 'all' : 'lobbychat'); setSelectedGame(null); }}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200 ${
+              className={`relative px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200 ${
                 filter === 'lobbychat'
                   ? 'bg-[var(--accent-color)] text-[var(--bg-color)] border-[var(--accent-color)] shadow-[0_2px_8px_var(--accent-shadow)] font-bold'
                   : 'bg-[var(--card-bg)] text-[var(--text-primary)] border-[var(--card-border)] hover:border-[var(--accent-color)]/50 hover:text-[var(--accent-color)]'
