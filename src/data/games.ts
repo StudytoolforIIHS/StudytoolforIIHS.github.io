@@ -328,7 +328,7 @@ const gameData: Game[] = [
   {
     title: 'Bitlife',
     description: 'Popular',
-    url: 'https://ubg365.github.io/bitlife-life-simulator/play.html',
+    url: 'clbitlife.html',
     thumbnail: 'https://i.ytimg.com/vi/WUTrv--kZtI/maxresdefault.jpg',
     category: 'Solo',
     featured: true,
