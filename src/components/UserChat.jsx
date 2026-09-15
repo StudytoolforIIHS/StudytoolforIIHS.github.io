@@ -5,7 +5,7 @@ export default function UserChat({ onClose }) {
       <div id="chat-iframe-wrapper" className="flex-1 w-full h-full bg-black">
         <iframe
           id="chat-decoy-iframe"
-          src="https://urnperiodic.github.io/chat1/"
+          src="/Gmfiles/USERCHAT.html"
           className="w-full h-full border-none"
           title="User Chat"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
