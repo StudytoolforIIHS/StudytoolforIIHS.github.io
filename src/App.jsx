@@ -835,6 +835,15 @@ export default function App() {
     return latest > lastRead;
   });
   const filterRef = useRef(filter);
+  const markLobbyUnread = (latest) => {
+    const timestamp = Number(latest || 0);
+    if (!timestamp) return;
+    safeStorage.setItem('lobby-chat-latest', String(timestamp));
+    const lastRead = Number(safeStorage.getItem('lobby-chat-last-read') || 0);
+    if (filterRef.current !== 'lobbychat' && timestamp > lastRead) {
+      setHasUnreadLobby(true);
+    }
+  };
   useEffect(() => {
     filterRef.current = filter;
     if (filter === 'lobbychat') {
@@ -843,6 +852,16 @@ export default function App() {
       setHasUnreadLobby(false);
     }
   }, [filter]);
+  useEffect(() => {
+    const handleLobbyMessage = (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'lobby-chat-message') {
+        markLobbyUnread(event.data.timestamp);
+      }
+    };
+    window.addEventListener('message', handleLobbyMessage);
+    return () => window.removeEventListener('message', handleLobbyMessage);
+  }, []);
   useEffect(() => {
     let unsubscribe;
     let cancelled = false;
@@ -859,16 +878,12 @@ export default function App() {
         unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
           const latest = Number(snapshot.docs[0]?.data()?.timestamp || 0);
           if (!latest) return;
-          safeStorage.setItem('lobby-chat-latest', String(latest));
           const storedLastRead = safeStorage.getItem('lobby-chat-last-read');
           if (storedLastRead === null) {
             safeStorage.setItem('lobby-chat-last-read', String(latest));
             return;
           }
-          const lastRead = Number(storedLastRead || 0);
-          if (filterRef.current !== 'lobbychat' && latest > lastRead) {
-            setHasUnreadLobby(true);
-          }
+          markLobbyUnread(latest);
         }, (error) => {
           console.warn('Lobby unread listener error:', error);
         });
