@@ -1,4 +1,4 @@
-import { lazy, Suspense, useDeferredValue, useState, useEffect, useRef } from 'react';
+import { lazy, Suspense, useDeferredValue, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getApps, initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
@@ -220,20 +220,58 @@ const decoyOptions = [
   { value: 'ixl', label: 'IXL', labelLong: 'IXL Learning', icon: 'https://www.google.com/s2/favicons?sz=64&domain=ixl.com' }
 ];
 
+const EMULATED_PLATFORMS = [
+  'arcade', 'atari2600', 'atarilynx', 'bootleg', 'colecovision', 'dos',
+  'gba', 'genesis plus', 'jaguar', 'n64', 'nds', 'neo geo pocket', 'nes',
+  'pokemon', 'psx', 'segagg', 'segamd', 'segams', 'segasaturn', 'snes',
+  'virtualboy', 'wonderswan'
+];
+
+const EMULATED_SYSTEM_NAMES = {
+  arcade: 'Arcade',
+  atari2600: 'Atari 2600',
+  atarilynx: 'Atari Lynx',
+  bootleg: 'Bootleg / Famiclone',
+  colecovision: 'ColecoVision',
+  dos: 'MS-DOS',
+  gba: 'Game Boy Advance',
+  'genesis plus': 'Genesis Plus',
+  jaguar: 'Atari Jaguar',
+  n64: 'Nintendo 64',
+  nds: 'Nintendo DS',
+  'neo geo pocket': 'Neo Geo Pocket',
+  nes: 'NES',
+  pokemon: 'Pokémon (ROMs)',
+  psx: 'PlayStation 1 (PSX)',
+  segagg: 'Sega Game Gear',
+  segamd: 'Sega Genesis / MD',
+  segams: 'Sega Master System',
+  segasaturn: 'Sega Saturn',
+  snes: 'Super Nintendo (SNES)',
+  virtualboy: 'Virtual Boy',
+  wonderswan: 'WonderSwan'
+};
+
 function GoGuardianDecoyNotice({
   mode,
   onToggleMode,
   onClose,
   decoyType,
-  positionClass = "absolute top-full right-0 mt-2 w-64 sm:w-72"
+  positionClass = "absolute top-full right-0 mt-2 w-48 sm:w-52"
 }) {
-  // Automatically dismiss the message after a few seconds (6s)
+  // Automatically dismiss the message after a few seconds (6s) and record that it was shown
   useEffect(() => {
+    safeStorage.setItem('unblocked-goguardian-notice-shown', 'true');
     const timer = setTimeout(() => {
       onClose();
     }, 6000);
     return () => clearTimeout(timer);
   }, [onClose]);
+
+  const handleClose = () => {
+    safeStorage.setItem('unblocked-goguardian-notice-shown', 'true');
+    onClose();
+  };
 
   return (
     <motion.div
@@ -241,19 +279,22 @@ function GoGuardianDecoyNotice({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -6, scale: 0.96 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      onClick={onToggleMode}
-      className={`${positionClass} z-[99999] rounded-lg bg-[var(--card-bg)] border-2 border-red-500/90 shadow-xl shadow-red-500/10 p-2 text-left select-none cursor-pointer transition-all hover:border-red-400 group backdrop-blur-xl`}
+      onClick={() => {
+        handleClose();
+        onToggleMode();
+      }}
+      className={`${positionClass} z-[99999] rounded-xl bg-[var(--card-bg)] border-2 border-red-500/90 shadow-2xl shadow-red-500/10 p-3 text-left select-none cursor-pointer transition-all hover:border-red-400 group backdrop-blur-xl flex flex-col gap-1.5`}
       title="Click anywhere to swap between Light and Dark mode"
     >
-      <div className="text-red-500 font-bold underline tracking-wider mb-0.5" style={{ fontSize: '8px', lineHeight: '13px' }}>
+      <div className="text-red-500 font-bold underline tracking-wider text-center" style={{ fontSize: '12px', lineHeight: '16px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         READ THIS ONCE
       </div>
       {/* Exact Required Message Text with applied styling */}
       <p
-        style={{ fontSize: '7px', lineHeight: '13.5px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-        className="text-[var(--text-primary)] font-medium leading-relaxed"
+        style={{ fontSize: '10px', lineHeight: '15px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className="text-[var(--text-primary)] font-bold text-center leading-relaxed"
       >
-        GoGuardian sees whatever them you are on, and if you are using Classroom/Google Docs/clever.com decoys, the mode automatically changes to white. These platforms do not have dark mode. So to stay hidden, please use white mode when GoGuardian is on. If GoGuardian is not on, you can just swap to dark mode.
+        GoGuardian sees whatever theme you are on, and if you are using Classroom/Google Docs/clever.com decoys, the mode automatically changes to white. These platforms do not have dark mode. So to stay hidden, please use white mode when GoGuardian is on. If GoGuardian is not on, you can just swap to dark mode.
       </p>
     </motion.div>
   );
@@ -636,6 +677,65 @@ function AutoRandomizeDecoyButton({
   );
 }
 
+function GameCardThumbnail({ game, index, getOptimizedThumbnail, renderGameArt, defaultThumbnail }) {
+  const [imgSrc, setImgSrc] = useState(() => (game.thumbnail ? getOptimizedThumbnail(game.thumbnail) : ''));
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [retried, setRetried] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+    setFailed(false);
+    setRetried(false);
+    setImgSrc(game.thumbnail ? getOptimizedThumbnail(game.thumbnail) : '');
+  }, [game.id, game.thumbnail]);
+
+  const handleError = () => {
+    if (!retried && game.thumbnail) {
+      setRetried(true);
+      const rawThumb = game.thumbnail;
+      if (!rawThumb.startsWith('http://') && !rawThumb.startsWith('https://') && !rawThumb.startsWith('data:')) {
+        const clean = rawThumb.replace(/^\/+/, '').replace(/^public\//, '').replace(/^thumbnails\//, '');
+        setImgSrc(`https://urnperiodic.github.io/thumbnails/${encodeURI(clean)}`);
+        return;
+      }
+    }
+    setFailed(true);
+  };
+
+  const isEager = index < 8;
+
+  if (imgSrc && !failed) {
+    return (
+      <div className="relative w-full h-full bg-neutral-900 overflow-hidden flex items-center justify-center">
+        {!loaded && (
+          <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center animate-pulse">
+            <Gamepad2 className="w-8 h-8 text-neutral-700" />
+          </div>
+        )}
+        <img
+          src={imgSrc}
+          alt={game.title}
+          width="640"
+          height="360"
+          loading={isEager ? 'eager' : 'lazy'}
+          fetchPriority={index < 4 ? 'high' : 'auto'}
+          decoding="async"
+          referrerPolicy="no-referrer"
+          draggable="false"
+          onLoad={() => setLoaded(true)}
+          onError={handleError}
+          className={`w-full h-full object-cover transition-transform duration-500 hover:scale-110 select-none pointer-events-none ${
+            loaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      </div>
+    );
+  }
+
+  return renderGameArt(game, defaultThumbnail);
+}
+
 export default function App() {
   // Helper to optimize and resize thumbnail URLs dynamically to Poki recommended size (512x512) for fast load & high clarity
   const getOptimizedThumbnail = (url) => {
@@ -650,13 +750,8 @@ export default function App() {
       return url;
     }
 
-    const normalizedUrl = url.replace(/^\/+/, '');
-
-    if (normalizedUrl.startsWith('thumbnails/')) {
-      return `/${normalizedUrl}`;
-    }
-
-    return `/thumbnails/${normalizedUrl}`;
+    const clean = url.replace(/^\/+/, '').replace(/^public\//, '').replace(/^thumbnails\//, '');
+    return `/thumbnails/${encodeURI(clean)}`;
   };
 
   const [theme, setTheme] = useState(() => {
@@ -708,13 +803,23 @@ export default function App() {
   });
 
   const isWhiteDecoy = decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'clever';
-  const [showGoGuardianNotice, setShowGoGuardianNotice] = useState(() => isWhiteDecoy);
+  const [showGoGuardianNotice, setShowGoGuardianNotice] = useState(() => {
+    const hasShownBefore = safeStorage.getItem('unblocked-goguardian-notice-shown');
+    const initialViewMode = safeStorage.getItem('classroom-view-mode');
+    return !hasShownBefore && isWhiteDecoy && initialViewMode !== 'games';
+  });
+
+  // Ensure notice does not automatically pop open when in the portals secured area
+  useEffect(() => {
+    if (viewMode === 'games') {
+      setShowGoGuardianNotice(false);
+    }
+  }, [viewMode]);
 
   // Automatically switch to white mode on classroom, google docs, and clever decoys
   useEffect(() => {
     if (decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'clever') {
       setMode('light');
-      setShowGoGuardianNotice(true);
     }
   }, [decoyType]);
 
@@ -936,12 +1041,14 @@ export default function App() {
 
   useEffect(() => {
     if (games.length === 0 || selectedGame || restoredSavedGame.current) return;
+    const isWorkspace = ['chat', 'lobbychat', 'movies', 'youtube', 'info', 'download'].includes(filter);
+    if (isWorkspace) return;
     restoredSavedGame.current = true;
     const savedId = safeStorage.getItem('unblocked-last-game');
     if (savedId) {
       setSelectedGame(games.find((game) => game.id === savedId) || null);
     }
-  }, [games, selectedGame]);
+  }, [games, selectedGame, filter]);
 
   useEffect(() => {
     if (!selectedGame) {
@@ -987,9 +1094,22 @@ export default function App() {
 
   useEffect(() => {
     safeStorage.setItem('unblocked-last-filter', filter);
+    const isWorkspace = ['chat', 'lobbychat', 'movies', 'youtube', 'info', 'download'].includes(filter);
+    if (isWorkspace) {
+      setSelectedGame(null);
+      setGameHeaderHidden(false);
+      setWindowFullscreen(false);
+      safeStorage.removeItem('unblocked-last-game');
+    }
   }, [filter]);
 
   useEffect(() => {
+    const isWorkspace = ['chat', 'lobbychat', 'movies', 'youtube', 'info', 'download'].includes(filter);
+    if (isWorkspace) {
+      setGameHeaderHidden(false);
+      setWindowFullscreen(false);
+      return;
+    }
     if (selectedGame) {
       safeStorage.setItem('unblocked-last-game', selectedGame.id);
       if (autoHideHeader) {
@@ -1003,7 +1123,7 @@ export default function App() {
       setWindowFullscreen(false);
       setGameHeaderHidden(false);
     }
-  }, [selectedGame, autoHideHeader, games.length]);
+  }, [selectedGame, autoHideHeader, games.length, filter]);
 
   useEffect(() => {
     setCurrentGamePage(1);
@@ -1245,8 +1365,8 @@ export default function App() {
       }
     }, [viewMode]);
 
-  const [autoLockOnIdle, setAutoLockOnIdle] = useState(() => {
-    const saved = safeStorage.getItem('unblocked-auto-lock-on-idle');
+  const [autoLockOnClose, setAutoLockOnClose] = useState(() => {
+    const saved = safeStorage.getItem('unblocked-auto-lock-on-close');
     return saved !== 'false'; // Defaults to true
   });
 
@@ -1300,40 +1420,23 @@ export default function App() {
     }
   }, [historyMaskingEnabled, selectedGame, filter, viewMode, decoyType]);
 
+  // Sign Out / Lock Workspace when tab or window is closed
   useEffect(() => {
-    let timeoutId;
-    
-    const resetTimer = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (autoLockOnIdle && viewMode === 'games') {
-        timeoutId = setTimeout(() => {
-          setViewModeAndSave('articles');
-          setSelectedGame(null);
-        }, 60 * 60 * 1000); // 1 hour
+    const handleUnload = () => {
+      if (autoLockOnClose) {
+        safeStorage.setItem('classroom-view-mode', 'articles');
+        safeStorage.setItem('classroom-passcode-unlocked', 'false');
       }
     };
 
-    const handleActivity = () => {
-      resetTimer();
-    };
-
-    // Set initial timer
-    resetTimer();
-
-    // Listen for activity
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('click', handleActivity);
-    window.addEventListener('touchstart', handleActivity);
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('click', handleActivity);
-      window.removeEventListener('touchstart', handleActivity);
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
     };
-  }, [autoLockOnIdle, viewMode]);
+  }, [autoLockOnClose]);
 
   const [passcode, setPasscode] = useState('');
   const [isShake, setIsShake] = useState(false);
@@ -1865,9 +1968,32 @@ export default function App() {
   };
 
   // Helper method to draw beautiful game art based on game title / id
-  const renderGameArt = (game) => {
+  const renderGameArt = (game, defaultThumbnailSrc = defaultThumbnail) => {
     const iconSize = 48;
-    switch (game.id) {
+    const id = String(game?.id || '').toLowerCase();
+    const title = String(game?.title || '').toLowerCase();
+
+    let matchKey = id;
+    if (!matchKey || matchKey.startsWith('game-gen-')) {
+      if (title.includes('neon breakout')) matchKey = 'neon-breakout';
+      else if (title.includes('synthwave runner')) matchKey = 'synthwave-runner';
+      else if (title.includes('tron')) matchKey = 'tron-lightcycle';
+      else if (title.includes('cyber defender')) matchKey = 'cyber-defenders';
+      else if (title.includes('slope')) matchKey = 'slope';
+      else if (title.includes('2048')) matchKey = '2048';
+      else if (title.includes('retro bowl')) matchKey = 'retro-bowl';
+      else if (title.includes('flappy')) matchKey = 'flappy';
+      else if (title.includes('pacman') || title.includes('pac-man')) matchKey = 'pacman';
+      else if (title.includes('tunnel rush')) matchKey = 'tunnel-rush';
+      else if (title.includes('chess')) matchKey = 'chess';
+      else if (title.includes('bubble shooter')) matchKey = 'bubble-shooter';
+      else if (title.includes('crossy road')) matchKey = 'crossy-road';
+      else if (title.includes('solitaire')) matchKey = 'solitaire';
+      else if (title.includes('doodle jump')) matchKey = 'doodle-jump';
+      else if (title.includes('sandbox')) matchKey = 'sandbox';
+    }
+
+    switch (matchKey) {
       case 'neon-breakout':
         return (
           <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-neutral-950">
@@ -1942,9 +2068,10 @@ export default function App() {
             <div className="relative z-10 text-[9px] font-mono tracking-widest text-[#ff007f] font-black uppercase mt-12 bg-neutral-900/80 px-2.5 py-0.5 rounded border border-pink-500/20">DEFEND CORE</div>
           </div>
         );
-      case 1: // Slope
+      case 1:
+      case 'slope':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             {/* Grid background effect */}
             <div className="absolute inset-0 opacity-15 overflow-hidden">
               <div className="w-full h-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:16px_16px]" />
@@ -1957,9 +2084,10 @@ export default function App() {
             <div className="absolute bottom-3 w-1/2 h-[3px] bg-emerald-400/50 rounded transform rotate-12" />
           </div>
         );
-      case 2: // 2048
+      case 2:
+      case '2048':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="grid grid-cols-2 gap-1 bg-amber-950/20 p-2 rounded">
               <div className="w-8 h-8 rounded bg-amber-500 flex items-center justify-center text-xs font-black text-black">2</div>
               <div className="w-8 h-8 rounded bg-orange-500 flex items-center justify-center text-xs font-black text-white">0</div>
@@ -1968,9 +2096,10 @@ export default function App() {
             </div>
           </div>
         );
-      case 3: // Retro Bowl
+      case 3:
+      case 'retro-bowl':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="absolute top-2 left-2 text-[10px] font-mono text-blue-400 opacity-60">QUARTERBACK</div>
             <div className="relative w-14 h-8 bg-amber-800 rounded-full border-y-[3px] border-white/60 flex items-center justify-center shadow-lg transform -rotate-12">
               <div className="w-1 h-6 bg-white/80 absolute" />
@@ -1979,9 +2108,10 @@ export default function App() {
             </div>
           </div>
         );
-      case 4: // Flappy Bird
+      case 4:
+      case 'flappy':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-sky-950">
             <div className="absolute inset-y-0 right-6 w-5 h-full flex flex-col justify-between py-2">
               <div className="w-full h-8 bg-green-500 rounded-b border-2 border-white/40" />
               <div className="w-full h-12 bg-green-500 rounded-t border-2 border-white/40" />
@@ -1995,24 +2125,27 @@ export default function App() {
             </div>
           </div>
         );
-      case 5: // Pacman Retro
+      case 5:
+      case 'pacman':
         return (
-          <div className="relative w-full h-full flex items-center justify-center gap-2">
+          <div className="relative w-full h-full flex items-center justify-center gap-2 bg-neutral-950">
             <div className="w-10 h-10 bg-yellow-400 rounded-full border-r-4 border-transparent rotate-45 animate-pulse" />
             <div className="w-2 h-2 bg-white rounded-full" />
             <div className="w-2 h-2 bg-white/60 rounded-full" />
             <div className="w-2 h-2 bg-white/30 rounded-full" />
           </div>
         );
-      case 6: // Tunnel rush
+      case 6:
+      case 'tunnel-rush':
         return (
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-neutral-950">
             <div className="absolute w-24 h-24 border-2 border-dashed border-purple-500/40 rounded-full animate-spin" />
             <div className="absolute w-16 h-16 border border-purple-500/30 rounded-full animate-ping" />
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border border-white" />
           </div>
         );
-      case 7: // Chess
+      case 7:
+      case 'chess':
         return (
           <div className="relative w-full h-full flex items-center justify-center bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.05)_0%,transparent_70%)]">
             <div className="border border-white/20 p-1 bg-black/40 rounded flex flex-col gap-0.5">
@@ -2028,9 +2161,10 @@ export default function App() {
             <div className="absolute text-2xl font-semibold transform hover:scale-110 duration-200">♟️</div>
           </div>
         );
-      case 8: // Bubble shooter
+      case 8:
+      case 'bubble-shooter':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="absolute top-3 flex gap-2">
               <div className="w-4 h-4 bg-cyan-400 rounded-full shadow-[0_0_8px_cyan]" />
               <div className="w-4 h-4 bg-red-400 rounded-full shadow-[0_0_8px_red]" />
@@ -2039,9 +2173,10 @@ export default function App() {
             <div className="absolute bottom-2 w-2 h-8 bg-zinc-400 rounded-full origin-bottom rotate-45 animate-pulse" />
           </div>
         );
-      case 9: // Crossy Road
+      case 9:
+      case 'crossy-road':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="absolute inset-x-0 h-4 bg-neutral-800/80 border-y border-neutral-700" />
             <div className="w-8 h-8 bg-white border border-neutral-300 rounded flex flex-col items-center justify-center transform hover:translate-y-[-6px] transition-transform shadow-lg">
               <div className="w-2 h-2 bg-red-500 rounded-full mt-1" />
@@ -2049,9 +2184,10 @@ export default function App() {
             </div>
           </div>
         );
-      case 10: // Solitaire
+      case 10:
+      case 'solitaire':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="w-9 h-14 bg-white border border-neutral-200 rounded-md shadow-md flex flex-col justify-between p-1 text-red-600 transform hover:-translate-y-2 hover:rotate-6 duration-300">
               <span className="text-[9px] font-black leading-none">A</span>
               <span className="text-sm self-center">♥️</span>
@@ -2062,9 +2198,10 @@ export default function App() {
             </div>
           </div>
         );
-      case 11: // Doodle jump
+      case 11:
+      case 'doodle-jump':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="absolute w-8 h-1.5 bg-green-500 rounded bottom-6" />
             <div className="w-8 h-10 bg-lime-400 rounded-t-full border border-green-600 flex flex-col items-center relative animate-bounce shadow">
               <div className="w-4 h-1.5 bg-lime-500 rounded absolute -bottom-1" />
@@ -2076,41 +2213,46 @@ export default function App() {
             </div>
           </div>
         );
-      case 12: // Classroom portal
+      case 12:
+      case 'classroom-portal':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="bg-sky-500/10 p-3 rounded-full border border-sky-400/20">
               <MessageSquare className="text-sky-400 w-10 h-10 animate-pulse" />
             </div>
           </div>
         );
-      case 13: // Youtube stealth
+      case 13:
+      case 'youtube-stealth':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="w-14 h-10 bg-red-600 rounded-lg flex items-center justify-center shadow-lg relative cursor-pointer transform hover:scale-105 duration-200">
               <Play className="fill-white text-white w-5 h-5 ml-0.5" />
             </div>
           </div>
         );
-      case 14: // Stealth proxy frame
+      case 14:
+      case 'stealth-proxy':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="bg-zinc-800 p-3 rounded-lg border-2 border-zinc-700 flex flex-col items-center gap-1 shadow-md">
               <Globe className="text-zinc-300 w-8 h-8 animate-spin" style={{ animationDuration: '8s' }} />
             </div>
           </div>
         );
-      case 15: // Sim Life
+      case 15:
+      case 'sim-life':
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
             <div className="bg-pink-500/10 p-4 rounded-full border border-pink-400/30">
               <Users className="text-pink-400 w-8 h-8 hover:rotate-12 duration-200" />
             </div>
           </div>
         );
-      case 16: // Sandbox Island
+      case 16:
+      case 'sandbox':
         return (
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden bg-neutral-950">
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-950 to-amber-950 opacity-40" />
             <div className="relative w-12 h-12 bg-amber-800 rounded-md border-t-[8px] border-emerald-500 shadow-xl flex items-center justify-center font-mono font-bold text-white/50 text-[10px]">
               3D
@@ -2119,30 +2261,83 @@ export default function App() {
         );
       default:
         return (
-          <div className="relative w-full h-full flex items-center justify-center">
-            <Gamepad2 className="text-neutral-400 w-12 h-12" />
+          <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-900 select-none">
+            {defaultThumbnailSrc && (
+              <img
+                src={defaultThumbnailSrc}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover opacity-25 filter blur-[1px] scale-105 pointer-events-none"
+                draggable="false"
+              />
+            )}
+            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:16px_16px]" />
+            <div className="relative z-10 flex flex-col items-center gap-2 px-4 text-center">
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner">
+                <Gamepad2 className="w-5 h-5 text-neutral-300" />
+              </div>
+              <span className="text-xs font-semibold text-neutral-200 line-clamp-1 max-w-[200px] tracking-wide">
+                {game?.title || 'Game Portal'}
+              </span>
+            </div>
           </div>
         );
     }
   };
 
-  const emulatedTags = Array.from(new Set(
-    games
-      .map((game) => (game.category || '').trim().toLowerCase())
-      .filter((cat) => cat && !['emulated', 'single', 'multiplayer', 'og', 'favorites', 'featured', 'minecraft'].includes(cat))
-  )).sort();
+  const emulatedTags = useMemo(() => {
+    return Array.from(new Set(
+      games
+        .map((game) => (game.category || '').trim().toLowerCase())
+        .filter((cat) => cat && EMULATED_PLATFORMS.includes(cat))
+    )).sort((a, b) => (EMULATED_SYSTEM_NAMES[a] || a).localeCompare(EMULATED_SYSTEM_NAMES[b] || b));
+  }, [games]);
+
+  const emulatedTagCounts = useMemo(() => {
+    const counts = {};
+    for (const game of games) {
+      const c = (game.category || '').trim().toLowerCase();
+      if (EMULATED_PLATFORMS.includes(c)) {
+        counts[c] = (counts[c] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [games]);
+
+  const emulatedMajorTags = useMemo(() => {
+    return emulatedTags.filter(tag => (emulatedTagCounts[tag] || 0) >= 10);
+  }, [emulatedTags, emulatedTagCounts]);
+
+  const emulatedOtherTags = useMemo(() => {
+    return emulatedTags.filter(tag => (emulatedTagCounts[tag] || 0) < 10);
+  }, [emulatedTags, emulatedTagCounts]);
+
+  const totalOtherEmulatedGamesCount = useMemo(() => {
+    return emulatedOtherTags.reduce((sum, tag) => sum + (emulatedTagCounts[tag] || 0), 0);
+  }, [emulatedOtherTags, emulatedTagCounts]);
+
+  const totalEmulatedGamesCount = useMemo(() => {
+    return games.filter(g => {
+      const c = (g.category || '').trim().toLowerCase();
+      return EMULATED_PLATFORMS.includes(c) || c === 'emulated';
+    }).length;
+  }, [games]);
+
+  const isEmulatedActive = filter === 'Emulated' || filter === 'emulated-other' || emulatedTags.includes(filter);
+
+  const [emulatedDropdownOpen, setEmulatedDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (isEmulatedActive) {
+      setEmulatedDropdownOpen(true);
+    }
+  }, [isEmulatedActive]);
 
   const isSinglePlayerCategory = (cat) => {
     if (!cat) return true;
     const c = cat.toLowerCase().trim();
     if (c === 'minecraft' || c === 'emulated') return true;
-    const platformTags = [
-      'snes', 'nes', 'gba', 'nds', 'n64', 'psx', 'arcade', 'flash', 'html5-games', 'pokemon',
-      'atari2600', 'virtualboy', 'wonderswan', 'jaguar', 'c64', 'colecovision', 'dos', 'bootleg',
-      'segamd', 'segasaturn', 'segagg', 'sega', 'genesis', 'md', 'gg'
-    ];
-    if (platformTags.includes(c)) return true;
-    return ['solo', 'single', 'platformer', 'skill', 'science', 'driving', 'horror', 'creative', 'ai'].some(kw => c.includes(kw));
+    if (EMULATED_PLATFORMS.includes(c)) return true;
+    return ['solo', 'single', 'platformer', 'skill', 'science', 'driving', 'horror', 'creative', 'ai', 'general', 'gmfiles'].some(kw => c.includes(kw));
   };
 
   const isMultiplayerCategory = (cat) => {
@@ -2175,9 +2370,12 @@ export default function App() {
       } else if (filter === 'featured') {
         if (!game.featured) return false;
       } else if (filter === 'Emulated') {
-        const matchesEmulated = !!(game.category || '').trim() &&
-          !['emulated', 'single', 'multiplayer', 'og', 'favorites', 'featured', 'minecraft'].includes((game.category || '').toLowerCase().trim());
+        const c = (game.category || '').trim().toLowerCase();
+        const matchesEmulated = EMULATED_PLATFORMS.includes(c) || c === 'emulated';
         if (!matchesEmulated) return false;
+      } else if (filter === 'emulated-other') {
+        const c = (game.category || '').trim().toLowerCase();
+        if (!emulatedOtherTags.includes(c)) return false;
       } else if (filter !== 'all') {
         // Direct category filter matching
         if ((game.category || '').toLowerCase().trim() !== filter.toLowerCase().trim()) return false;
@@ -2864,7 +3062,7 @@ export default function App() {
                   onToggleMode={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
                   onClose={() => setShowGoGuardianNotice(false)}
                   decoyType={decoyType}
-                  positionClass="absolute top-full right-0 mt-3 w-80 sm:w-96"
+                  positionClass="absolute top-full right-0 mt-3 w-48 sm:w-56"
                 />
               )}
             </AnimatePresence>
@@ -3123,7 +3321,7 @@ export default function App() {
       <CursorSpotlight active={viewMode === 'games' && animationsEnabled} />
       {/* HEADER */}
       <AnimatePresence initial={false}>
-        {(!gameHeaderHidden || !selectedGame) && (
+        {((!gameHeaderHidden || !selectedGame) || ['chat', 'lobbychat', 'movies', 'youtube', 'info', 'download'].includes(filter)) && (
           <motion.header
             key="main-header"
             initial={{ height: 0, opacity: 0, overflow: "hidden" }}
@@ -3991,23 +4189,23 @@ export default function App() {
                       </button>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <span className="text-xs font-bold text-white">Auto Lock (1 Hour)</span>
+                      <span className="text-xs font-bold text-white">Sign Out On Close</span>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-neutral-400 leading-normal max-w-[150px]">
-                          Lock workspace after 1 hour of inactivity.
+                          Automatically lock workspace when tab or window is closed.
                         </span>
                         <div
                           onClick={() => {
-                            const newVal = !autoLockOnIdle;
-                            setAutoLockOnIdle(newVal);
-                            safeStorage.setItem('unblocked-auto-lock-on-idle', String(newVal));
+                            const newVal = !autoLockOnClose;
+                            setAutoLockOnClose(newVal);
+                            safeStorage.setItem('unblocked-auto-lock-on-close', String(newVal));
                           }}
                           className="relative w-[50px] h-6 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 transition-all duration-300 shrink-0"
-                          title="Toggle Auto Lock (1 Hour)"
+                          title="Toggle Sign Out On Close"
                         >
                           <div 
                             className={`w-5 h-5 rounded-full shadow-md transition-all duration-300 ease-out transform ${
-                              autoLockOnIdle ? 'translate-x-6 bg-[var(--accent-color)]' : 'translate-x-0 bg-neutral-500'
+                              autoLockOnClose ? 'translate-x-6 bg-[var(--accent-color)]' : 'translate-x-0 bg-neutral-500'
                             }`}
                           />
                         </div>
@@ -4162,11 +4360,11 @@ export default function App() {
                     type="button"
                     onClick={() => setShowGoGuardianNotice(prev => !prev)}
                     className={`p-0.5 rounded-full text-amber-500 hover:scale-120 transition-all cursor-pointer ${
-                      showGoGuardianNotice ? 'opacity-100 ring-2 ring-amber-500/40 bg-amber-500/10' : 'opacity-80 hover:opacity-100 animate-pulse'
+                      showGoGuardianNotice ? 'opacity-100 ring-2 ring-amber-500/40 bg-amber-500/10' : 'opacity-80 hover:opacity-100'
                     }`}
                     title="GoGuardian Decoy Shield Notice (Click to open/close)"
                   >
-                    <Shield className="w-3.5 h-3.5 fill-amber-500/20" />
+                    <Shield className="w-3.5 h-3.5 fill-amber-500/20" style={{ color: '#000000' }} />
                   </button>
                 )}
 
@@ -4191,7 +4389,7 @@ export default function App() {
                       onToggleMode={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
                       onClose={() => setShowGoGuardianNotice(false)}
                       decoyType={decoyType}
-                      positionClass="absolute top-full right-0 mt-3 w-80 sm:w-96"
+                      positionClass="absolute top-full right-0 mt-3 w-48 sm:w-56"
                     />
                   )}
                 </AnimatePresence>
@@ -4352,23 +4550,23 @@ export default function App() {
                       </button>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <span className="text-xs font-bold text-white">Auto Lock (1 Hour)</span>
+                      <span className="text-xs font-bold text-white">Sign Out On Close</span>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-neutral-400 leading-normal max-w-[150px]">
-                          Lock workspace after 1 hour of inactivity.
+                          Automatically lock workspace when tab or window is closed.
                         </span>
                         <div
                           onClick={() => {
-                            const newVal = !autoLockOnIdle;
-                            setAutoLockOnIdle(newVal);
-                            safeStorage.setItem('unblocked-auto-lock-on-idle', String(newVal));
+                            const newVal = !autoLockOnClose;
+                            setAutoLockOnClose(newVal);
+                            safeStorage.setItem('unblocked-auto-lock-on-close', String(newVal));
                           }}
                           className="relative w-[50px] h-6 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 transition-all duration-300 shrink-0"
-                          title="Toggle Auto Lock (1 Hour)"
+                          title="Toggle Sign Out On Close"
                         >
                           <div 
                             className={`w-5 h-5 rounded-full shadow-md transition-all duration-300 ease-out transform ${
-                              autoLockOnIdle ? 'translate-x-6 bg-[var(--accent-color)]' : 'translate-x-0 bg-neutral-500'
+                              autoLockOnClose ? 'translate-x-6 bg-[var(--accent-color)]' : 'translate-x-0 bg-neutral-500'
                             }`}
                           />
                         </div>
@@ -4522,11 +4720,11 @@ export default function App() {
                   type="button"
                   onClick={() => setShowGoGuardianNotice(prev => !prev)}
                   className={`p-0.5 rounded-full text-amber-500 hover:scale-115 transition-all cursor-pointer ${
-                    showGoGuardianNotice ? 'opacity-100 ring-2 ring-amber-500/40 bg-amber-500/10' : 'opacity-80 hover:opacity-100 animate-pulse'
+                    showGoGuardianNotice ? 'opacity-100 ring-2 ring-amber-500/40 bg-amber-500/10' : 'opacity-80 hover:opacity-100'
                   }`}
                   title="GoGuardian Decoy Shield Notice (Click to open/close)"
                 >
-                  <Shield className="w-3 h-3 fill-amber-500/20" />
+                  <Shield className="w-3 h-3 fill-amber-500/20" style={{ color: '#000000' }} />
                 </button>
               )}
 
@@ -4551,7 +4749,7 @@ export default function App() {
                     onToggleMode={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
                     onClose={() => setShowGoGuardianNotice(false)}
                     decoyType={decoyType}
-                    positionClass="absolute top-full right-0 mt-3 w-80 sm:w-96"
+                    positionClass="absolute top-full right-0 mt-3 w-48 sm:w-56"
                   />
                 )}
               </AnimatePresence>
@@ -4578,11 +4776,11 @@ export default function App() {
             
             <div className="flex items-center justify-between px-2 py-1 min-h-[36px]">
               {sidebarOpen ? (
-                <span className="text-[10px] font-mono tracking-wider opacity-50 uppercase whitespace-nowrap" style={{ borderColor: '#ffffff', color: '#ffffff', fontFamily: 'Verdana', fontWeight: 'normal' }}>
+                <span className="text-[10px] font-mono tracking-wider text-[var(--text-muted)] uppercase whitespace-nowrap">
                   Browse Portals
                 </span>
               ) : (
-                <span className="hidden md:inline text-[9px] font-mono tracking-wider opacity-50 uppercase text-center mx-auto font-bold text-[var(--accent-color)]" style={{ borderColor: '#ffffff', color: '#ffffff', fontFamily: 'Verdana', fontWeight: 'normal' }}>
+                <span className="hidden md:inline text-[9px] font-mono tracking-wider uppercase text-center mx-auto font-bold text-[var(--accent-color)]">
                   NAV
                 </span>
               )}
@@ -4599,7 +4797,7 @@ export default function App() {
             <motion.button
               whileHover={{ x: 6 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => setFilter('info')}
+              onClick={() => { setFilter('info'); setSelectedGame(null); setGameHeaderHidden(false); }}
               className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
                 filter === 'info' 
                   ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-lg shadow-[var(--accent-color)]/20' 
@@ -4637,16 +4835,185 @@ export default function App() {
           <motion.button
             whileHover={{ x: 6 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => { setFilter('favorites'); setSelectedGame(null); }}
+            onClick={() => { setFilter('single'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'favorites' && !selectedGame
+              filter === 'single' && !selectedGame
                 ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
                 : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
             }`}
           >
-            <Heart className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Favorites</span>
+            <Gamepad2 className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Single Player</span>
           </motion.button>
+          
+          <motion.button
+            whileHover={{ x: 6 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => { setFilter('minecraft'); setSelectedGame(null); }}
+            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+              filter === 'minecraft' && !selectedGame
+                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+            }`}
+          >
+            <Box className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Minecraft</span>
+          </motion.button>
+          
+          <div>
+            <motion.button
+              whileHover={{ x: 6 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                if (!isEmulatedActive) {
+                  setFilter('Emulated');
+                  setSelectedGame(null);
+                  setEmulatedDropdownOpen(true);
+                } else {
+                  setEmulatedDropdownOpen(prev => !prev);
+                }
+              }}
+              className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center justify-between gap-2 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                isEmulatedActive && !selectedGame
+                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Cpu className="w-4.5 h-4.5 shrink-0" />
+                <div className={`flex items-center gap-1.5 min-w-0 transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>
+                  <span className="truncate">Emulated</span>
+                  {(emulatedTags.includes(filter) || filter === 'emulated-other') && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded font-mono uppercase bg-black/20 dark:bg-white/20 shrink-0">
+                      {filter === 'emulated-other' ? 'other' : filter}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {sidebarOpen && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEmulatedDropdownOpen(prev => !prev);
+                  }}
+                  className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors shrink-0"
+                  title={emulatedDropdownOpen ? "Collapse Emulated Systems" : "Expand Emulated Systems"}
+                >
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${emulatedDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+              )}
+            </motion.button>
+
+            {/* CUSTOM DROPDOWN - DROPS DOWN BENEATH EMULATED (ALL ITEMS VISIBLE, NO SCROLLBAR / NO SCROLL WHEEL) */}
+            <AnimatePresence>
+              {sidebarOpen && emulatedDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, y: -4 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -4 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="overflow-hidden mt-1 px-0.5"
+                >
+                  <div className="bg-[var(--bg-secondary)] border border-[var(--card-border)] rounded-xl p-1.5 shadow-lg flex flex-col gap-1">
+                    {/* All Emulated option */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilter('Emulated');
+                        setSelectedGame(null);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                        filter === 'Emulated' && !selectedGame
+                          ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
+                          : 'text-[var(--text-primary)] hover:bg-[var(--card-bg)] opacity-90 hover:opacity-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {filter === 'Emulated' && !selectedGame && <Check className="w-3.5 h-3.5 shrink-0" />}
+                        <span>All Emulated</span>
+                      </div>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                        filter === 'Emulated' && !selectedGame
+                          ? 'bg-black/20 text-[var(--bg-color)]'
+                          : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
+                      }`}>
+                        {totalEmulatedGamesCount}
+                      </span>
+                    </button>
+
+                    <div className="h-px bg-[var(--card-border)] my-0.5" />
+
+                    {/* Major systems (>= 10 games) and combined Other (< 10 games) - ALL VISIBLE, NO SCROLL WHEEL */}
+                    <div className="space-y-0.5">
+                      {emulatedMajorTags.map((tag) => {
+                        const isSelected = filter === tag && !selectedGame;
+                        const label = EMULATED_SYSTEM_NAMES[tag] || tag.toUpperCase();
+                        const count = emulatedTagCounts[tag] || 0;
+
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              setFilter(tag);
+                              setSelectedGame(null);
+                            }}
+                            className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold shadow-sm'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
+                            }`}
+                            title={`Filter by ${label}`}
+                          >
+                            <div className="flex items-center gap-1.5 truncate mr-1">
+                              {isSelected && <Check className="w-3 h-3 shrink-0" />}
+                              <span className="truncate">{label}</span>
+                            </div>
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                              isSelected
+                                ? 'bg-black/20 text-[var(--bg-color)]'
+                                : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
+                            }`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+
+                      {/* Combined Other entry (< 10 games) */}
+                      {emulatedOtherTags.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilter('emulated-other');
+                            setSelectedGame(null);
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                            filter === 'emulated-other' && !selectedGame
+                              ? 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold shadow-sm'
+                              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
+                          }`}
+                          title="Other systems with less than 10 games (Lynx, Saturn, WonderSwan, ColecoVision, Neo Geo Pocket, etc.)"
+                        >
+                          <div className="flex items-center gap-1.5 truncate mr-1">
+                            {filter === 'emulated-other' && !selectedGame && <Check className="w-3 h-3 shrink-0" />}
+                            <span className="truncate font-semibold">Other</span>
+                          </div>
+                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                            filter === 'emulated-other' && !selectedGame
+                              ? 'bg-black/20 text-[var(--bg-color)]'
+                              : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
+                          }`}>
+                            {totalOtherEmulatedGamesCount}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           <motion.button
             whileHover={{ x: 6 }}
@@ -4679,20 +5046,6 @@ export default function App() {
           <motion.button
             whileHover={{ x: 6 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => { setFilter('single'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'single' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Gamepad2 className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Single Player</span>
-          </motion.button>
-
-          <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
             onClick={() => { setFilter('multiplayer'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'multiplayer' && !selectedGame
@@ -4702,56 +5055,6 @@ export default function App() {
           >
             <Users className="w-4.5 h-4.5 shrink-0" />
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
-          </motion.button>
-          
-          <div>
-            <motion.button
-              whileHover={{ x: 6 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => { setFilter('Emulated'); setSelectedGame(null); }}
-              className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-                filter === 'Emulated' && !selectedGame
-                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-              }`}
-            >
-              <Cpu className="w-4.5 h-4.5 shrink-0" />
-              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Emulated</span>
-            </motion.button>
-
-            {sidebarOpen && (
-              <div className="ml-8 mt-1.5 space-y-1.5 pb-1">
-                {emulatedTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => { setFilter(tag); setSelectedGame(null); }}
-                    className={`w-full text-left px-2 py-1 rounded-md border text-[10px] font-mono uppercase tracking-wide transition-all duration-200 cursor-pointer ${
-                      filter === tag && !selectedGame
-                        ? 'bg-[var(--accent-color)]/10 border-[var(--accent-color)]/60 text-[var(--accent-color)] font-bold'
-                        : 'border-transparent text-[var(--text-muted)] hover:border-[var(--card-border)] hover:text-[var(--text-primary)] bg-transparent'
-                    }`}
-                    title={`Filter by ${tag}`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => { setFilter('minecraft'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'minecraft' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Box className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Minecraft</span>
           </motion.button>
 
           <div className="flex-1" />
@@ -4889,7 +5192,10 @@ export default function App() {
                           {filter === 'featured' && 'FEATURED SHOWCASES'}
                           {filter === 'og' && 'OG CLASSICS & ORIGINALS'}
                           {filter === 'single' && 'SINGLEPLAYER PORTALS'}
+                          {filter === 'multiplayer' && 'MULTIPLAYER PORTALS'}
                           {filter === 'Emulated' && 'EMULATED ARCHIVES'}
+                          {filter === 'emulated-other' && 'EMULATED: OTHER SYSTEMS (<10 GAMES)'}
+                          {emulatedTags.includes(filter) && `EMULATED: ${(EMULATED_SYSTEM_NAMES[filter] || filter).toUpperCase()}`}
                           {filter === 'minecraft' && 'MINECRAFT PLATFORM'}
                         </>
                       )}
@@ -4986,7 +5292,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {paginatedGames.map(game => {
+                  {paginatedGames.map((game, index) => {
                     const isFav = favorites.includes(game.id);
                     return (
                       <motion.div 
@@ -5005,35 +5311,16 @@ export default function App() {
                             ? 'border-amber-500/20 hover:border-amber-500/50 shadow-md hover:shadow-amber-500/5' 
                             : ''
                         }`}
-                        style={{ contentVisibility: 'auto' }}
                       >
                         {/* Artwork container */}
                         <div className="relative aspect-video w-full bg-neutral-950 flex-shrink-0 flex items-center justify-center border-b border-[var(--card-border)] overflow-hidden">
-                          {game.thumbnail && !failedThumbnails[game.id] ? (
-                            <img 
-                              src={getOptimizedThumbnail(game.thumbnail)} 
-                              alt={game.title} 
-                              width="640"
-                              height="360"
-                              loading="lazy"
-                              decoding="async"
-                              referrerPolicy="no-referrer"
-                              draggable="false"
-                              onError={() => setFailedThumbnails(prev => ({ ...prev, [game.id]: true }))}
-                              className="w-full h-full object-cover transition-transform duration-500 hover:scale-110 select-none pointer-events-none" 
-                            />
-                          ) : (
-                            <img
-                              src={defaultThumbnail}
-                              alt={game.title}
-                              width="640"
-                              height="360"
-                              loading="lazy"
-                              decoding="async"
-                              draggable="false"
-                              className="w-full h-full object-cover select-none pointer-events-none"
-                            />
-                          )}
+                          <GameCardThumbnail
+                            game={game}
+                            index={index}
+                            getOptimizedThumbnail={getOptimizedThumbnail}
+                            renderGameArt={renderGameArt}
+                            defaultThumbnail={defaultThumbnail}
+                          />
 
                           {game.featured && (
                             <span className="absolute top-2.5 left-2.5 text-[12px] font-black bg-black/85 text-amber-400 border border-amber-500/30 w-6 h-6 rounded-md inline-flex items-center justify-center z-10 shadow-sm font-mono">
@@ -5044,14 +5331,6 @@ export default function App() {
                           <span className="absolute top-2.5 right-2.5 text-[8px] font-bold uppercase tracking-widest bg-black/75 backdrop-blur-sm text-white border border-white/10 px-2.5 py-0.5 rounded-full inline-block z-10">
                             {game.category}
                           </span>
-
-                          <button
-                            onClick={(e) => toggleFavorite(e, game.id)}
-                            className={`absolute top-2.5 ${game.featured ? 'left-[38px]' : 'left-2.5'} p-1.5 rounded-full bg-black/40 hover:bg-black/80 text-white/90 border border-white/10 hover:text-rose-500 hover:scale-110 active:scale-95 transition-all duration-200 z-10`}
-                            title={isFav ? "Remove Bookmark" : "Add Bookmark"}
-                          >
-                            <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
-                          </button>
 
                           {game.isAiGenerated && (
                             <span className="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-[8px] font-extrabold tracking-wider bg-black/85 backdrop-blur-sm text-white border border-white/20 px-2 py-0.5 rounded-full inline-flex z-10 shadow-sm font-mono uppercase">

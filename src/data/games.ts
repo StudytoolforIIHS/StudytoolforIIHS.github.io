@@ -185,7 +185,7 @@ const legacyGameData: Game[] = [
     title: 'Ace Attorney: Investigations - Miles Edgeworth',
     description: 'Make sure you open in a seperate tab to play this game.',
     url: 'claceattorneymilesedgeworth.html',
-    thumbnail: 'public/thumbnails/claceattorneymilesedgeworth.webp',
+    thumbnail: 'claceattorneymilesedgeworth.webp',
     category: 'Emulated',
     featured: true,
     isOg: true
