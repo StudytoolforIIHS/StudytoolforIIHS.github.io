@@ -2148,6 +2148,12 @@ export default function App() {
 
   // Filter games based on category sidebar, matching search query
   const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
+  const sidebarTagCategories = [...new Set(
+    (games || []).map(game => game.category).filter(Boolean)
+  )]
+    .filter((category) => !['all', 'featured', 'favorites', 'og', 'single', 'multiplayer', 'minecraft', 'emulated', 'solo'].includes(String(category).toLowerCase()))
+    .sort((a, b) => a.localeCompare(b));
+
   const filteredGames = games.filter(game => {
     // When a search query is entered, search across every game in the entire library
     if (normalizedSearchQuery !== '') {
@@ -4697,20 +4703,6 @@ export default function App() {
           <motion.button
             whileHover={{ x: 6 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => { setFilter('Emulated'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'Emulated' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Cpu className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Emulated</span>
-          </motion.button>
-
-          <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
             onClick={() => { setFilter('minecraft'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'minecraft' && !selectedGame
@@ -4721,6 +4713,31 @@ export default function App() {
             <Box className="w-4.5 h-4.5 shrink-0" />
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Minecraft</span>
           </motion.button>
+
+          {sidebarOpen && (
+            <div className="pt-2 mt-2 border-t border-[var(--card-border)]/60">
+              <div className="mb-2 px-1 text-[9px] font-mono uppercase tracking-[0.18em] text-[var(--text-muted)] opacity-70">
+                Platforms
+              </div>
+              <div className="flex flex-wrap gap-1.5 px-1">
+                {sidebarTagCategories.slice(0, 16).map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => { setFilter(tag); setSelectedGame(null); }}
+                    className={`rounded-md border px-2 py-1 text-[10px] font-mono font-bold transition-all duration-200 cursor-pointer ${
+                      filter === tag && !selectedGame
+                        ? 'bg-[var(--accent-color)] text-[var(--bg-color)] border-[var(--accent-color)] shadow-[0_0_8px_var(--accent-shadow)]'
+                        : 'bg-[var(--card-bg)] text-[var(--text-primary)] border-[var(--card-border)] hover:border-[var(--accent-color)]/60 hover:text-[var(--accent-color)]'
+                    }`}
+                    title={`Browse ${tag} games`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex-1" />
 
