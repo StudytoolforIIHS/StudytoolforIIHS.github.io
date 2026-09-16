@@ -2126,6 +2126,12 @@ export default function App() {
     }
   };
 
+  const emulatedTags = Array.from(new Set(
+    games
+      .map((game) => (game.category || '').trim().toLowerCase())
+      .filter((cat) => cat && !['emulated', 'single', 'multiplayer', 'og', 'favorites', 'featured', 'minecraft'].includes(cat))
+  )).sort();
+
   const isSinglePlayerCategory = (cat) => {
     if (!cat) return true;
     const c = cat.toLowerCase().trim();
@@ -2168,6 +2174,10 @@ export default function App() {
         if (!favorites.includes(game.id)) return false;
       } else if (filter === 'featured') {
         if (!game.featured) return false;
+      } else if (filter === 'Emulated') {
+        const matchesEmulated = !!(game.category || '').trim() &&
+          !['emulated', 'single', 'multiplayer', 'og', 'favorites', 'featured', 'minecraft'].includes((game.category || '').toLowerCase().trim());
+        if (!matchesEmulated) return false;
       } else if (filter !== 'all') {
         // Direct category filter matching
         if ((game.category || '').toLowerCase().trim() !== filter.toLowerCase().trim()) return false;
@@ -4694,19 +4704,41 @@ export default function App() {
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
           </motion.button>
           
-          <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => { setFilter('Emulated'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'Emulated' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Cpu className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Emulated</span>
-          </motion.button>
+          <div>
+            <motion.button
+              whileHover={{ x: 6 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setFilter('Emulated'); setSelectedGame(null); }}
+              className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                filter === 'Emulated' && !selectedGame
+                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+              }`}
+            >
+              <Cpu className="w-4.5 h-4.5 shrink-0" />
+              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Emulated</span>
+            </motion.button>
+
+            {sidebarOpen && (
+              <div className="ml-8 mt-1.5 space-y-1.5 pb-1">
+                {emulatedTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => { setFilter(tag); setSelectedGame(null); }}
+                    className={`w-full text-left px-2 py-1 rounded-md border text-[10px] font-mono uppercase tracking-wide transition-all duration-200 cursor-pointer ${
+                      filter === tag && !selectedGame
+                        ? 'bg-[var(--accent-color)]/10 border-[var(--accent-color)]/60 text-[var(--accent-color)] font-bold'
+                        : 'border-transparent text-[var(--text-muted)] hover:border-[var(--card-border)] hover:text-[var(--text-primary)] bg-transparent'
+                    }`}
+                    title={`Filter by ${tag}`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <motion.button
             whileHover={{ x: 6 }}
