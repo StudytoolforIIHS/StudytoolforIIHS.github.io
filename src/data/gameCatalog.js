@@ -11,15 +11,18 @@ const inferPlatformTag = (game) => {
 
   const rawUrl = game?.url || '';
   const mappedUrl = GMFILES_PATH_LOOKUP[rawUrl] || rawUrl;
-  const segments = String(mappedUrl || '').split(/[\\/]+/).filter(Boolean);
+  const normalizedUrl = String(mappedUrl || '').replace(/^\/+/, '');
+  const segments = normalizedUrl.split(/[\\/]+/).filter(Boolean);
+  const isPublicGamePath = segments.some(segment => /^(gmfiles|public)$/i.test(segment)) || normalizedUrl.startsWith('gmfiles/');
 
-  if (segments.length > 1) {
+  if (isPublicGamePath && segments.length > 1) {
     const folderName = segments[segments.length - 2];
-    if (folderName) return folderName.toLowerCase();
+    if (folderName && !folderName.includes('.')) {
+      return folderName.toLowerCase();
+    }
   }
 
-  const fileStem = String(rawUrl || '').split('/').pop().replace(/\.[^/.]+$/, '');
-  return fileStem ? fileStem.toLowerCase() : rawCategory || 'general';
+  return rawCategory || 'general';
 };
 
 export const games = [...gamesData].map((game, index) => {
