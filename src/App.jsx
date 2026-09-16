@@ -2130,6 +2130,12 @@ export default function App() {
     if (!cat) return true;
     const c = cat.toLowerCase().trim();
     if (c === 'minecraft' || c === 'emulated') return true;
+    const platformTags = [
+      'snes', 'nes', 'gba', 'nds', 'n64', 'psx', 'arcade', 'flash', 'html5-games', 'pokemon',
+      'atari2600', 'virtualboy', 'wonderswan', 'jaguar', 'c64', 'colecovision', 'dos', 'bootleg',
+      'segamd', 'segasaturn', 'segagg', 'sega', 'genesis', 'md', 'gg'
+    ];
+    if (platformTags.includes(c)) return true;
     return ['solo', 'single', 'platformer', 'skill', 'science', 'driving', 'horror', 'creative', 'ai'].some(kw => c.includes(kw));
   };
 
