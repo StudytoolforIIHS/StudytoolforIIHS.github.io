@@ -2296,6 +2296,65 @@ export default function App() {
     return ['social', 'sport', 'multiplayer', 'fast', 'party', 'puzzle', 'shooter'].some(kw => c.includes(kw)) || c.includes('or');
   };
 
+  const rankedGameSections = useMemo(() => {
+    const sortRankedGames = (list) => [...list].sort((a, b) => {
+      const aFeatured = a.featured === true || a.featured === 'true';
+      const bFeatured = b.featured === true || b.featured === 'true';
+      if (aFeatured !== bFeatured) return Number(bFeatured) - Number(aFeatured);
+
+      const aOriginal = a.isOg === true || a.isOg === 'true';
+      const bOriginal = b.isOg === true || b.isOg === 'true';
+      if (aOriginal !== bOriginal) return Number(bOriginal) - Number(aOriginal);
+
+      return String(a.title || '').localeCompare(String(b.title || ''));
+    });
+
+    return [
+      {
+        key: 'all',
+        label: 'Top Picks',
+        games: sortRankedGames(games).slice(0, 8)
+      },
+      {
+        key: 'featured',
+        label: 'Featured',
+        games: sortRankedGames(games.filter((game) => game.featured === true || game.featured === 'true')).slice(0, 6)
+      },
+      {
+        key: 'originals',
+        label: 'Originals',
+        games: sortRankedGames(games.filter((game) => game.isOg)).slice(0, 6)
+      },
+      {
+        key: 'single',
+        label: 'Single Player',
+        games: sortRankedGames(games.filter((game) => isSinglePlayerCategory(game.category))).slice(0, 6)
+      },
+      {
+        key: 'multiplayer',
+        label: 'Multiplayer',
+        games: sortRankedGames(games.filter((game) => isMultiplayerCategory(game.category))).slice(0, 6)
+      }
+    ].filter((section) => section.games.length > 0);
+  }, [games, isSinglePlayerCategory, isMultiplayerCategory]);
+
+  const [randomRankingPool, setRandomRankingPool] = useState('all');
+  const activeRandomRankingPool = useMemo(() => {
+    return rankedGameSections.find((section) => section.key === randomRankingPool) || rankedGameSections[0];
+  }, [randomRankingPool, rankedGameSections]);
+
+  const pickRandomRankedGame = useCallback(() => {
+    const pool = activeRandomRankingPool?.games || [];
+    if (!pool.length) return;
+
+    const randomGame = pool[Math.floor(Math.random() * pool.length)];
+    if (!randomGame) return;
+
+    setSelectedGame(randomGame);
+    setFilter('all');
+    setCurrentGamePage(1);
+  }, [activeRandomRankingPool]);
+
   // Filter games based on category sidebar, matching search query
   const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
   const filteredGames = games.filter(game => {
@@ -5013,6 +5072,98 @@ export default function App() {
             <Users className="w-4.5 h-4.5 shrink-0" />
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
           </motion.button>
+
+          <div className="border-t border-[var(--card-border)] mt-2 pt-3">
+            <div className="flex items-center justify-between gap-2 pb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Dices className="w-3.5 h-3.5 text-[var(--accent-color)] shrink-0" />
+                {sidebarOpen && (
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap">
+                    Random Picks
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {sidebarOpen ? (
+              <>
+                <label className="block mb-2">
+                  <span className="sr-only">Choose ranked section</span>
+                  <select
+                    value={randomRankingPool}
+                    onChange={(event) => setRandomRankingPool(event.target.value)}
+                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wide text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
+                  >
+                    {rankedGameSections.map((section) => (
+                      <option key={section.key} value={section.key}>
+                        {section.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={pickRandomRankedGame}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-color)] px-2.5 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--bg-color)] shadow-[0_6px_18px_var(--accent-shadow)] transition-transform hover:scale-[1.01] cursor-pointer"
+                >
+                  <Dices className="w-3.5 h-3.5" />
+                  Lucky Pick
+                </button>
+
+                <div className="mt-3 space-y-2">
+                  {rankedGameSections.map((section) => (
+                    <div
+                      key={section.key}
+                      className="rounded-xl border border-[var(--card-border)] bg-[var(--bg-primary)]/80 overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between px-2 py-1.5 border-b border-[var(--card-border)] bg-black/5 dark:bg-white/5">
+                        <span className="text-[9px] font-mono uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                          {section.label}
+                        </span>
+                        <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]">
+                          {section.games.length}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 p-1.5">
+                        {section.games.slice(0, 5).map((game, index) => (
+                          <button
+                            key={`${section.key}-${game.id}`}
+                            type="button"
+                            onClick={() => {
+                              setSelectedGame(game);
+                              setFilter('all');
+                              setCurrentGamePage(1);
+                            }}
+                            className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-[var(--card-bg)] text-[var(--text-primary)]"
+                            title={game.title}
+                          >
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--card-bg)] border border-[var(--card-border)] text-[8px] font-bold text-[var(--text-muted)]">
+                              {index + 1}
+                            </span>
+                            <span className="truncate text-[10px] font-medium leading-tight">
+                              {game.title}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={pickRandomRankedGame}
+                className="mt-2 flex w-full items-center justify-center rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] p-2 text-[var(--accent-color)] transition-colors hover:bg-[var(--card-bg)] cursor-pointer"
+                title="Pick a random ranked game"
+                aria-label="Pick a random ranked game"
+              >
+                <Dices className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
           <div className="flex-1" />
 
