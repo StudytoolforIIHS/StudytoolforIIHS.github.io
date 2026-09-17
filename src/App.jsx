@@ -2398,6 +2398,11 @@ export default function App() {
     return rankedGameSections.find((section) => section.key === randomRankingPool) || rankedGameSections[0];
   }, [randomRankingPool, rankedGameSections]);
 
+  const isEmulatedGame = useCallback((game) => {
+    const category = String(game?.category || '').trim().toLowerCase();
+    return category === 'emulated' || EMULATED_PLATFORMS.includes(category);
+  }, []);
+
   const toggleExcludedTier = useCallback((tier) => {
     setExcludedRandomTiers((prev) => {
       if (prev.includes(tier)) {
@@ -2411,14 +2416,18 @@ export default function App() {
     const sectionPool = activeRandomRankingPool?.games || [];
     const filteredPool = sectionPool.filter((game) => {
       const tier = getGameTier(game);
-      return !tier || !excludedRandomTiers.includes(tier);
+      const excludedByTier = !!tier && excludedRandomTiers.includes(tier);
+      const excludedByEmulated = excludedRandomTiers.includes('EMULATED') && isEmulatedGame(game);
+      return !excludedByTier && !excludedByEmulated;
     });
 
     let pool = filteredPool;
     if (!pool.length && !sectionPool.length) {
       pool = games.filter((game) => {
         const tier = getGameTier(game);
-        return !tier || !excludedRandomTiers.includes(tier);
+        const excludedByTier = !!tier && excludedRandomTiers.includes(tier);
+        const excludedByEmulated = excludedRandomTiers.includes('EMULATED') && isEmulatedGame(game);
+        return !excludedByTier && !excludedByEmulated;
       });
     }
 
@@ -2431,7 +2440,7 @@ export default function App() {
     setFilter('all');
     setCurrentGamePage(1);
     setRandomPickerOpen(false);
-  }, [activeRandomRankingPool, excludedRandomTiers, games, getGameTier]);
+  }, [activeRandomRankingPool, excludedRandomTiers, games, getGameTier, isEmulatedGame]);
 
   // Filter games based on category sidebar, matching search query
   const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
@@ -5232,6 +5241,17 @@ export default function App() {
                           </button>
                         );
                       })}
+                      <button
+                        type="button"
+                        onClick={() => toggleExcludedTier('EMULATED')}
+                        className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-wide transition-all cursor-pointer ${
+                          excludedRandomTiers.includes('EMULATED')
+                            ? 'border-red-500/60 bg-red-500/10 text-red-200'
+                            : 'border-[var(--card-border)] bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        Emulated
+                      </button>
                     </div>
                   </div>
 
