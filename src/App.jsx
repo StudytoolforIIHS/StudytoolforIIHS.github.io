@@ -2345,7 +2345,16 @@ export default function App() {
   const [randomPickerOpen, setRandomPickerOpen] = useState(false);
   const [excludedRandomTiers, setExcludedRandomTiers] = useState([]);
 
-  const normalizeTierTitle = (title) => String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const normalizeTierTitle = (title) => {
+    return String(title || '')
+      .toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[’']/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\b(?:the|and|of|a|an|vs|v)\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
 
   const tierLookupMap = useMemo(() => {
     const lookup = new Map();
@@ -2364,8 +2373,12 @@ export default function App() {
     const explicitTier = String(game?.rankTier || '').trim().toUpperCase();
     if (gameTierOrder.includes(explicitTier)) return explicitTier;
 
-    const mappedTier = tierLookupMap.get(normalizeTierTitle(game?.title));
-    if (mappedTier && gameTierOrder.includes(mappedTier)) return mappedTier;
+    const candidateTitles = [game?.title, game?.name, game?.displayName, game?.searchText].filter(Boolean);
+
+    for (const candidateTitle of candidateTitles) {
+      const mappedTier = tierLookupMap.get(normalizeTierTitle(candidateTitle));
+      if (mappedTier && gameTierOrder.includes(mappedTier)) return mappedTier;
+    }
 
     return null;
   }, [gameTierOrder, tierLookupMap]);
@@ -2401,10 +2414,13 @@ export default function App() {
       return !tier || !excludedRandomTiers.includes(tier);
     });
 
-    const pool = filteredPool.length > 0 ? filteredPool : (sectionPool.length ? sectionPool : games.filter((game) => {
-      const tier = getGameTier(game);
-      return !tier || !excludedRandomTiers.includes(tier);
-    }));
+    let pool = filteredPool;
+    if (!pool.length && !sectionPool.length) {
+      pool = games.filter((game) => {
+        const tier = getGameTier(game);
+        return !tier || !excludedRandomTiers.includes(tier);
+      });
+    }
 
     if (!pool.length) return;
 
