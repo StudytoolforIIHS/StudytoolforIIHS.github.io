@@ -4,6 +4,7 @@ import { getApps, initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { collection, getFirestore, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { PUBLIC_GAMES_BASE_URL } from './data/gameSource';
+import { gameRankings } from './data/gameRankings';
 import defaultThumbnail from './assets/images/defaultthumbnail.png';
 const GAMES_PER_PAGE = 36;
 const gameHtmlCache = new Map();
@@ -2338,13 +2339,73 @@ export default function App() {
     ].filter((section) => section.games.length > 0);
   }, [games, isSinglePlayerCategory, isMultiplayerCategory]);
 
+  const gameTierOrder = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const [selectedTier, setSelectedTier] = useState('A');
   const [randomRankingPool, setRandomRankingPool] = useState('all');
+  const [randomPickerOpen, setRandomPickerOpen] = useState(false);
+  const [excludedRandomTiers, setExcludedRandomTiers] = useState([]);
+
+  const normalizeTierTitle = (title) => String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+  const tierLookupMap = useMemo(() => {
+    const lookup = new Map();
+
+    Object.entries(gameRankings).forEach(([tier, titles]) => {
+      titles.forEach((title) => {
+        const normalized = normalizeTierTitle(title);
+        if (normalized) lookup.set(normalized, tier);
+      });
+    });
+
+    return lookup;
+  }, []);
+
+  const getGameTier = useCallback((game) => {
+    const explicitTier = String(game?.rankTier || '').trim().toUpperCase();
+    if (gameTierOrder.includes(explicitTier)) return explicitTier;
+
+    const mappedTier = tierLookupMap.get(normalizeTierTitle(game?.title));
+    if (mappedTier && gameTierOrder.includes(mappedTier)) return mappedTier;
+
+    return null;
+  }, [gameTierOrder, tierLookupMap]);
+
+  const tierRankedGames = useMemo(() => {
+    return gameTierOrder.map((tier) => {
+      const tierGames = games.filter((game) => getGameTier(game) === tier);
+
+      return {
+        tier,
+        games: tierGames.slice(0, 4)
+      };
+    });
+  }, [games, getGameTier]);
+
   const activeRandomRankingPool = useMemo(() => {
     return rankedGameSections.find((section) => section.key === randomRankingPool) || rankedGameSections[0];
   }, [randomRankingPool, rankedGameSections]);
 
+  const toggleExcludedTier = useCallback((tier) => {
+    setExcludedRandomTiers((prev) => {
+      if (prev.includes(tier)) {
+        return prev.filter((value) => value !== tier);
+      }
+      return [...prev, tier];
+    });
+  }, []);
+
   const pickRandomRankedGame = useCallback(() => {
-    const pool = activeRandomRankingPool?.games || [];
+    const sectionPool = activeRandomRankingPool?.games || [];
+    const filteredPool = sectionPool.filter((game) => {
+      const tier = getGameTier(game);
+      return !tier || !excludedRandomTiers.includes(tier);
+    });
+
+    const pool = filteredPool.length > 0 ? filteredPool : (sectionPool.length ? sectionPool : games.filter((game) => {
+      const tier = getGameTier(game);
+      return !tier || !excludedRandomTiers.includes(tier);
+    }));
+
     if (!pool.length) return;
 
     const randomGame = pool[Math.floor(Math.random() * pool.length)];
@@ -2353,7 +2414,8 @@ export default function App() {
     setSelectedGame(randomGame);
     setFilter('all');
     setCurrentGamePage(1);
-  }, [activeRandomRankingPool]);
+    setRandomPickerOpen(false);
+  }, [activeRandomRankingPool, excludedRandomTiers, games, getGameTier]);
 
   // Filter games based on category sidebar, matching search query
   const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
@@ -5073,96 +5135,101 @@ export default function App() {
             <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
           </motion.button>
 
-          <div className="border-t border-[var(--card-border)] mt-2 pt-3">
-            <div className="flex items-center justify-between gap-2 pb-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <Dices className="w-3.5 h-3.5 text-[var(--accent-color)] shrink-0" />
-                {sidebarOpen && (
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap">
-                    Random Picks
-                  </span>
-                )}
-              </div>
+          <div className="border-t border-[var(--card-border)] mt-2 pt-3 relative">
+            <div className="flex items-center gap-2 pb-2">
+              <Dices className="w-3.5 h-3.5 text-[var(--accent-color)] shrink-0" />
+              {sidebarOpen && (
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap">
+                  Random Game Picker
+                </span>
+              )}
             </div>
 
-            {sidebarOpen ? (
-              <>
-                <label className="block mb-2">
-                  <span className="sr-only">Choose ranked section</span>
-                  <select
-                    value={randomRankingPool}
-                    onChange={(event) => setRandomRankingPool(event.target.value)}
-                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wide text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
-                  >
-                    {rankedGameSections.map((section) => (
-                      <option key={section.key} value={section.key}>
-                        {section.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            <button
+              type="button"
+              onClick={() => setRandomPickerOpen((prev) => !prev)}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-color)] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-[var(--bg-color)] shadow-[0_6px_18px_var(--accent-shadow)] cursor-pointer"
+            >
+              <Dices className="w-3.5 h-3.5" />
+              Open Menu
+            </button>
 
-                <button
-                  type="button"
-                  onClick={pickRandomRankedGame}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-color)] px-2.5 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--bg-color)] shadow-[0_6px_18px_var(--accent-shadow)] transition-transform hover:scale-[1.01] cursor-pointer"
+            <AnimatePresence>
+              {randomPickerOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute left-0 right-0 z-20 mt-2 rounded-2xl border border-[var(--card-border)] bg-[var(--bg-secondary)] p-3 shadow-2xl"
                 >
-                  <Dices className="w-3.5 h-3.5" />
-                  Lucky Pick
-                </button>
-
-                <div className="mt-3 space-y-2">
-                  {rankedGameSections.map((section) => (
-                    <div
-                      key={section.key}
-                      className="rounded-xl border border-[var(--card-border)] bg-[var(--bg-primary)]/80 overflow-hidden"
+                  <div className="flex items-center justify-between pb-2">
+                    <span className="text-[9px] font-mono uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                      Pick Pool
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setRandomPickerOpen(false)}
+                      className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--card-bg)] hover:text-[var(--text-primary)] cursor-pointer"
+                      aria-label="Close random picker"
                     >
-                      <div className="flex items-center justify-between px-2 py-1.5 border-b border-[var(--card-border)] bg-black/5 dark:bg-white/5">
-                        <span className="text-[9px] font-mono uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                          {section.label}
-                        </span>
-                        <span className="text-[8px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]">
-                          {section.games.length}
-                        </span>
-                      </div>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
-                      <div className="space-y-1 p-1.5">
-                        {section.games.slice(0, 5).map((game, index) => (
-                          <button
-                            key={`${section.key}-${game.id}`}
-                            type="button"
-                            onClick={() => {
-                              setSelectedGame(game);
-                              setFilter('all');
-                              setCurrentGamePage(1);
-                            }}
-                            className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-[var(--card-bg)] text-[var(--text-primary)]"
-                            title={game.title}
-                          >
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--card-bg)] border border-[var(--card-border)] text-[8px] font-bold text-[var(--text-muted)]">
-                              {index + 1}
-                            </span>
-                            <span className="truncate text-[10px] font-medium leading-tight">
-                              {game.title}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {rankedGameSections.map((section) => (
+                      <button
+                        key={section.key}
+                        type="button"
+                        onClick={() => setRandomRankingPool(section.key)}
+                        className={`rounded-full border px-1.5 py-1 text-[8px] font-mono uppercase tracking-wider transition-all cursor-pointer ${
+                          randomRankingPool === section.key
+                            ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-[var(--bg-color)]'
+                            : 'border-[var(--card-border)] bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        {section.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mb-3">
+                    <div className="mb-2 text-[9px] font-mono uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                      Exclude tiers
                     </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={pickRandomRankedGame}
-                className="mt-2 flex w-full items-center justify-center rounded-lg border border-[var(--card-border)] bg-[var(--bg-primary)] p-2 text-[var(--accent-color)] transition-colors hover:bg-[var(--card-bg)] cursor-pointer"
-                title="Pick a random ranked game"
-                aria-label="Pick a random ranked game"
-              >
-                <Dices className="w-4 h-4" />
-              </button>
-            )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {gameTierOrder.map((tier) => {
+                        const excluded = excludedRandomTiers.includes(tier);
+                        return (
+                          <button
+                            key={tier}
+                            type="button"
+                            onClick={() => toggleExcludedTier(tier)}
+                            className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-wide transition-all cursor-pointer ${
+                              excluded
+                                ? 'border-red-500/60 bg-red-500/10 text-red-200'
+                                : 'border-[var(--card-border)] bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            {tier}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={pickRandomRankedGame}
+                    className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-color)] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-[var(--bg-color)] shadow-[0_6px_18px_var(--accent-shadow)] cursor-pointer"
+                  >
+                    <Dices className="w-3.5 h-3.5" />
+                    Pick Random
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="flex-1" />
