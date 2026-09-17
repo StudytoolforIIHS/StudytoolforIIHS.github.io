@@ -677,65 +677,6 @@ function AutoRandomizeDecoyButton({
   );
 }
 
-function GameCardThumbnail({ game, index, getOptimizedThumbnail, renderGameArt, defaultThumbnail }) {
-  const [imgSrc, setImgSrc] = useState(() => (game.thumbnail ? getOptimizedThumbnail(game.thumbnail) : ''));
-  const [failed, setFailed] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [retried, setRetried] = useState(false);
-
-  useEffect(() => {
-    setLoaded(false);
-    setFailed(false);
-    setRetried(false);
-    setImgSrc(game.thumbnail ? getOptimizedThumbnail(game.thumbnail) : '');
-  }, [game.id, game.thumbnail]);
-
-  const handleError = () => {
-    if (!retried && game.thumbnail) {
-      setRetried(true);
-      const rawThumb = game.thumbnail;
-      if (!rawThumb.startsWith('http://') && !rawThumb.startsWith('https://') && !rawThumb.startsWith('data:')) {
-        const clean = rawThumb.replace(/^\/+/, '').replace(/^public\//, '').replace(/^thumbnails\//, '');
-        setImgSrc(`https://urnperiodic.github.io/thumbnails/${encodeURI(clean)}`);
-        return;
-      }
-    }
-    setFailed(true);
-  };
-
-  const isEager = index < 8;
-
-  if (imgSrc && !failed) {
-    return (
-      <div className="relative w-full h-full bg-neutral-900 overflow-hidden flex items-center justify-center">
-        {!loaded && (
-          <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center animate-pulse">
-            <Gamepad2 className="w-8 h-8 text-neutral-700" />
-          </div>
-        )}
-        <img
-          src={imgSrc}
-          alt={game.title}
-          width="640"
-          height="360"
-          loading={isEager ? 'eager' : 'lazy'}
-          fetchPriority={index < 4 ? 'high' : 'auto'}
-          decoding="async"
-          referrerPolicy="no-referrer"
-          draggable="false"
-          onLoad={() => setLoaded(true)}
-          onError={handleError}
-          className={`w-full h-full object-cover transition-transform duration-500 hover:scale-110 select-none pointer-events-none ${
-            loaded ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-      </div>
-    );
-  }
-
-  return renderGameArt(game, defaultThumbnail);
-}
-
 export default function App() {
   // Helper to optimize and resize thumbnail URLs dynamically to Poki recommended size (512x512) for fast load & high clarity
   const getOptimizedThumbnail = (url) => {
@@ -2329,6 +2270,8 @@ export default function App() {
   useEffect(() => {
     if (isEmulatedActive) {
       setEmulatedDropdownOpen(true);
+      setGameCatalogMode('all');
+      safeStorage.setItem('unblocked-game-catalog-mode', 'all');
     }
   }, [isEmulatedActive]);
 
@@ -2358,7 +2301,7 @@ export default function App() {
     if (filter === 'og') {
       if (!game.isOg && (game.category || '').toLowerCase().trim() !== 'og') return false;
     } else {
-      if (gameCatalogMode === 'original' && !game.isOg) {
+      if (gameCatalogMode === 'original' && !game.isOg && !isEmulatedActive) {
         return false;
       }
       if (filter === 'single') {
@@ -4865,6 +4808,8 @@ export default function App() {
               whileHover={{ x: 6 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => {
+                setGameCatalogMode('all');
+                safeStorage.setItem('unblocked-game-catalog-mode', 'all');
                 if (!isEmulatedActive) {
                   setFilter('Emulated');
                   setSelectedGame(null);
@@ -4919,6 +4864,8 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => {
+                        setGameCatalogMode('all');
+                        safeStorage.setItem('unblocked-game-catalog-mode', 'all');
                         setFilter('Emulated');
                         setSelectedGame(null);
                       }}
@@ -4955,6 +4902,8 @@ export default function App() {
                             key={tag}
                             type="button"
                             onClick={() => {
+                              setGameCatalogMode('all');
+                              safeStorage.setItem('unblocked-game-catalog-mode', 'all');
                               setFilter(tag);
                               setSelectedGame(null);
                             }}
@@ -4985,6 +4934,8 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => {
+                            setGameCatalogMode('all');
+                            safeStorage.setItem('unblocked-game-catalog-mode', 'all');
                             setFilter('emulated-other');
                             setSelectedGame(null);
                           }}
@@ -5314,13 +5265,31 @@ export default function App() {
                       >
                         {/* Artwork container */}
                         <div className="relative aspect-video w-full bg-neutral-950 flex-shrink-0 flex items-center justify-center border-b border-[var(--card-border)] overflow-hidden">
-                          <GameCardThumbnail
-                            game={game}
-                            index={index}
-                            getOptimizedThumbnail={getOptimizedThumbnail}
-                            renderGameArt={renderGameArt}
-                            defaultThumbnail={defaultThumbnail}
-                          />
+                          {game.thumbnail && !failedThumbnails[game.id] ? (
+                            <img 
+                              src={getOptimizedThumbnail(game.thumbnail)} 
+                              alt={game.title} 
+                              width="640"
+                              height="360"
+                              loading="lazy"
+                              decoding="async"
+                              referrerPolicy="no-referrer"
+                              draggable="false"
+                              onError={() => setFailedThumbnails(prev => ({ ...prev, [game.id]: true }))}
+                              className="w-full h-full object-cover transition-transform duration-500 hover:scale-110 select-none pointer-events-none" 
+                            />
+                          ) : (
+                            <img
+                              src={defaultThumbnail}
+                              alt={game.title}
+                              width="640"
+                              height="360"
+                              loading="lazy"
+                              decoding="async"
+                              draggable="false"
+                              className="w-full h-full object-cover select-none pointer-events-none"
+                            />
+                          )}
 
                           {game.featured && (
                             <span className="absolute top-2.5 left-2.5 text-[12px] font-black bg-black/85 text-amber-400 border border-amber-500/30 w-6 h-6 rounded-md inline-flex items-center justify-center z-10 shadow-sm font-mono">
