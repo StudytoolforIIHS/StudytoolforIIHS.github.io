@@ -1019,6 +1019,7 @@ export default function App() {
   }, [selectedGame]);
 
   const [gameHeaderHidden, setGameHeaderHidden] = useState(false);
+  const [isBootComplete, setIsBootComplete] = useState(false);
   const [autoHideHeader, setAutoHideHeader] = useState(() => {
     const saved = safeStorage.getItem('unblocked-auto-hide-header');
     return saved === null ? true : saved === 'true'; // Defaults to true
@@ -1045,6 +1046,11 @@ export default function App() {
   }, [filter]);
 
   useEffect(() => {
+    const raf = requestAnimationFrame(() => setIsBootComplete(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  useEffect(() => {
     const isWorkspace = ['chat', 'lobbychat', 'movies', 'youtube', 'info', 'download'].includes(filter);
     if (isWorkspace) {
       setGameHeaderHidden(false);
@@ -1053,7 +1059,7 @@ export default function App() {
     }
     if (selectedGame) {
       safeStorage.setItem('unblocked-last-game', selectedGame.id);
-      if (autoHideHeader) {
+      if (autoHideHeader && isBootComplete) {
         setGameHeaderHidden(true);
       } else {
         setGameHeaderHidden(false);
@@ -1064,7 +1070,7 @@ export default function App() {
       setWindowFullscreen(false);
       setGameHeaderHidden(false);
     }
-  }, [selectedGame, autoHideHeader, games.length, filter]);
+  }, [selectedGame, autoHideHeader, games.length, filter, isBootComplete]);
 
   useEffect(() => {
     setCurrentGamePage(1);
@@ -3267,10 +3273,10 @@ export default function App() {
         {((!gameHeaderHidden || !selectedGame) || ['chat', 'lobbychat', 'movies', 'youtube', 'info', 'download'].includes(filter)) && (
           <motion.header
             key="main-header"
-            initial={{ height: 0, opacity: 0, overflow: "hidden" }}
-            animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
-            exit={{ height: 0, opacity: 0, overflow: "hidden" }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            initial={animationsEnabled ? { height: 0, opacity: 0, overflow: "hidden" } : false}
+            animate={animationsEnabled ? { height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } } : { height: "auto", opacity: 1 }}
+            exit={animationsEnabled ? { height: 0, opacity: 0, overflow: "hidden" } : undefined}
+            transition={animationsEnabled ? { duration: 0.35, ease: [0.16, 1, 0.3, 1] } : { duration: 0 }}
             className="border-b border-[var(--card-border)] bg-[var(--header-bg)] shadow-sm sticky top-0 z-[5000] transition-colors duration-300 w-full"
           >
             {headerOpen ? (
@@ -3299,8 +3305,8 @@ export default function App() {
           <div className="flex flex-wrap items-center gap-1.5 shrink min-w-0 justify-start">
             {/* Movies Button */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={animationsEnabled ? { scale: 1.05 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.95 } : undefined}
               onClick={() => { setFilter(filter === 'movies' ? 'all' : 'movies'); setSelectedGame(null); }}
               className={`relative px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200 ${
                 filter === 'movies'
@@ -3315,8 +3321,8 @@ export default function App() {
 
             {/* Lobby Chat Button */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={animationsEnabled ? { scale: 1.05 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.95 } : undefined}
               onClick={() => { setFilter(filter === 'lobbychat' ? 'all' : 'lobbychat'); setSelectedGame(null); }}
               className={`relative px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200 ${
                 filter === 'lobbychat'
@@ -3332,8 +3338,8 @@ export default function App() {
 
             {/* YouTube Workspace Button */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={animationsEnabled ? { scale: 1.05 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.95 } : undefined}
               onClick={() => { setFilter(filter === 'youtube' ? 'all' : 'youtube'); setSelectedGame(null); }}
               className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all duration-200 ${
                 filter === 'youtube'
@@ -4738,8 +4744,8 @@ export default function App() {
 
 
             <motion.button
-              whileHover={{ x: 6 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={animationsEnabled ? { x: 6 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
               onClick={() => { setFilter('info'); setSelectedGame(null); setGameHeaderHidden(false); }}
               className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
                 filter === 'info' 
@@ -4752,8 +4758,8 @@ export default function App() {
             </motion.button>
 
             <motion.button
-              whileHover={{ x: 6 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={animationsEnabled ? { x: 6 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
               onClick={() => { window.open('https://forms.gle/YCN8itY7WqmN82CY8', '_blank'); }}
               className="w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80"
             >
@@ -4776,8 +4782,8 @@ export default function App() {
           </motion.button>
 
           <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={animationsEnabled ? { x: 6 } : undefined}
+            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
             onClick={() => { setFilter('single'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'single' && !selectedGame
@@ -4790,8 +4796,8 @@ export default function App() {
           </motion.button>
           
           <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={animationsEnabled ? { x: 6 } : undefined}
+            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
             onClick={() => { setFilter('minecraft'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'minecraft' && !selectedGame
@@ -4805,8 +4811,8 @@ export default function App() {
           
           <div>
             <motion.button
-              whileHover={{ x: 6 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={animationsEnabled ? { x: 6 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
               onClick={() => {
                 setGameCatalogMode('all');
                 safeStorage.setItem('unblocked-game-catalog-mode', 'all');
@@ -4967,8 +4973,8 @@ export default function App() {
           </div>
 
           <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={animationsEnabled ? { x: 6 } : undefined}
+            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
             onClick={() => { setFilter('featured'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'featured' && !selectedGame
@@ -4981,8 +4987,8 @@ export default function App() {
           </motion.button>
 
           <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={animationsEnabled ? { x: 6 } : undefined}
+            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
             onClick={() => { setFilter('og'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'og' && !selectedGame
@@ -4995,8 +5001,8 @@ export default function App() {
           </motion.button>
 
           <motion.button
-            whileHover={{ x: 6 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={animationsEnabled ? { x: 6 } : undefined}
+            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
             onClick={() => { setFilter('multiplayer'); setSelectedGame(null); }}
             className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
               filter === 'multiplayer' && !selectedGame
@@ -5023,10 +5029,10 @@ export default function App() {
               {filter === 'chat' ? (
                 <motion.div 
                   key="chat"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
+                  initial={animationsEnabled ? { opacity: 0, y: 15 } : false}
+                  animate={animationsEnabled ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                  exit={animationsEnabled ? { opacity: 0, y: -15 } : undefined}
+                  transition={animationsEnabled ? { duration: 0.2 } : { duration: 0 }}
                   className={`flex flex-col w-full min-h-[550px] bg-[var(--bg-secondary)] ${headerOpen ? 'h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]' : 'h-[calc(100vh-100px)] md:h-[calc(100vh-80px)]'}`}
                 >
                   <AiChatWorkspace onClose={() => setFilter('all')} />
@@ -5034,10 +5040,10 @@ export default function App() {
               ) : filter === 'lobbychat' ? (
                 <motion.div 
                   key="lobbychat"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
+                  initial={animationsEnabled ? { opacity: 0, y: 15 } : false}
+                  animate={animationsEnabled ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                  exit={animationsEnabled ? { opacity: 0, y: -15 } : undefined}
+                  transition={animationsEnabled ? { duration: 0.2 } : { duration: 0 }}
                   className={`flex flex-col w-full min-h-[550px] bg-[var(--bg-secondary)] ${headerOpen ? 'h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]' : 'h-[calc(100vh-100px)] md:h-[calc(100vh-80px)]'}`}
                 >
                   <UserChat onClose={() => setFilter('all')} />
@@ -5045,10 +5051,10 @@ export default function App() {
               ) : filter === 'info' ? (
                 <motion.div 
                   key="info"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
+                  initial={animationsEnabled ? { opacity: 0, y: 15 } : false}
+                  animate={animationsEnabled ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                  exit={animationsEnabled ? { opacity: 0, y: -15 } : undefined}
+                  transition={animationsEnabled ? { duration: 0.2 } : { duration: 0 }}
                   className={`flex flex-col w-full bg-[var(--bg-secondary)] overflow-hidden ${headerOpen ? 'h-[calc(100vh-90px)]' : 'h-[calc(100vh-45px)]'}`}
                 >
                   <InformationSection 
@@ -5068,10 +5074,10 @@ export default function App() {
               ) : filter === 'movies' ? (
                 <motion.div 
                   key="movies"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
+                  initial={animationsEnabled ? { opacity: 0, y: 15 } : false}
+                  animate={animationsEnabled ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                  exit={animationsEnabled ? { opacity: 0, y: -15 } : undefined}
+                  transition={animationsEnabled ? { duration: 0.2 } : { duration: 0 }}
                   className={`flex flex-col w-full min-h-[550px] bg-[var(--bg-secondary)] ${headerOpen ? 'h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]' : 'h-[calc(100vh-100px)] md:h-[calc(100vh-80px)]'}`}
                 >
                   <MoviesWorkspace onClose={() => setFilter('all')} />
@@ -5079,10 +5085,10 @@ export default function App() {
               ) : filter === 'youtube' ? (
                 <motion.div 
                   key="youtube"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
+                  initial={animationsEnabled ? { opacity: 0, y: 15 } : false}
+                  animate={animationsEnabled ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                  exit={animationsEnabled ? { opacity: 0, y: -15 } : undefined}
+                  transition={animationsEnabled ? { duration: 0.2 } : { duration: 0 }}
                   className={`flex flex-col w-full min-h-[550px] bg-[#0c0a09] border border-[var(--card-border)]/60 rounded-2xl overflow-hidden ${headerOpen ? 'h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]' : 'h-[calc(100vh-100px)] md:h-[calc(100vh-80px)]'}`}
                 >
                   <iframe 
@@ -5095,10 +5101,10 @@ export default function App() {
               ) : filter === 'download' ? (
                 <motion.div 
                   key="download"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.2 }}
+                  initial={animationsEnabled ? { opacity: 0, y: 15 } : false}
+                  animate={animationsEnabled ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+                  exit={animationsEnabled ? { opacity: 0, y: -15 } : undefined}
+                  transition={animationsEnabled ? { duration: 0.2 } : { duration: 0 }}
                   className={`flex flex-col w-full min-h-[550px] bg-[#0c0a09] ${headerOpen ? 'h-[calc(100vh-140px)] md:h-[calc(100vh-120px)]' : 'h-[calc(100vh-100px)] md:h-[calc(100vh-80px)]'}`}
                 >
                   <div className="flex items-center justify-between px-3 py-1.5 bg-[#121019] border-b border-white/10 text-xs shrink-0">
@@ -5643,15 +5649,15 @@ export default function App() {
 
                   {/* Hide / Show Header Button */}
                   <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
+                    whileHover={animationsEnabled ? { scale: 1.03 } : undefined}
+                    whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
                     onClick={() => setGameHeaderHidden(!gameHeaderHidden)}
                     className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] py-1.5 px-3 rounded-lg text-xs font-mono font-medium transition-all duration-200 cursor-pointer relative"
                     title={gameHeaderHidden ? "Show Main Website Header" : "Hide Main Website Header"}
                   >
                     <motion.div
-                      animate={gameHeaderHidden ? { rotate: 180, scale: 1.05 } : { rotate: 0, scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                      animate={animationsEnabled ? (gameHeaderHidden ? { rotate: 180, scale: 1.05 } : { rotate: 0, scale: 1 }) : { rotate: 0, scale: 1 }}
+                      transition={animationsEnabled ? { type: "spring", stiffness: 200, damping: 15 } : { duration: 0 }}
                       className="flex items-center justify-center"
                     >
                       {gameHeaderHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
