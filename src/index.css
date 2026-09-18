@@ -1285,35 +1285,82 @@ html {
   contain-intrinsic-size: 320px 240px;
 }
 
-/* When animations are disabled (Default on start for Chromebooks) */
+/* When animations are disabled (Default on start for Chromebooks or when Anim switch is toggled OFF) */
+html[data-animations="disabled"],
 html[data-animations="disabled"] *,
 html[data-animations="disabled"] *::before,
 html[data-animations="disabled"] *::after,
+html[data-animations="disabled"] *:hover,
+html[data-animations="disabled"] *:focus,
+html[data-animations="disabled"] *:active,
+body.animations-disabled,
+body.animations-disabled *,
+body.animations-disabled *::before,
+body.animations-disabled *::after,
+body.animations-disabled *:hover,
+body.animations-disabled *:focus,
+body.animations-disabled *:active,
 .animations-disabled,
 .animations-disabled *,
 .animations-disabled *::before,
-.animations-disabled *::after {
+.animations-disabled *::after,
+.animations-disabled *:hover,
+.animations-disabled *:focus,
+.animations-disabled *:active {
   animation: none !important;
   animation-duration: 0.0001ms !important;
   animation-iteration-count: 1 !important;
+  animation-delay: 0ms !important;
   transition: none !important;
   transition-duration: 0.0001ms !important;
+  transition-delay: 0ms !important;
   scroll-behavior: auto !important;
+}
+
+/* Explicitly kill Tailwind and custom animation keyframes */
+html[data-animations="disabled"] .animate-pulse,
+html[data-animations="disabled"] .animate-bounce,
+html[data-animations="disabled"] .animate-spin,
+html[data-animations="disabled"] .animate-ping,
+html[data-animations="disabled"] .animate-fade-in,
+html[data-animations="disabled"] .animate-shake,
+html[data-animations="disabled"] .animate-in,
+body.animations-disabled .animate-pulse,
+body.animations-disabled .animate-bounce,
+body.animations-disabled .animate-spin,
+body.animations-disabled .animate-ping,
+body.animations-disabled .animate-fade-in,
+body.animations-disabled .animate-shake,
+body.animations-disabled .animate-in,
+.animations-disabled .animate-pulse,
+.animations-disabled .animate-bounce,
+.animations-disabled .animate-spin,
+.animations-disabled .animate-ping,
+.animations-disabled .animate-fade-in,
+.animations-disabled .animate-shake,
+.animations-disabled .animate-in {
+  animation: none !important;
 }
 
 /* Completely remove expensive GPU fill-rate filters and multi-pass blurs */
 html[data-animations="disabled"] .bg-orbs,
 html[data-animations="disabled"] .orb,
+body.animations-disabled .bg-orbs,
+body.animations-disabled .orb,
 .animations-disabled .bg-orbs,
 .animations-disabled .orb {
   display: none !important;
 }
 
 html[data-animations="disabled"] [class*="backdrop-blur"],
+body.animations-disabled [class*="backdrop-blur"],
 .animations-disabled [class*="backdrop-blur"],
 html[data-animations="disabled"] .backdrop-blur-md,
 html[data-animations="disabled"] .backdrop-blur-xl,
 html[data-animations="disabled"] .backdrop-blur-sm,
+body.animations-disabled .backdrop-blur-md,
+body.animations-disabled .backdrop-blur-xl,
+body.animations-disabled .backdrop-blur-sm,
 .animations-disabled .backdrop-blur-md,
 .animations-disabled .backdrop-blur-xl,
 .animations-disabled .backdrop-blur-sm {
@@ -1323,18 +1370,34 @@ html[data-animations="disabled"] .backdrop-blur-sm,
 
 /* Flatten heavy hover transforms and animated shadows when animations are disabled */
 html[data-animations="disabled"] .custom-card:hover,
-.animations-disabled .custom-card:hover {
+body.animations-disabled .custom-card:hover,
+.animations-disabled .custom-card:hover,
+html[data-animations="disabled"] [class*="hover:scale"]:hover,
+body.animations-disabled [class*="hover:scale"]:hover,
+.animations-disabled [class*="hover:scale"]:hover,
+html[data-animations="disabled"] [class*="active:scale"]:active,
+body.animations-disabled [class*="active:scale"]:active,
+.animations-disabled [class*="active:scale"]:active,
+html[data-animations="disabled"] [class*="hover:-translate"]:hover,
+body.animations-disabled [class*="hover:-translate"]:hover,
+.animations-disabled [class*="hover:-translate"]:hover,
+html[data-animations="disabled"] [class*="hover:translate"]:hover,
+body.animations-disabled [class*="hover:translate"]:hover,
+.animations-disabled [class*="hover:translate"]:hover {
   transform: none !important;
   box-shadow: none !important;
 }
 
 html[data-animations="disabled"] .custom-theme-option:hover,
+body.animations-disabled .custom-theme-option:hover,
 .animations-disabled .custom-theme-option:hover {
   transform: none !important;
 }
 
 html[data-animations="disabled"] .gemini-logo-svg,
 html[data-animations="disabled"] .gemini-logo-svg-large,
+body.animations-disabled .gemini-logo-svg,
+body.animations-disabled .gemini-logo-svg-large,
 .animations-disabled .gemini-logo-svg,
 .animations-disabled .gemini-logo-svg-large {
   animation: none !important;
@@ -1342,6 +1405,7 @@ html[data-animations="disabled"] .gemini-logo-svg-large,
 }
 
 html[data-animations="disabled"] .shimmer-bg,
+body.animations-disabled .shimmer-bg,
 .animations-disabled .shimmer-bg {
   animation: none !important;
 }

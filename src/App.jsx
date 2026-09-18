@@ -1,5 +1,5 @@
 import { lazy, Suspense, useDeferredValue, useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { getApps, initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { collection, getFirestore, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
@@ -7,7 +7,15 @@ import { PUBLIC_GAMES_BASE_URL } from './data/gameSource';
 import { gameRankings } from './data/gameRankings';
 import defaultThumbnail from './assets/images/defaultthumbnail.png';
 const GAMES_PER_PAGE = 36;
+const MAX_CACHED_GAMES = 2; // Strict LRU cap to keep memory low on low-spec hardware
 const gameHtmlCache = new Map();
+const setCachedGameHtml = (url, data) => {
+  if (gameHtmlCache.size >= MAX_CACHED_GAMES) {
+    const oldestKey = gameHtmlCache.keys().next().value;
+    if (oldestKey) gameHtmlCache.delete(oldestKey);
+  }
+  gameHtmlCache.set(url, data);
+};
 const GAME_RUNTIME_SHIM = `<script>
   function poki_init_raw() { return false; }
   function poki_commercial_break_raw() {}
@@ -1009,7 +1017,7 @@ export default function App() {
 
     loadGameFrame(selectedGame.url, controller.signal)
       .then((frame) => {
-        gameHtmlCache.set(selectedGame.url, frame);
+        setCachedGameHtml(selectedGame.url, frame);
         setGameFrame(frame);
       })
       .catch((error) => {
@@ -1147,11 +1155,27 @@ export default function App() {
 
   const openGameInAboutBlank = (gameToOpen) => {
     if (!gameToOpen) return;
+
+    // Unload the in-page arena frame if the exact same game is being opened in about:blank
+    // to prevent running two heavy WebGL/Canvas game instances simultaneously
+    if (selectedGame && selectedGame.id === gameToOpen.id) {
+      setGameFrame(null);
+    }
+
     const win = window.open("about:blank", "_blank");
     if (!win) {
       alert("Popup blocked. Allow popups for this site.");
       return;
     }
+
+    // Sever the opener reference so Chrome can place the about:blank tab in an isolated process
+    // and independently garbage-collect memory without pinning the parent window heap
+    try {
+      win.opener = null;
+    } catch {
+      // Safe fallback
+    }
+
     const classroomFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
     let tabTitle = gameToOpen.title;
     let tabFavicon = classroomFavicon;
@@ -1190,35 +1214,33 @@ export default function App() {
         <link rel="shortcut icon" type="image/png" href="${tabFavicon}">
         <meta charset="utf-8">
         <style>
-          html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
+          html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000000; }
           iframe { width: 100vw; height: 100vh; border: none; display: block; }
         </style>
         <script>
           function forceFavicon() {
-            const head = document.head || document.getElementsByTagName('head')[0];
-            const links = document.querySelectorAll("link[rel*='icon']");
-            links.forEach(function(el) { el.remove(); });
-
-            const newLink = document.createElement('link');
+            var head = document.head || document.getElementsByTagName('head')[0];
+            var links = document.querySelectorAll("link[rel*='icon']");
+            for (var i = 0; i < links.length; i++) { links[i].remove(); }
+            var newLink = document.createElement('link');
             newLink.rel = 'icon';
             newLink.type = 'image/png';
             newLink.href = '${tabFavicon}';
             head.appendChild(newLink);
-
-            const shortcutLink = document.createElement('link');
-            shortcutLink.rel = 'shortcut icon';
-            shortcutLink.type = 'image/png';
-            shortcutLink.href = '${tabFavicon}';
-            head.appendChild(shortcutLink);
-
-            document.title = "${tabTitle}";
+            document.title = "${tabTitle.replace(/"/g, '\\"')}";
           }
-
           forceFavicon();
-          window.onload = forceFavicon;
-          setTimeout(forceFavicon, 50);
-          setTimeout(forceFavicon, 150);
-          setTimeout(forceFavicon, 500);
+          window.addEventListener('load', forceFavicon);
+          // Free WebGL, AudioContext, and DOM memory immediately when the tab closes or unloads
+          window.addEventListener('beforeunload', function() {
+            try {
+              var f = document.getElementById('about-blank-game-frame');
+              if (f) {
+                f.src = 'about:blank';
+                f.remove();
+              }
+            } catch(e) {}
+          });
         </script>
       </head>
       <body>
@@ -1233,22 +1255,32 @@ export default function App() {
     const loadGameHtml = cachedFrame
       ? Promise.resolve(cachedFrame)
       : loadGameFrame(gameToOpen.url).then((gameFrame) => {
-          gameHtmlCache.set(gameToOpen.url, gameFrame);
+          setCachedGameHtml(gameToOpen.url, gameFrame);
           return gameFrame;
         });
 
     loadGameHtml
       .then((gameFrameData) => {
-        if (!win.closed) {
+        if (!win.closed && frame) {
           if (gameFrameData.src) {
             frame.src = gameFrameData.src;
-          } else {
-            frame.srcdoc = gameFrameData.srcDoc;
+          } else if (gameFrameData.srcDoc) {
+            // Using a Blob URL allows the browser to stream and release raw string memory
+            try {
+              const blob = new Blob([gameFrameData.srcDoc], { type: 'text/html;charset=utf-8' });
+              const blobUrl = URL.createObjectURL(blob);
+              frame.src = blobUrl;
+              frame.onload = () => {
+                try { URL.revokeObjectURL(blobUrl); } catch {}
+              };
+            } catch {
+              frame.srcdoc = gameFrameData.srcDoc;
+            }
           }
         }
       })
       .catch(() => {
-        if (!win.closed) frame.srcdoc = createGameLoadErrorDocument(gameToOpen.url).srcDoc;
+        if (!win.closed && frame) frame.srcdoc = createGameLoadErrorDocument(gameToOpen.url).srcDoc;
       });
   };
 
@@ -1302,16 +1334,16 @@ export default function App() {
     safeStorage.setItem('classroom-passcode-unlocked', mode === 'games' ? 'true' : 'false');
     if (mode === 'games') {
       setHeaderOpen(false);
-      setSidebarOpen(false);
+      setSidebarOpen(true);
     }
   };
 
-    useEffect(() => {
-      if (viewMode === 'games') {
-        setHeaderOpen(false);
-        setSidebarOpen(false);
-      }
-    }, [viewMode]);
+  useEffect(() => {
+    if (viewMode === 'games') {
+      setHeaderOpen(false);
+      setSidebarOpen(true);
+    }
+  }, [viewMode]);
 
   const [autoLockOnClose, setAutoLockOnClose] = useState(() => {
     const saved = safeStorage.getItem('unblocked-auto-lock-on-close');
@@ -1415,9 +1447,11 @@ export default function App() {
     try {
       if (animationsEnabled) {
         document.documentElement.classList.remove('animations-disabled');
+        document.body.classList.remove('animations-disabled');
         document.documentElement.setAttribute('data-animations', 'enabled');
       } else {
         document.documentElement.classList.add('animations-disabled');
+        document.body.classList.add('animations-disabled');
         document.documentElement.setAttribute('data-animations', 'disabled');
       }
     } catch {
@@ -2298,49 +2332,42 @@ export default function App() {
   };
 
   const rankedGameSections = useMemo(() => {
-    const sortRankedGames = (list) => [...list].sort((a, b) => {
-      const aFeatured = a.featured === true || a.featured === 'true';
-      const bFeatured = b.featured === true || b.featured === 'true';
-      if (aFeatured !== bFeatured) return Number(bFeatured) - Number(aFeatured);
-
-      const aOriginal = a.isOg === true || a.isOg === 'true';
-      const bOriginal = b.isOg === true || b.isOg === 'true';
-      if (aOriginal !== bOriginal) return Number(bOriginal) - Number(aOriginal);
-
-      return String(a.title || '').localeCompare(String(b.title || ''));
-    });
-
     return [
       {
         key: 'all',
+        label: 'All Games',
+        games: games
+      },
+      {
+        key: 'top',
         label: 'Top Picks',
-        games: sortRankedGames(games).slice(0, 8)
+        games: games.filter((g) => (g.featured === true || g.featured === 'true') || (g.isOg === true || g.isOg === 'true'))
       },
       {
         key: 'featured',
         label: 'Featured',
-        games: sortRankedGames(games.filter((game) => game.featured === true || game.featured === 'true')).slice(0, 6)
+        games: games.filter((game) => game.featured === true || game.featured === 'true')
       },
       {
         key: 'originals',
         label: 'Originals',
-        games: sortRankedGames(games.filter((game) => game.isOg)).slice(0, 6)
+        games: games.filter((game) => game.isOg === true || game.isOg === 'true')
       },
       {
         key: 'single',
         label: 'Single Player',
-        games: sortRankedGames(games.filter((game) => isSinglePlayerCategory(game.category))).slice(0, 6)
+        games: games.filter((game) => isSinglePlayerCategory(game.category))
       },
       {
         key: 'multiplayer',
         label: 'Multiplayer',
-        games: sortRankedGames(games.filter((game) => isMultiplayerCategory(game.category))).slice(0, 6)
+        games: games.filter((game) => isMultiplayerCategory(game.category))
       }
     ].filter((section) => section.games.length > 0);
   }, [games, isSinglePlayerCategory, isMultiplayerCategory]);
 
-  const gameTierOrder = ['A', 'B', 'C', 'D', 'E', 'F'];
-  const [selectedTier, setSelectedTier] = useState('A');
+  const gameTierOrder = ['S', 'A', 'B', 'C'];
+  const [selectedTier, setSelectedTier] = useState('S');
   const [randomRankingPool, setRandomRankingPool] = useState('all');
   const [randomPickerOpen, setRandomPickerOpen] = useState(false);
   const [excludedRandomTiers, setExcludedRandomTiers] = useState([]);
@@ -2348,6 +2375,9 @@ export default function App() {
   const normalizeTierTitle = (title) => {
     return String(title || '')
       .toLowerCase()
+      .replace(/\s*\([^)]*\)/g, ' ')
+      .replace(/\s*\[[^\]]*\]/g, ' ')
+      .replace(/\s+version\b/gi, ' ')
       .replace(/&/g, ' and ')
       .replace(/[’']/g, '')
       .replace(/[^a-z0-9]+/g, ' ')
@@ -2371,17 +2401,30 @@ export default function App() {
 
   const getGameTier = useCallback((game) => {
     const explicitTier = String(game?.rankTier || '').trim().toUpperCase();
-    if (gameTierOrder.includes(explicitTier)) return explicitTier;
+    if (['S', 'A', 'B', 'C', 'D'].includes(explicitTier)) return explicitTier;
 
-    const candidateTitles = [game?.title, game?.name, game?.displayName, game?.searchText].filter(Boolean);
+    const rawTitle = String(game?.title || '');
+    const withoutParens = rawTitle.replace(/\s*\([^)]*\)/g, ' ').replace(/\s*\[[^\]]*\]/g, ' ').trim();
+    const baseTitle = rawTitle.split(/[:–—\-]/)[0].trim();
+    const baseTitleWithoutParens = baseTitle.replace(/\s*\([^)]*\)/g, ' ').trim();
+
+    const candidateTitles = [
+      rawTitle,
+      withoutParens,
+      baseTitle,
+      baseTitleWithoutParens,
+      game?.name,
+      game?.displayName,
+      game?.searchText
+    ].filter(Boolean);
 
     for (const candidateTitle of candidateTitles) {
       const mappedTier = tierLookupMap.get(normalizeTierTitle(candidateTitle));
-      if (mappedTier && gameTierOrder.includes(mappedTier)) return mappedTier;
+      if (mappedTier) return mappedTier;
     }
 
     return null;
-  }, [gameTierOrder, tierLookupMap]);
+  }, [tierLookupMap]);
 
   const tierRankedGames = useMemo(() => {
     return gameTierOrder.map((tier) => {
@@ -2389,7 +2432,7 @@ export default function App() {
 
       return {
         tier,
-        games: tierGames.slice(0, 4)
+        games: tierGames
       };
     });
   }, [games, getGameTier]);
@@ -2412,35 +2455,67 @@ export default function App() {
     });
   }, []);
 
-  const pickRandomRankedGame = useCallback(() => {
-    const sectionPool = activeRandomRankingPool?.games || [];
-    const filteredPool = sectionPool.filter((game) => {
-      const tier = getGameTier(game);
-      const excludedByTier = !!tier && excludedRandomTiers.includes(tier);
-      const excludedByEmulated = excludedRandomTiers.includes('EMULATED') && isEmulatedGame(game);
-      return !excludedByTier && !excludedByEmulated;
-    });
+  const randomEligibleCount = useMemo(() => {
+    const sectionPool = (activeRandomRankingPool?.games && activeRandomRankingPool.games.length > 0)
+      ? activeRandomRankingPool.games
+      : games;
 
-    let pool = filteredPool;
-    if (!pool.length && !sectionPool.length) {
-      pool = games.filter((game) => {
-        const tier = getGameTier(game);
-        const excludedByTier = !!tier && excludedRandomTiers.includes(tier);
-        const excludedByEmulated = excludedRandomTiers.includes('EMULATED') && isEmulatedGame(game);
-        return !excludedByTier && !excludedByEmulated;
+    return sectionPool.filter((game) => {
+      const tier = getGameTier(game);
+      // Strictly in curated S, A, B, C pool
+      if (!tier || !gameTierOrder.includes(tier)) return false;
+      if (excludedRandomTiers.includes(tier)) return false;
+      if (excludedRandomTiers.includes('EMULATED') && isEmulatedGame(game)) return false;
+      return true;
+    }).length;
+  }, [activeRandomRankingPool, excludedRandomTiers, gameTierOrder, games, getGameTier, isEmulatedGame]);
+
+  const pickRandomRankedGame = useCallback(() => {
+    const sectionPool = (activeRandomRankingPool?.games && activeRandomRankingPool.games.length > 0)
+      ? activeRandomRankingPool.games
+      : games;
+
+    const filterGame = (game) => {
+      const tier = getGameTier(game);
+      // STRICT FILTER: Only curated tiers ('S', 'A', 'B', 'C') are eligible.
+      // All unranked, excluded, and D-tier entries are excluded.
+      if (!tier || !gameTierOrder.includes(tier)) {
+        return false;
+      }
+      if (excludedRandomTiers.includes(tier)) {
+        return false;
+      }
+      const excludedByEmulated = excludedRandomTiers.includes('EMULATED') && isEmulatedGame(game);
+      return !excludedByEmulated;
+    };
+
+    let pool = sectionPool.filter(filterGame);
+
+    if (!pool.length) {
+      pool = games.filter(filterGame);
+    }
+
+    if (!pool.length) {
+      // Fallback: any curated game in S, A, B, C
+      pool = games.filter((g) => {
+        const tier = getGameTier(g);
+        return tier && gameTierOrder.includes(tier);
       });
     }
 
     if (!pool.length) return;
 
-    const randomGame = pool[Math.floor(Math.random() * pool.length)];
+    let candidatePool = pool.length > 1 && selectedGame ? pool.filter((g) => g.id !== selectedGame.id) : pool;
+    if (!candidatePool.length) candidatePool = pool;
+
+    const randomGame = candidatePool[Math.floor(Math.random() * candidatePool.length)];
     if (!randomGame) return;
 
     setSelectedGame(randomGame);
     setFilter('all');
     setCurrentGamePage(1);
     setRandomPickerOpen(false);
-  }, [activeRandomRankingPool, excludedRandomTiers, games, getGameTier, isEmulatedGame]);
+  }, [activeRandomRankingPool, excludedRandomTiers, gameTierOrder, games, getGameTier, isEmulatedGame, selectedGame]);
 
   // Filter games based on category sidebar, matching search query
   const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
@@ -3091,7 +3166,8 @@ export default function App() {
     }
 
     return (
-      <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-primary)] flex flex-col xl:flex-row items-center xl:items-center justify-center p-4 md:p-8 xl:p-12 gap-8 md:gap-10 transition-colors duration-350 relative select-none">
+      <MotionConfig reducedMotion={animationsEnabled ? "never" : "always"}>
+        <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-primary)] flex flex-col xl:flex-row items-center xl:items-center justify-center p-4 md:p-8 xl:p-12 gap-8 md:gap-10 transition-colors duration-350 relative select-none">
         
         {/* Floating Controls inside Lock Screen */}
         <div className="absolute top-4 right-4 flex items-center gap-3">
@@ -3405,14 +3481,16 @@ export default function App() {
         </div>
 
       </div>
+      </MotionConfig>
     );
   }
 
 
 
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-muted)] text-sm">Loading workspace...</div>}>
-      <div className={`min-h-screen flex flex-col transition-colors duration-300 relative overflow-x-clip ${viewMode === 'games' ? 'games-no-select select-none' : ''} ${selectedGame ? 'h-screen overflow-hidden' : ''}`}>
+    <MotionConfig reducedMotion={animationsEnabled ? "never" : "always"}>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-muted)] text-sm">Loading workspace...</div>}>
+        <div className={`min-h-screen flex flex-col transition-colors duration-300 relative overflow-x-clip ${viewMode === 'games' ? 'games-no-select select-none' : ''} ${selectedGame ? 'h-screen overflow-hidden' : ''}`}>
       <CursorSpotlight active={viewMode === 'games' && animationsEnabled} />
       {/* HEADER */}
       <AnimatePresence initial={false}>
@@ -3522,8 +3600,8 @@ export default function App() {
 
               {/* Cloak / About:blank Button (to the right of shuffle button) */}
               <motion.button
-                whileHover={filter !== 'lobbychat' ? { scale: 1.05 } : {}}
-                whileTap={filter !== 'lobbychat' ? { scale: 0.95 } : {}}
+                whileHover={animationsEnabled && filter !== 'lobbychat' ? { scale: 1.05 } : undefined}
+                whileTap={animationsEnabled && filter !== 'lobbychat' ? { scale: 0.95 } : undefined}
                 onClick={() => { if (filter !== 'lobbychat') openWorkspaceInAboutBlank(filter); }}
                 className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold transition-all ${
                   filter !== 'lobbychat'
@@ -3549,8 +3627,8 @@ export default function App() {
                 const hasUrl = !!url;
                 return (
                   <motion.button
-                    whileHover={hasUrl ? { scale: 1.05 } : {}}
-                    whileTap={hasUrl ? { scale: 0.95 } : {}}
+                    whileHover={animationsEnabled && hasUrl ? { scale: 1.05 } : undefined}
+                    whileTap={animationsEnabled && hasUrl ? { scale: 0.95 } : undefined}
                     onClick={() => { if (hasUrl) window.open(url, '_blank'); }}
                     className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold transition-all ${
                       hasUrl 
@@ -4391,6 +4469,22 @@ export default function App() {
                     <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
                       <button
                         onClick={() => {
+                          setFilter('info');
+                          setSelectedGame(null);
+                          setGameHeaderHidden(false);
+                          setIsGlobalSettingsOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-[var(--accent-color)]/20 hover:border-[var(--accent-color)] border border-white/10 text-white text-xs font-semibold transition-all cursor-pointer group"
+                        title="View Information & Docs"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Info className="w-3.5 h-3.5 text-[var(--accent-color)] group-hover:scale-110 transition-transform" />
+                          <span>Information & Docs</span>
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => {
                           downloadEntireWebsite();
                           setIsGlobalSettingsOpen(false);
                         }}
@@ -4532,6 +4626,16 @@ export default function App() {
             >
               <Tv className="w-3.5 h-3.5 text-[var(--accent-color)]" />
               <span>Movies</span>
+            </button>
+
+            {/* Quick Random Game button (Curated S-C Pool) */}
+            <button
+              onClick={pickRandomRankedGame}
+              className="text-xs border py-1.5 px-3 rounded-full font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-[0_2px_8.5px_rgba(0,0,0,0.1)] transition-all duration-200 active:scale-95 bg-[var(--card-bg)] text-[var(--text-primary)] border-[var(--card-border)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] shrink-0"
+              title={`Roll a random game from ${randomEligibleCount} curated classics (S-C Tier)`}
+            >
+              <Dices className="w-3.5 h-3.5 text-[var(--accent-color)]" />
+              <span className="hidden sm:inline">Random</span>
             </button>
 
             {/* Decoy Mode Selector */}
@@ -4752,6 +4856,22 @@ export default function App() {
                     <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
                       <button
                         onClick={() => {
+                          setFilter('info');
+                          setSelectedGame(null);
+                          setGameHeaderHidden(false);
+                          setIsGlobalSettingsOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-[var(--accent-color)]/20 hover:border-[var(--accent-color)] border border-white/10 text-white text-xs font-semibold transition-all cursor-pointer group"
+                        title="View Information & Docs"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Info className="w-3.5 h-3.5 text-[var(--accent-color)] group-hover:scale-110 transition-transform" />
+                          <span>Information & Docs</span>
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => {
                           downloadEntireWebsite();
                           setIsGlobalSettingsOpen(false);
                         }}
@@ -4865,319 +4985,320 @@ export default function App() {
         
         {/* LEFT NAV PANEL - CAT SIDEBAR */}
         {filter !== 'chat' && filter !== 'movies' && filter !== 'youtube' && filter !== 'lobbychat' && filter !== 'download' && filter !== 'info' && !selectedGame && (
-          <aside className={`transition-all duration-300 ease-in-out shrink-0 flex flex-col gap-2 overflow-hidden ${
-            sidebarOpen ? 'w-full md:w-44' : 'w-full md:w-14'
+          <aside className={`transition-all duration-300 ease-in-out shrink-0 flex flex-col gap-1.5 overflow-hidden ${
+            sidebarOpen ? 'w-full md:w-40' : 'w-full md:w-12'
           }`}>
             
-            <div className="flex items-center justify-between px-2 py-1 min-h-[36px]">
+            <div className="flex items-center justify-between px-2 py-1 min-h-[32px]">
               {sidebarOpen ? (
-                <span className="text-[10px] font-mono tracking-wider text-[var(--text-muted)] uppercase whitespace-nowrap">
+                <span className="text-[9px] font-mono tracking-wider text-[var(--text-muted)] uppercase whitespace-nowrap">
                   Browse Portals
                 </span>
               ) : (
-                <span className="hidden md:inline text-[9px] font-mono tracking-wider uppercase text-center mx-auto font-bold text-[var(--accent-color)]">
+                <span className="hidden md:inline text-[8px] font-mono tracking-wider uppercase text-center mx-auto font-bold text-[var(--accent-color)]">
                   NAV
                 </span>
               )}
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-1.5 rounded-lg hover:bg-[var(--card-bg)] text-[var(--accent-color)] transition-all duration-250 cursor-pointer flex items-center justify-center ml-auto"
+                className="p-1 rounded-md hover:bg-[var(--card-bg)] text-[var(--accent-color)] transition-all duration-250 cursor-pointer flex items-center justify-center ml-auto"
                 title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
               >
-                {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                {sidebarOpen ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
               </button>
             </div>
 
-
             <motion.button
-              whileHover={animationsEnabled ? { x: 6 } : undefined}
+              whileHover={animationsEnabled ? { x: 4 } : undefined}
               whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-              onClick={() => { setFilter('info'); setSelectedGame(null); setGameHeaderHidden(false); }}
-              className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-                filter === 'info' 
-                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-lg shadow-[var(--accent-color)]/20' 
-                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-              }`}
-            >
-              <Info className="w-4.5 h-4.5 shrink-0" />
-              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Information</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={animationsEnabled ? { x: 6 } : undefined}
-              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-              onClick={() => { window.open('https://forms.gle/YCN8itY7WqmN82CY8', '_blank'); }}
-              className="w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80"
-            >
-              <ExternalLink className="w-4.5 h-4.5 shrink-0" />
-              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Request a Portal</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ x: 6 }}
-              whileTap={{ scale: 0.97 }}
               onClick={() => { setFilter('all'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'all' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Layers className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>All Classrooms</span>
-          </motion.button>
-
-          <motion.button
-            whileHover={animationsEnabled ? { x: 6 } : undefined}
-            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-            onClick={() => { setFilter('single'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'single' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Gamepad2 className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Single Player</span>
-          </motion.button>
-          
-          <motion.button
-            whileHover={animationsEnabled ? { x: 6 } : undefined}
-            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-            onClick={() => { setFilter('minecraft'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'minecraft' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Box className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Minecraft</span>
-          </motion.button>
-          
-          <div>
-            <motion.button
-              whileHover={animationsEnabled ? { x: 6 } : undefined}
-              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-              onClick={() => {
-                setGameCatalogMode('all');
-                safeStorage.setItem('unblocked-game-catalog-mode', 'all');
-                if (!isEmulatedActive) {
-                  setFilter('Emulated');
-                  setSelectedGame(null);
-                  setEmulatedDropdownOpen(true);
-                } else {
-                  setEmulatedDropdownOpen(prev => !prev);
-                }
-              }}
-              className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center justify-between gap-2 text-sm font-medium transition-all duration-200 cursor-pointer ${
-                isEmulatedActive && !selectedGame
+              className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center gap-2 text-xs font-medium transition-all duration-200 cursor-pointer ${
+                filter === 'all' && !selectedGame
                   ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
                   : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
               }`}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Cpu className="w-4.5 h-4.5 shrink-0" />
-                <div className={`flex items-center gap-1.5 min-w-0 transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>
-                  <span className="truncate">Emulated</span>
-                  {(emulatedTags.includes(filter) || filter === 'emulated-other') && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded font-mono uppercase bg-black/20 dark:bg-white/20 shrink-0">
-                      {filter === 'emulated-other' ? 'other' : filter}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {sidebarOpen && (
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEmulatedDropdownOpen(prev => !prev);
-                  }}
-                  className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors shrink-0"
-                  title={emulatedDropdownOpen ? "Collapse Emulated Systems" : "Expand Emulated Systems"}
-                >
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${emulatedDropdownOpen ? 'rotate-180' : ''}`} />
-                </div>
-              )}
+              <Layers className="w-3.5 h-3.5 shrink-0" />
+              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>All Classrooms</span>
             </motion.button>
 
-            {/* CUSTOM DROPDOWN - DROPS DOWN BENEATH EMULATED (ALL ITEMS VISIBLE, NO SCROLLBAR / NO SCROLL WHEEL) */}
-            <AnimatePresence>
-              {sidebarOpen && emulatedDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, y: -4 }}
-                  animate={{ opacity: 1, height: 'auto', y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -4 }}
-                  transition={{ duration: 0.22, ease: 'easeOut' }}
-                  className="overflow-hidden mt-1 px-0.5"
-                >
-                  <div className="bg-[var(--bg-secondary)] border border-[var(--card-border)] rounded-xl p-1.5 shadow-lg flex flex-col gap-1">
-                    {/* All Emulated option */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setGameCatalogMode('all');
-                        safeStorage.setItem('unblocked-game-catalog-mode', 'all');
-                        setFilter('Emulated');
-                        setSelectedGame(null);
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                        filter === 'Emulated' && !selectedGame
-                          ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
-                          : 'text-[var(--text-primary)] hover:bg-[var(--card-bg)] opacity-90 hover:opacity-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        {filter === 'Emulated' && !selectedGame && <Check className="w-3.5 h-3.5 shrink-0" />}
-                        <span>All Emulated</span>
-                      </div>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                        filter === 'Emulated' && !selectedGame
-                          ? 'bg-black/20 text-[var(--bg-color)]'
-                          : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
-                      }`}>
-                        {totalEmulatedGamesCount}
+            <motion.button
+              whileHover={animationsEnabled ? { x: 4 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+              onClick={() => { setFilter('single'); setSelectedGame(null); }}
+              className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center gap-2 text-xs font-medium transition-all duration-200 cursor-pointer ${
+                filter === 'single' && !selectedGame
+                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+              }`}
+            >
+              <Gamepad2 className="w-3.5 h-3.5 shrink-0" />
+              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Single Player</span>
+            </motion.button>
+            
+            <motion.button
+              whileHover={animationsEnabled ? { x: 4 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+              onClick={() => { setFilter('minecraft'); setSelectedGame(null); }}
+              className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center gap-2 text-xs font-medium transition-all duration-200 cursor-pointer ${
+                filter === 'minecraft' && !selectedGame
+                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+              }`}
+            >
+              <Box className="w-3.5 h-3.5 shrink-0" />
+              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Minecraft</span>
+            </motion.button>
+            
+            <div>
+              <motion.button
+                whileHover={animationsEnabled ? { x: 4 } : undefined}
+                whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+                onClick={() => {
+                  setGameCatalogMode('all');
+                  safeStorage.setItem('unblocked-game-catalog-mode', 'all');
+                  if (!isEmulatedActive) {
+                    setFilter('Emulated');
+                    setSelectedGame(null);
+                    setEmulatedDropdownOpen(true);
+                  } else {
+                    setEmulatedDropdownOpen(prev => !prev);
+                  }
+                }}
+                className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center justify-between gap-1.5 text-xs font-medium transition-all duration-200 cursor-pointer ${
+                  isEmulatedActive && !selectedGame
+                    ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                    : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Cpu className="w-3.5 h-3.5 shrink-0" />
+                  <div className={`flex items-center gap-1 min-w-0 transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>
+                    <span className="truncate">Emulated</span>
+                    {(emulatedTags.includes(filter) || filter === 'emulated-other') && (
+                      <span className="text-[9px] px-1 py-0.2 rounded font-mono uppercase bg-black/20 dark:bg-white/20 shrink-0">
+                        {filter === 'emulated-other' ? 'other' : filter}
                       </span>
-                    </button>
+                    )}
+                  </div>
+                </div>
+                {sidebarOpen && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEmulatedDropdownOpen(prev => !prev);
+                    }}
+                    className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors shrink-0"
+                    title={emulatedDropdownOpen ? "Collapse Emulated Systems" : "Expand Emulated Systems"}
+                  >
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${emulatedDropdownOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                )}
+              </motion.button>
 
-                    <div className="h-px bg-[var(--card-border)] my-0.5" />
+              {/* CUSTOM DROPDOWN - DROPS DOWN BENEATH EMULATED (ALL ITEMS VISIBLE, NO SCROLLBAR / NO SCROLL WHEEL) */}
+              <AnimatePresence>
+                {sidebarOpen && emulatedDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -4 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -4 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    className="overflow-hidden mt-1 px-0.5"
+                  >
+                    <div className="bg-[var(--bg-secondary)] border border-[var(--card-border)] rounded-xl p-1.5 shadow-lg flex flex-col gap-1">
+                      {/* All Emulated option */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGameCatalogMode('all');
+                          safeStorage.setItem('unblocked-game-catalog-mode', 'all');
+                          setFilter('Emulated');
+                          setSelectedGame(null);
+                        }}
+                        className={`w-full text-left px-2 py-1 rounded-md text-[11px] font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                          filter === 'Emulated' && !selectedGame
+                            ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
+                            : 'text-[var(--text-primary)] hover:bg-[var(--card-bg)] opacity-90 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {filter === 'Emulated' && !selectedGame && <Check className="w-3 h-3 shrink-0" />}
+                          <span>All Emulated</span>
+                        </div>
+                        <span className={`text-[9px] font-mono px-1 py-0.5 rounded ${
+                          filter === 'Emulated' && !selectedGame
+                            ? 'bg-black/20 text-[var(--bg-color)]'
+                            : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
+                        }`}>
+                          {totalEmulatedGamesCount}
+                        </span>
+                      </button>
 
-                    {/* Major systems (>= 10 games) and combined Other (< 10 games) - ALL VISIBLE, NO SCROLL WHEEL */}
-                    <div className="space-y-0.5">
-                      {emulatedMajorTags.map((tag) => {
-                        const isSelected = filter === tag && !selectedGame;
-                        const label = EMULATED_SYSTEM_NAMES[tag] || tag.toUpperCase();
-                        const count = emulatedTagCounts[tag] || 0;
+                      <div className="h-px bg-[var(--card-border)] my-0.5" />
 
-                        return (
+                      {/* Major systems (>= 10 games) and combined Other (< 10 games) - ALL VISIBLE, NO SCROLL WHEEL */}
+                      <div className="space-y-0.5">
+                        {emulatedMajorTags.map((tag) => {
+                          const isSelected = filter === tag && !selectedGame;
+                          const label = EMULATED_SYSTEM_NAMES[tag] || tag.toUpperCase();
+                          const count = emulatedTagCounts[tag] || 0;
+
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => {
+                                setGameCatalogMode('all');
+                                safeStorage.setItem('unblocked-game-catalog-mode', 'all');
+                                setFilter(tag);
+                                setSelectedGame(null);
+                              }}
+                              className={`w-full text-left px-2 py-1 rounded-md text-[10.5px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold shadow-sm'
+                                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
+                              }`}
+                              title={`Filter by ${label}`}
+                            >
+                              <div className="flex items-center gap-1.5 truncate mr-1">
+                                {isSelected && <Check className="w-2.5 h-2.5 shrink-0" />}
+                                <span className="truncate">{label}</span>
+                              </div>
+                              <span className={`text-[8.5px] font-mono px-1 py-0.5 rounded shrink-0 ${
+                                isSelected
+                                  ? 'bg-black/20 text-[var(--bg-color)]'
+                                  : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
+                              }`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        {/* Combined Other entry (< 10 games) */}
+                        {emulatedOtherTags.length > 0 && (
                           <button
-                            key={tag}
                             type="button"
                             onClick={() => {
                               setGameCatalogMode('all');
                               safeStorage.setItem('unblocked-game-catalog-mode', 'all');
-                              setFilter(tag);
+                              setFilter('emulated-other');
                               setSelectedGame(null);
                             }}
-                            className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
-                              isSelected
+                            className={`w-full text-left px-2 py-1 rounded-md text-[10.5px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                              filter === 'emulated-other' && !selectedGame
                                 ? 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold shadow-sm'
                                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
                             }`}
-                            title={`Filter by ${label}`}
+                            title="Other systems with less than 10 games (Lynx, Saturn, WonderSwan, ColecoVision, Neo Geo Pocket, etc.)"
                           >
                             <div className="flex items-center gap-1.5 truncate mr-1">
-                              {isSelected && <Check className="w-3 h-3 shrink-0" />}
-                              <span className="truncate">{label}</span>
+                              {filter === 'emulated-other' && !selectedGame && <Check className="w-2.5 h-2.5 shrink-0" />}
+                              <span className="truncate font-semibold">Other</span>
                             </div>
-                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
-                              isSelected
+                            <span className={`text-[8.5px] font-mono px-1 py-0.5 rounded shrink-0 ${
+                              filter === 'emulated-other' && !selectedGame
                                 ? 'bg-black/20 text-[var(--bg-color)]'
                                 : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
                             }`}>
-                              {count}
+                              {totalOtherEmulatedGamesCount}
                             </span>
                           </button>
-                        );
-                      })}
-
-                      {/* Combined Other entry (< 10 games) */}
-                      {emulatedOtherTags.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGameCatalogMode('all');
-                            safeStorage.setItem('unblocked-game-catalog-mode', 'all');
-                            setFilter('emulated-other');
-                            setSelectedGame(null);
-                          }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium flex items-center justify-between transition-all cursor-pointer ${
-                            filter === 'emulated-other' && !selectedGame
-                              ? 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold shadow-sm'
-                              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
-                          }`}
-                          title="Other systems with less than 10 games (Lynx, Saturn, WonderSwan, ColecoVision, Neo Geo Pocket, etc.)"
-                        >
-                          <div className="flex items-center gap-1.5 truncate mr-1">
-                            {filter === 'emulated-other' && !selectedGame && <Check className="w-3 h-3 shrink-0" />}
-                            <span className="truncate font-semibold">Other</span>
-                          </div>
-                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
-                            filter === 'emulated-other' && !selectedGame
-                              ? 'bg-black/20 text-[var(--bg-color)]'
-                              : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
-                          }`}>
-                            {totalOtherEmulatedGamesCount}
-                          </span>
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
-          <motion.button
-            whileHover={animationsEnabled ? { x: 6 } : undefined}
-            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-            onClick={() => { setFilter('featured'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'featured' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Sparkles className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Featured</span>
-          </motion.button>
+            <motion.button
+              whileHover={animationsEnabled ? { x: 4 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+              onClick={() => { setFilter('featured'); setSelectedGame(null); }}
+              className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center gap-2 text-xs font-medium transition-all duration-200 cursor-pointer ${
+                filter === 'featured' && !selectedGame
+                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Featured</span>
+            </motion.button>
 
-          <motion.button
-            whileHover={animationsEnabled ? { x: 6 } : undefined}
-            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-            onClick={() => { setFilter('og'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'og' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Crown className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>OG Classics</span>
-          </motion.button>
+            <motion.button
+              whileHover={animationsEnabled ? { x: 4 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+              onClick={() => { setFilter('og'); setSelectedGame(null); }}
+              className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center gap-2 text-xs font-medium transition-all duration-200 cursor-pointer ${
+                filter === 'og' && !selectedGame
+                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+              }`}
+            >
+              <Crown className="w-3.5 h-3.5 shrink-0" />
+              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>OG Classics</span>
+            </motion.button>
 
-          <motion.button
-            whileHover={animationsEnabled ? { x: 6 } : undefined}
-            whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-            onClick={() => { setFilter('multiplayer'); setSelectedGame(null); }}
-            className={`w-full text-left py-2.5 px-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 cursor-pointer ${
-              filter === 'multiplayer' && !selectedGame
-                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
-            }`}
-          >
-            <Users className="w-4.5 h-4.5 shrink-0" />
-            <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
-          </motion.button>
+            <motion.button
+              whileHover={animationsEnabled ? { x: 4 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+              onClick={() => { setFilter('multiplayer'); setSelectedGame(null); }}
+              className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center gap-2 text-xs font-medium transition-all duration-200 cursor-pointer ${
+                filter === 'multiplayer' && !selectedGame
+                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                  : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 shrink-0" />
+              <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
+            </motion.button>
 
-          <div className="border-t border-[var(--card-border)] mt-2 pt-3 relative">
-            <div className="flex items-center gap-2 pb-2">
-              <Dices className="w-3.5 h-3.5 text-[var(--accent-color)] shrink-0" />
+          <div className="border-t border-solid border-[var(--card-border)] mt-2 pt-2.5 relative">
+            <div className="flex items-center justify-between gap-1 pb-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Dices className="w-3.5 h-3.5 text-[var(--accent-color)] shrink-0" />
+                {sidebarOpen && (
+                  <span className="text-[8px] font-sans font-bold uppercase tracking-wider text-[var(--text-primary)] whitespace-nowrap">
+                    Random Game
+                  </span>
+                )}
+              </div>
               {sidebarOpen && (
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap">
-                  Random Game Picker
+                <span className="text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-[var(--accent-color)]/10 text-[var(--accent-color)] border border-[var(--accent-color)]/20 whitespace-nowrap shrink-0">
+                  {randomEligibleCount} in pool
                 </span>
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setRandomPickerOpen((prev) => !prev)}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-color)] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-[var(--bg-color)] shadow-[0_6px_18px_var(--accent-shadow)] cursor-pointer"
-            >
-              <Dices className="w-3.5 h-3.5" />
-              Open Menu
-            </button>
+            <div className={`grid ${sidebarOpen ? 'grid-cols-2' : 'grid-cols-1'} gap-1.5`}>
+              <button
+                type="button"
+                onClick={pickRandomRankedGame}
+                className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-[var(--accent-color)] px-2 py-1.5 text-[9px] font-black uppercase tracking-wider text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+                title={`Roll a random game from ${randomEligibleCount} curated classics (S-C Tier)`}
+              >
+                <Dices className="w-3.5 h-3.5 shrink-0" />
+                {sidebarOpen && <span>Roll Game</span>}
+              </button>
+
+              {sidebarOpen && (
+                <button
+                  type="button"
+                  onClick={() => setRandomPickerOpen((prev) => !prev)}
+                  className={`w-full flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[9px] font-mono uppercase tracking-wider transition-all cursor-pointer ${
+                    randomPickerOpen
+                      ? 'border-[var(--accent-color)] bg-[var(--card-bg)] text-[var(--accent-color)]'
+                      : 'border-[var(--card-border)] bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
+                  title="Customize pool tiers and sections"
+                >
+                  <Settings className="w-3 h-3 shrink-0" />
+                  <span>Filters</span>
+                </button>
+              )}
+            </div>
 
             <AnimatePresence>
               {randomPickerOpen && (
@@ -5186,12 +5307,14 @@ export default function App() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.98 }}
                   transition={{ duration: 0.18 }}
-                  className="absolute left-0 right-0 z-20 mt-2 rounded-2xl border border-[var(--card-border)] bg-[var(--bg-secondary)] p-3 shadow-2xl"
+                  className="absolute left-0 right-0 z-30 mt-2 rounded-2xl border border-[var(--card-border)] bg-[var(--bg-secondary)] p-3 shadow-2xl backdrop-blur-md"
                 >
-                  <div className="flex items-center justify-between pb-2">
-                    <span className="text-[9px] font-mono uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                      Pick Pool
-                    </span>
+                  <div className="flex items-center justify-between pb-2 border-b border-[var(--card-border)]/50">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-[0.16em] text-[var(--text-primary)]">
+                        Curated Pool ({randomEligibleCount})
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setRandomPickerOpen(false)}
@@ -5202,66 +5325,95 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {rankedGameSections.map((section) => (
-                      <button
-                        key={section.key}
-                        type="button"
-                        onClick={() => setRandomRankingPool(section.key)}
-                        className={`rounded-full border px-1.5 py-1 text-[8px] font-mono uppercase tracking-wider transition-all cursor-pointer ${
-                          randomRankingPool === section.key
-                            ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-[var(--bg-color)]'
-                            : 'border-[var(--card-border)] bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        {section.label}
-                      </button>
-                    ))}
+                  <div className="mt-2.5 mb-3">
+                    <div className="mb-1.5 text-[8.5px] font-mono uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                      Game Section
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {rankedGameSections.map((section) => (
+                        <button
+                          key={section.key}
+                          type="button"
+                          onClick={() => setRandomRankingPool(section.key)}
+                          className={`rounded-full border px-2 py-0.5 text-[8px] font-mono uppercase tracking-wider transition-all cursor-pointer ${
+                            randomRankingPool === section.key
+                              ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-[var(--bg-color)] font-bold'
+                              : 'border-[var(--card-border)] bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {section.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="mb-3">
-                    <div className="mb-2 text-[9px] font-mono uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                      Exclude tiers
+                    <div className="mb-1.5 text-[8.5px] font-mono uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                      Tiers in pool (tap to exclude)
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {gameTierOrder.map((tier) => {
                         const excluded = excludedRandomTiers.includes(tier);
+                        const tierBadges = {
+                          S: excluded
+                            ? 'border-amber-500/20 bg-amber-500/5 text-amber-500/30 line-through'
+                            : 'border-amber-400/80 bg-amber-500/15 text-amber-300 font-extrabold shadow-[0_0_8px_rgba(251,191,36,0.15)]',
+                          A: excluded
+                            ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500/30 line-through'
+                            : 'border-emerald-400/80 bg-emerald-500/15 text-emerald-300 font-extrabold',
+                          B: excluded
+                            ? 'border-sky-500/20 bg-sky-500/5 text-sky-500/30 line-through'
+                            : 'border-sky-400/80 bg-sky-500/15 text-sky-300 font-extrabold',
+                          C: excluded
+                            ? 'border-purple-500/20 bg-purple-500/5 text-purple-500/30 line-through'
+                            : 'border-purple-400/80 bg-purple-500/15 text-purple-300 font-extrabold',
+                        };
                         return (
                           <button
                             key={tier}
                             type="button"
                             onClick={() => toggleExcludedTier(tier)}
-                            className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-wide transition-all cursor-pointer ${
-                              excluded
-                                ? 'border-red-500/60 bg-red-500/10 text-red-200'
-                                : 'border-[var(--card-border)] bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            className={`rounded-md border px-2 py-1 text-[9px] uppercase tracking-wider transition-all cursor-pointer ${
+                              tierBadges[tier] || 'border-[var(--card-border)] bg-[var(--bg-primary)]'
                             }`}
+                            title={excluded ? `Include ${tier}-Tier` : `Exclude ${tier}-Tier`}
                           >
-                            {tier}
+                            {tier}-Tier
                           </button>
                         );
                       })}
                       <button
                         type="button"
                         onClick={() => toggleExcludedTier('EMULATED')}
-                        className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-wide transition-all cursor-pointer ${
+                        className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-wider transition-all cursor-pointer ${
                           excludedRandomTiers.includes('EMULATED')
-                            ? 'border-red-500/60 bg-red-500/10 text-red-200'
-                            : 'border-[var(--card-border)] bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            ? 'border-red-500/30 bg-red-500/5 text-red-400/40 line-through'
+                            : 'border-neutral-500/40 bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-neutral-400'
                         }`}
+                        title={excludedRandomTiers.includes('EMULATED') ? 'Include Emulated' : 'Exclude Emulated'}
                       >
                         Emulated
                       </button>
                     </div>
                   </div>
 
+                  <div className="rounded-lg bg-[var(--bg-primary)]/80 border border-[var(--card-border)]/50 p-2 mb-3 text-[8.5px] font-mono text-[var(--text-muted)] space-y-1 leading-tight">
+                    <div className="flex items-center justify-between text-[var(--text-primary)]">
+                      <span>Curated pool size:</span>
+                      <span className="font-bold text-[var(--accent-color)]">{randomEligibleCount} games</span>
+                    </div>
+                    <div className="text-[8px] text-neutral-400/80">
+                      Auto-excludes ~2,000 unknown/unranked titles
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     onClick={pickRandomRankedGame}
-                    className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-color)] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-[var(--bg-color)] shadow-[0_6px_18px_var(--accent-shadow)] cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-color)] px-2.5 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--bg-color)] shadow-[0_6px_18px_var(--accent-shadow)] hover:opacity-95 active:scale-98 transition-all cursor-pointer"
                   >
-                    <Dices className="w-3.5 h-3.5" />
-                    Pick Random
+                    <Dices className="w-4 h-4" />
+                    Pick Random Game
                   </button>
                 </motion.div>
               )}
@@ -5269,6 +5421,22 @@ export default function App() {
           </div>
 
           <div className="flex-1" />
+
+          {/* Request a Portal - Moved to bottom of sidebar */}
+          <div className="pt-2 border-t border-[var(--card-border)]/50 mt-auto">
+            <motion.button
+              whileHover={animationsEnabled ? { x: 4 } : undefined}
+              whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+              onClick={() => { window.open('https://forms.gle/YCN8itY7WqmN82CY8', '_blank'); }}
+              className="w-full text-left py-1.5 px-2.5 rounded-lg flex items-center gap-2 text-xs font-medium transition-all duration-200 cursor-pointer hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-80 group"
+              title="Request a Portal"
+            >
+              <ExternalLink className="w-3.5 h-3.5 shrink-0 text-[var(--accent-color)] group-hover:scale-110 transition-transform" />
+              <span className={`transition-all duration-300 truncate ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>
+                Request a Portal
+              </span>
+            </motion.button>
+          </div>
 
         </aside>
         )}
@@ -5807,10 +5975,11 @@ export default function App() {
                         const iframe = document.getElementById('game-frame');
                         if (iframe) iframe.src = iframe.src;
                       }}
-                      className="p-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] rounded-lg text-[var(--text-primary)] transition-all cursor-pointer"
-                      title="Reload portal frame session"
+                      className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                      title="Reload Iframe (Refresh portal frame)"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline text-[10px] font-bold tracking-tight">Reload Iframe</span>
                     </button>
 
                     {/* Direct Gmfiles Link button for local public games */}
@@ -5840,11 +6009,10 @@ export default function App() {
                           link.click();
                           document.body.removeChild(link);
                         }}
-                        className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
-                        title="Download Offline Piece (.html)"
+                        className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                        title="Download Offline (.html)"
                       >
                         <Download className="w-3.5 h-3.5 text-[var(--accent-color)]" />
-                        <span className="hidden sm:inline text-[10px] font-bold text-[var(--accent-color)]">DOWNLOAD PIECE</span>
                       </button>
                     )}
 
@@ -5860,45 +6028,49 @@ export default function App() {
                           }
                         }
                       }}
-                      className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
-                      title="Toggle Fullscreen Arena"
+                      className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                      title="Toggle Fullscreen Arena (FS)"
                     >
                       <Expand className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline text-[10px] font-bold tracking-tight">FS</span>
                     </button>
 
                     {/* Window Fullscreen Button */}
                     <button
                       onClick={() => setWindowFullscreen(!windowFullscreen)}
-                      className={`flex items-center gap-1.5 border py-1.5 px-2.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 border py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
                         windowFullscreen
                           ? 'border-amber-500 bg-amber-500/15 text-amber-500 font-bold shadow-[0_0_8px_rgba(245,158,11,0.2)]'
                           : 'border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)]'
                       }`}
-                      title={windowFullscreen ? "Exit Window Fullscreen" : "Window Fullscreen Mode"}
+                      title={windowFullscreen ? "Exit Win FS" : "Win FS (Window Fullscreen)"}
                     >
                       {windowFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                      <span className="hidden sm:inline text-[10px] font-bold tracking-tight">Win FS</span>
                     </button>
 
-                  {/* Open in New Tab button */}
+                  {/* Open in New Tab (Blank) button */}
                   <button
                     onClick={() => openGameInAboutBlank(selectedGame)}
-                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
-                    title="Open Portal in New Tab (about:blank)"
+                    className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                    title="Open in Blank (about:blank)"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline text-[10px] font-bold tracking-tight">Abt:Blank</span>
                   </button>
 
-                  {/* Lobby Chat Toggle Button */}
+                  {/* Lobby Chat (Slideout Chat) Toggle Button */}
                   <button
                     onClick={() => setDockedChatCollapsed(!dockedChatCollapsed)}
-                    className={`flex items-center gap-1.5 border py-1.5 px-2.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 border py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
                       !dockedChatCollapsed 
                         ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/10 text-[var(--accent-color)] font-bold shadow-[0_0_8px_rgba(0,229,176,0.15)]' 
                         : 'border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)]'
                     }`}
-                    title="Toggle Live Lobby Chat inside Portal Arena"
+                    title="Toggle Slideout Chat inside Portal Arena"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline text-[10px] font-bold tracking-tight">Slideout Chat</span>
                   </button>
 
                   {/* Hide / Show Header Button */}
@@ -5946,7 +6118,7 @@ export default function App() {
                       height: `${100 / zoom}%`
                     }}
                   >
-                    {gameFrame && (
+                    {gameFrame ? (
                       <iframe
                         id="game-frame"
                         key={selectedGame.id}
@@ -5957,6 +6129,44 @@ export default function App() {
                         referrerPolicy="no-referrer"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                       />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center w-full h-full text-center p-6 bg-[#080b12] text-white">
+                        <div className="w-12 h-12 rounded-2xl bg-[var(--accent-color)]/10 border border-[var(--accent-color)]/30 flex items-center justify-center text-[var(--accent-color)] mb-3 shadow-[0_0_20px_rgba(0,229,176,0.15)]">
+                          <ExternalLink className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-base font-bold font-mono tracking-tight mb-1 text-[var(--text-primary)]">
+                          Game Active in Blank Tab
+                        </h3>
+                        <p className="text-[var(--text-muted)] text-xs max-w-md mb-4 leading-relaxed font-sans">
+                          This game is running in an external <code className="bg-white/10 text-white px-1.5 py-0.5 rounded text-[11px] font-mono">about:blank</code> tab. The in-arena frame has been unloaded to prevent high memory usage and lagging.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const cached = gameHtmlCache.get(selectedGame.url);
+                              if (cached) {
+                                setGameFrame(cached);
+                              } else {
+                                loadGameFrame(selectedGame.url).then((f) => {
+                                  setCachedGameHtml(selectedGame.url, f);
+                                  setGameFrame(f);
+                                });
+                              }
+                            }}
+                            className="px-4 py-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-lg text-xs font-mono font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Resume in Arena</span>
+                          </button>
+                          <button
+                            onClick={() => openGameInAboutBlank(selectedGame)}
+                            className="px-3.5 py-2 border border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[var(--accent-color)] text-[var(--text-primary)] rounded-lg text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>Re-open Blank Tab</span>
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -5982,7 +6192,8 @@ export default function App() {
 
 
 
-      </div>
-    </Suspense>
+        </div>
+      </Suspense>
+    </MotionConfig>
   );
 }
