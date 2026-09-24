@@ -152,7 +152,9 @@ import {
   Timer,
   Dices,
   GripVertical,
-  Crown
+  Crown,
+  Trophy,
+  Medal
 } from 'lucide-react';
 
 // Safe storage helper to prevent SecurityError crash in sandboxed iframes
@@ -174,6 +176,31 @@ const safeStorage = {
   removeItem: (key) => {
     try {
       localStorage.removeItem(key);
+    } catch (e) {
+      // Ignore security errors
+    }
+  }
+};
+
+// Safe session storage helper for per-tab session state (persists across reloads, clears when tab is closed)
+const safeSessionStorage = {
+  getItem: (key) => {
+    try {
+      return sessionStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      sessionStorage.setItem(key, value);
+    } catch (e) {
+      // Ignore security errors
+    }
+  },
+  removeItem: (key) => {
+    try {
+      sessionStorage.removeItem(key);
     } catch (e) {
       // Ignore security errors
     }
@@ -720,9 +747,34 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       if (params.get('unlocked') === 'true' || params.get('view') === 'games') {
         safeStorage.setItem('classroom-view-mode', 'games');
+        safeStorage.setItem('classroom-passcode-unlocked', 'true');
+        safeSessionStorage.setItem('classroom-view-mode', 'games');
+        safeSessionStorage.setItem('classroom-passcode-unlocked', 'true');
         return 'games';
       }
     }
+    // Check if session storage retains unlocked status in current tab
+    const sessionMode = safeSessionStorage.getItem('classroom-view-mode');
+    if (sessionMode === 'games') {
+      safeStorage.setItem('classroom-view-mode', 'games');
+      safeStorage.setItem('classroom-passcode-unlocked', 'true');
+      return 'games';
+    }
+
+    // Check if website refresh button was used recently (so refresh never logs you out)
+    try {
+      const wasRefreshing = safeStorage.getItem('unblocked-refreshing-session') === 'true';
+      const refreshTimestamp = Number(safeStorage.getItem('unblocked-refresh-timestamp') || 0);
+      if (wasRefreshing && Date.now() - refreshTimestamp < 30000) {
+        safeStorage.removeItem('unblocked-refreshing-session');
+        safeStorage.setItem('classroom-view-mode', 'games');
+        safeStorage.setItem('classroom-passcode-unlocked', 'true');
+        safeSessionStorage.setItem('classroom-view-mode', 'games');
+        safeSessionStorage.setItem('classroom-passcode-unlocked', 'true');
+        return 'games';
+      }
+    } catch {}
+
     const saved = safeStorage.getItem('classroom-view-mode');
     if (saved === 'games') return 'games';
     return 'articles'; // Innocent educational syllabus base is shown on first startup
@@ -879,7 +931,7 @@ export default function App() {
         return 'info';
       }
       const saved = safeStorage.getItem('unblocked-last-filter');
-      return saved || 'all';
+      return (saved === 'recent' ? 'all' : saved) || 'all';
     } catch {
       return 'info';
     }
@@ -979,6 +1031,130 @@ export default function App() {
   const [gameFrame, setGameFrame] = useState(null);
   const restoredSavedGame = useRef(false);
 
+  // Single game coordination across arena, about:blank, and other tabs/windows
+  const [externalActiveGame, setExternalActiveGame] = useState(null);
+  const activeAboutBlankWinRef = useRef(null);
+  const arenaInstanceId = useRef('arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8));
+
+  const broadcastGameStarted = useCallback((gameId, gameTitle, instId) => {
+    try {
+      const ch = new BroadcastChannel('urnperiodic_single_game_bus');
+      ch.postMessage({
+        type: 'GAME_LOADED',
+        gameId,
+        gameTitle,
+        instanceId: instId
+      });
+      ch.close();
+    } catch {}
+    try {
+      safeStorage.setItem('urnperiodic_active_game_load', JSON.stringify({
+        gameId,
+        gameTitle,
+        instanceId: instId,
+        timestamp: Date.now()
+      }));
+    } catch {}
+  }, []);
+
+  // Built-in safe page refresh that preserves the outer about:blank disguise without logging the user out
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isRefreshingRef = useRef(false);
+  const handleRefreshPage = useCallback(() => {
+    setIsRefreshing(true);
+    isRefreshingRef.current = true;
+
+    // Explicitly preserve authentication / login status across this refresh so user is never logged out
+    try {
+      const isCurrentlyUnlocked = (viewMode === 'games') ||
+        safeStorage.getItem('classroom-view-mode') === 'games' ||
+        safeSessionStorage.getItem('classroom-view-mode') === 'games';
+
+      if (isCurrentlyUnlocked) {
+        safeStorage.setItem('classroom-view-mode', 'games');
+        safeStorage.setItem('classroom-passcode-unlocked', 'true');
+        safeStorage.setItem('unblocked-refreshing-session', 'true');
+        safeStorage.setItem('unblocked-refresh-timestamp', String(Date.now()));
+        safeSessionStorage.setItem('classroom-view-mode', 'games');
+        safeSessionStorage.setItem('classroom-passcode-unlocked', 'true');
+      }
+    } catch {}
+
+    // Reload safely: if running inside an iframe (like in an about:blank tab),
+    // window.location.reload() refreshes the inner website without wiping out the outer about:blank tab
+    setTimeout(() => {
+      try {
+        window.location.reload();
+      } catch {
+        window.location.href = window.location.href;
+      }
+    }, 60);
+  }, [viewMode]);
+
+  // Intercept F5 and Ctrl+R / Cmd+R inside iframe so outer about:blank does not become blank
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+        let isFramed = false;
+        try {
+          isFramed = window.self !== window.top;
+        } catch {
+          isFramed = true;
+        }
+        if (isFramed) {
+          e.preventDefault();
+          handleRefreshPage();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRefreshPage]);
+
+  // Listen to single-game coordination events from other tabs / windows
+  useEffect(() => {
+    let channel = null;
+    try {
+      channel = new BroadcastChannel('urnperiodic_single_game_bus');
+      channel.onmessage = (e) => {
+        if (!e.data) return;
+        if (e.data.type === 'GAME_LOADED' && e.data.instanceId !== arenaInstanceId.current) {
+          // Another game was loaded in another window or tab! Unload arena game frame
+          setGameFrame(null);
+          setExternalActiveGame({
+            id: e.data.gameId,
+            title: e.data.gameTitle || 'Another game'
+          });
+        } else if (e.data.type === 'GAME_CLOSED' && e.data.instanceId !== arenaInstanceId.current) {
+          setExternalActiveGame(null);
+        }
+      };
+    } catch {}
+
+    const handleStorage = (e) => {
+      if (e.key === 'urnperiodic_active_game_load' && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          if (data && data.instanceId !== arenaInstanceId.current) {
+            setGameFrame(null);
+            setExternalActiveGame({
+              id: data.gameId,
+              title: data.gameTitle || 'Another game'
+            });
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      if (channel) {
+        try { channel.close(); } catch {}
+      }
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
   useEffect(() => {
     let active = true;
     import('./data/gameCatalog').then(({ games: loadedGames }) => {
@@ -1006,6 +1182,11 @@ export default function App() {
       return undefined;
     }
 
+    // Enforce only one game loaded: broadcast to any other windows/tabs to unload their game
+    setExternalActiveGame(null);
+    arenaInstanceId.current = 'arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    broadcastGameStarted(selectedGame.id, selectedGame.title, arenaInstanceId.current);
+
     const cachedFrame = gameHtmlCache.get(selectedGame.url);
     if (cachedFrame) {
       setGameFrame(cachedFrame);
@@ -1025,7 +1206,7 @@ export default function App() {
       });
 
     return () => controller.abort();
-  }, [selectedGame]);
+  }, [selectedGame, broadcastGameStarted]);
 
   const [gameHeaderHidden, setGameHeaderHidden] = useState(false);
   const [isBootComplete, setIsBootComplete] = useState(false);
@@ -1104,6 +1285,9 @@ export default function App() {
       const searchParams = new URLSearchParams(window.location.search);
       searchParams.set('decoyType', decoyType);
       searchParams.set('view', 'games');
+      if (isPasscodeUnlocked) {
+        searchParams.set('unlocked', 'true');
+      }
       if (selectedGame) {
         searchParams.set('game', selectedGame.id);
       }
@@ -1148,18 +1332,93 @@ export default function App() {
       win.document.body.style.margin = "0"; win.document.body.style.padding = "0"; win.document.body.style.width = "100%"; win.document.body.style.height = "100%"; win.document.body.style.overflow = "hidden"; win.document.body.style.background = "#000";
       const iframe = win.document.createElement("iframe"); iframe.src = url; iframe.style.width = "100vw"; iframe.style.height = "100vh"; iframe.style.border = "none"; iframe.style.display = "block"; iframe.style.margin = "0"; iframe.style.padding = "0"; iframe.setAttribute("allow", "fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation"); iframe.setAttribute("allowfullscreen", "true");
       win.document.body.appendChild(iframe);
+
+      // Prevent about:blank tab from going permanently blank when browser refresh (F5 / Ctrl+R) is pressed
+      try {
+        win.addEventListener('keydown', function(e) {
+          if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+            e.preventDefault();
+            try {
+              localStorage.setItem('classroom-view-mode', 'games');
+              localStorage.setItem('classroom-passcode-unlocked', 'true');
+              localStorage.setItem('unblocked-refreshing-session', 'true');
+              localStorage.setItem('unblocked-refresh-timestamp', String(Date.now()));
+            } catch (err) {}
+            try {
+              if (iframe.contentWindow) {
+                iframe.contentWindow.location.reload();
+                return;
+              }
+            } catch (err) {}
+            iframe.src = url;
+          }
+        });
+      } catch (e) {}
     } else {
       alert("Popup blocked! Please allow popups for this site.");
     }
   };
 
+  // State to persist recently played games across sessions
+  const [recentlyPlayed, setRecentlyPlayed] = useState(() => {
+    try {
+      const stored = safeStorage.getItem('unblocked-recently-played');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Record a recently played game (automatic when clicked or opened)
+  const recordRecentlyPlayed = useCallback((gameOrId) => {
+    if (!gameOrId) return;
+    const gameId = typeof gameOrId === 'object' ? gameOrId.id : gameOrId;
+    if (!gameId) return;
+
+    setRecentlyPlayed((prev) => {
+      const currentList = Array.isArray(prev) ? prev : [];
+      const filtered = currentList.filter((id) => id !== gameId);
+      const updated = [gameId, ...filtered].slice(0, 30);
+      try {
+        safeStorage.setItem('unblocked-recently-played', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+  }, []);
+
+  const clearRecentlyPlayed = useCallback(() => {
+    setRecentlyPlayed([]);
+    try {
+      safeStorage.removeItem('unblocked-recently-played');
+    } catch (err) {}
+  }, []);
+
+  const removeRecentlyPlayed = useCallback((e, gameId) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    setRecentlyPlayed((prev) => {
+      const currentList = Array.isArray(prev) ? prev : [];
+      const updated = currentList.filter((id) => id !== gameId);
+      try {
+        safeStorage.setItem('unblocked-recently-played', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+  }, []);
+
   const openGameInAboutBlank = (gameToOpen) => {
     if (!gameToOpen) return;
+    recordRecentlyPlayed(gameToOpen.id);
 
-    // Unload the in-page arena frame if the exact same game is being opened in about:blank
-    // to prevent running two heavy WebGL/Canvas game instances simultaneously
-    if (selectedGame && selectedGame.id === gameToOpen.id) {
-      setGameFrame(null);
+    // Enforce only one game loaded: unload in-page arena frame
+    setGameFrame(null);
+    setSelectedGame(gameToOpen);
+    setExternalActiveGame(null);
+
+    // If an existing about:blank window was opened, close it so only one game is active
+    if (activeAboutBlankWinRef.current && !activeAboutBlankWinRef.current.closed) {
+      try {
+        activeAboutBlankWinRef.current.close();
+      } catch {}
     }
 
     const win = window.open("about:blank", "_blank");
@@ -1167,14 +1426,10 @@ export default function App() {
       alert("Popup blocked. Allow popups for this site.");
       return;
     }
+    activeAboutBlankWinRef.current = win;
 
-    // Sever the opener reference so Chrome can place the about:blank tab in an isolated process
-    // and independently garbage-collect memory without pinning the parent window heap
-    try {
-      win.opener = null;
-    } catch {
-      // Safe fallback
-    }
+    const aboutBlankInstId = 'ab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    broadcastGameStarted(gameToOpen.id, gameToOpen.title, aboutBlankInstId);
 
     const classroomFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
     let tabTitle = gameToOpen.title;
@@ -1214,10 +1469,50 @@ export default function App() {
         <link rel="shortcut icon" type="image/png" href="${tabFavicon}">
         <meta charset="utf-8">
         <style>
-          html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000000; }
+          html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000000; font-family: system-ui, -apple-system, sans-serif; }
           iframe { width: 100vw; height: 100vh; border: none; display: block; }
+          #suspended-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #080b12;
+            color: #ffffff;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            z-index: 999999;
+          }
+          .suspended-box {
+            background: #111827;
+            border: 1px solid #1f2937;
+            padding: 28px 32px;
+            border-radius: 16px;
+            max-width: 440px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .suspended-btn {
+            background: #00e5b0;
+            color: #05070e;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 16px;
+          }
+          .suspended-btn:hover { opacity: 0.9; }
         </style>
         <script>
+          var myInstanceId = "${aboutBlankInstId}";
+          var currentTabTitle = "${tabTitle.replace(/"/g, '\\"')}";
+          var channel = null;
+
           function forceFavicon() {
             var head = document.head || document.getElementsByTagName('head')[0];
             var links = document.querySelectorAll("link[rel*='icon']");
@@ -1231,8 +1526,85 @@ export default function App() {
           }
           forceFavicon();
           window.addEventListener('load', forceFavicon);
-          // Free WebGL, AudioContext, and DOM memory immediately when the tab closes or unloads
+
+          // Safe reload interceptor: prevents about:blank from turning blank on F5 or Ctrl+R
+          window.addEventListener('keydown', function(e) {
+            if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+              e.preventDefault();
+              var f = document.getElementById('about-blank-game-frame');
+              if (f) {
+                try {
+                  f.contentWindow.location.reload();
+                } catch (err) {
+                  if (f.src) f.src = f.src;
+                }
+              }
+            }
+          });
+
+          // Single game coordination: listen for any other game loaded
+          try {
+            channel = new BroadcastChannel('urnperiodic_single_game_bus');
+            channel.onmessage = function(ev) {
+              if (ev.data && ev.data.type === 'GAME_LOADED' && ev.data.instanceId !== myInstanceId) {
+                // Another game was loaded! Suspend this game frame
+                var f = document.getElementById('about-blank-game-frame');
+                if (f) {
+                  if (f.src && f.src !== 'about:blank') {
+                    window._savedGameUrl = f.src;
+                  }
+                  f.src = 'about:blank';
+                  f.style.display = 'none';
+                }
+                var modal = document.getElementById('suspended-modal');
+                if (modal) {
+                  modal.style.display = 'flex';
+                  var titleEl = document.getElementById('suspended-game-title');
+                  if (titleEl && ev.data.gameTitle) titleEl.textContent = ev.data.gameTitle;
+                }
+              }
+            };
+          } catch(e) {}
+
+          window.resumeThisGame = function() {
+            myInstanceId = 'ab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+            if (channel) {
+              try {
+                channel.postMessage({
+                  type: 'GAME_LOADED',
+                  instanceId: myInstanceId,
+                  gameTitle: currentTabTitle
+                });
+              } catch(e) {}
+            }
+            try {
+              localStorage.setItem('urnperiodic_active_game_load', JSON.stringify({
+                instanceId: myInstanceId,
+                gameTitle: currentTabTitle,
+                timestamp: Date.now()
+              }));
+            } catch(e) {}
+
+            var modal = document.getElementById('suspended-modal');
+            if (modal) modal.style.display = 'none';
+            var f = document.getElementById('about-blank-game-frame');
+            if (f) {
+              f.style.display = 'block';
+              if (window._savedGameUrl) {
+                f.src = window._savedGameUrl;
+              } else if (window._reinitGame) {
+                window._reinitGame();
+              }
+            }
+          };
+
           window.addEventListener('beforeunload', function() {
+            try {
+              if (channel) {
+                channel.postMessage({ type: 'GAME_CLOSED', instanceId: myInstanceId });
+                channel.close();
+              }
+            } catch(e) {}
             try {
               var f = document.getElementById('about-blank-game-frame');
               if (f) {
@@ -1245,6 +1617,16 @@ export default function App() {
       </head>
       <body>
         <iframe id="about-blank-game-frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation" referrerpolicy="no-referrer"></iframe>
+        <div id="suspended-modal">
+          <div class="suspended-box">
+            <div style="font-size: 32px; margin-bottom: 12px;">🎮</div>
+            <h2 style="font-size: 18px; margin: 0 0 8px 0; font-weight: 700;">Game Suspended (Single Game Limit)</h2>
+            <p style="font-size: 13px; color: #9ca3af; margin: 0; line-height: 1.5;">
+              Another game (<span id="suspended-game-title" style="color:#00e5b0; font-weight:600;">portal</span>) was loaded. Only one game can be loaded at a time to prevent high memory usage and lag.
+            </p>
+            <button class="suspended-btn" onclick="window.resumeThisGame()">Resume This Game</button>
+          </div>
+        </div>
       </body>
       </html>
     `);
@@ -1264,12 +1646,13 @@ export default function App() {
         if (!win.closed && frame) {
           if (gameFrameData.src) {
             frame.src = gameFrameData.src;
+            win._savedGameUrl = gameFrameData.src;
           } else if (gameFrameData.srcDoc) {
-            // Using a Blob URL allows the browser to stream and release raw string memory
             try {
               const blob = new Blob([gameFrameData.srcDoc], { type: 'text/html;charset=utf-8' });
               const blobUrl = URL.createObjectURL(blob);
               frame.src = blobUrl;
+              win._savedGameUrl = blobUrl;
               frame.onload = () => {
                 try { URL.revokeObjectURL(blobUrl); } catch {}
               };
@@ -1332,6 +1715,12 @@ export default function App() {
     setViewMode(mode);
     safeStorage.setItem('classroom-view-mode', mode);
     safeStorage.setItem('classroom-passcode-unlocked', mode === 'games' ? 'true' : 'false');
+    safeSessionStorage.setItem('classroom-view-mode', mode);
+    safeSessionStorage.setItem('classroom-passcode-unlocked', mode === 'games' ? 'true' : 'false');
+    if (mode === 'articles') {
+      safeStorage.removeItem('unblocked-refreshing-session');
+      safeStorage.removeItem('unblocked-refresh-timestamp');
+    }
     if (mode === 'games') {
       setHeaderOpen(false);
       setSidebarOpen(true);
@@ -1403,6 +1792,16 @@ export default function App() {
   // Sign Out / Lock Workspace when tab or window is closed
   useEffect(() => {
     const handleUnload = () => {
+      // If the user triggered an in-website refresh or an active reload, do not lock out
+      if (isRefreshingRef.current) return;
+      try {
+        const refreshingSession = safeStorage.getItem('unblocked-refreshing-session') === 'true';
+        const refreshTime = Number(safeStorage.getItem('unblocked-refresh-timestamp') || 0);
+        if (refreshingSession && Date.now() - refreshTime < 15000) {
+          return;
+        }
+      } catch {}
+
       if (autoLockOnClose) {
         safeStorage.setItem('classroom-view-mode', 'articles');
         safeStorage.setItem('classroom-passcode-unlocked', 'false');
@@ -1544,6 +1943,8 @@ export default function App() {
         // Automatically save that we are unlocked so the iframe can read it
         safeStorage.setItem('classroom-view-mode', 'games');
         safeStorage.setItem('classroom-passcode-unlocked', 'true');
+        safeSessionStorage.setItem('classroom-view-mode', 'games');
+        safeSessionStorage.setItem('classroom-passcode-unlocked', 'true');
 
         const searchParams = new URLSearchParams(window.location.search);
         searchParams.set('unlocked', 'true');
@@ -1931,6 +2332,13 @@ export default function App() {
   useEffect(() => {
     safeStorage.setItem('unblocked-favorites', JSON.stringify(favorites));
   }, [favorites]);
+
+  // Track active game selection to automatically populate recently played
+  useEffect(() => {
+    if (selectedGame?.id) {
+      recordRecentlyPlayed(selectedGame.id);
+    }
+  }, [selectedGame?.id, recordRecentlyPlayed]);
 
   // Hide/show chat widget based on lock state
   useEffect(() => {
@@ -2366,8 +2774,8 @@ export default function App() {
     ].filter((section) => section.games.length > 0);
   }, [games, isSinglePlayerCategory, isMultiplayerCategory]);
 
-  const gameTierOrder = ['S', 'A', 'B', 'C'];
-  const [selectedTier, setSelectedTier] = useState('S');
+  const gameTierOrder = ['A', 'B', 'C', 'D'];
+  const [selectedTier, setSelectedTier] = useState('A');
   const [randomRankingPool, setRandomRankingPool] = useState('all');
   const [randomPickerOpen, setRandomPickerOpen] = useState(false);
   const [excludedRandomTiers, setExcludedRandomTiers] = useState([]);
@@ -2386,23 +2794,58 @@ export default function App() {
       .trim();
   };
 
-  const tierLookupMap = useMemo(() => {
-    const lookup = new Map();
+  const normalizeLiteralTitle = (title) => {
+    return String(title || '')
+      .toLowerCase()
+      .replace(/[’']/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\b(?:the|and|of|a|an|vs|v)\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const gameRankMap = useMemo(() => {
+    const map = new Map();
+    let currentRank = 1;
 
     Object.entries(gameRankings).forEach(([tier, titles]) => {
       titles.forEach((title) => {
-        const normalized = normalizeTierTitle(title);
-        if (normalized) lookup.set(normalized, tier);
+        const rankInfo = { rank: currentRank++, tier, canonicalTitle: title };
+        const normClean = normalizeTierTitle(title);
+        const normLit = normalizeLiteralTitle(title);
+        if (normClean && !map.has(normClean)) map.set(normClean, rankInfo);
+        if (normLit && !map.has(normLit)) map.set(normLit, rankInfo);
       });
     });
 
-    return lookup;
+    const aliases = [
+      ['minecraft 1 12', 'minecraft'],
+      ['minecraft launcher', 'minecraft'],
+      ['fnaf', 'fnaf 1'],
+      ['plants zombies', 'plants vs zombies'],
+      ['fnaf sister location', 'sister location'],
+      ['fnaf ultimate custom night', 'ucn'],
+      ['slope', 'slope'],
+      ['run 3', 'run 3'],
+      ['geometry dash', 'geometry dash'],
+      ['1v1 lol', '1v1 lol'],
+      ['retro bowl', 'retro bowl'],
+      ['super smash flash 2', 'super smash flash 2'],
+    ];
+
+    aliases.forEach(([from, to]) => {
+      const targetInfo = map.get(to);
+      if (targetInfo && !map.has(from)) {
+        map.set(from, targetInfo);
+      }
+    });
+
+    return map;
   }, []);
 
-  const getGameTier = useCallback((game) => {
+  const getGameRankInfo = useCallback((game) => {
+    if (!game) return null;
     const explicitTier = String(game?.rankTier || '').trim().toUpperCase();
-    if (['S', 'A', 'B', 'C', 'D'].includes(explicitTier)) return explicitTier;
-
     const rawTitle = String(game?.title || '');
     const withoutParens = rawTitle.replace(/\s*\([^)]*\)/g, ' ').replace(/\s*\[[^\]]*\]/g, ' ').trim();
     const baseTitle = rawTitle.split(/[:–—\-]/)[0].trim();
@@ -2419,17 +2862,44 @@ export default function App() {
     ].filter(Boolean);
 
     for (const candidateTitle of candidateTitles) {
-      const mappedTier = tierLookupMap.get(normalizeTierTitle(candidateTitle));
-      if (mappedTier) return mappedTier;
+      const info = gameRankMap.get(normalizeTierTitle(candidateTitle)) || gameRankMap.get(normalizeLiteralTitle(candidateTitle));
+      if (info) return info;
     }
-
+    if (['A', 'B', 'C', 'D'].includes(explicitTier)) {
+      return { rank: 999, tier: explicitTier, canonicalTitle: game.title };
+    }
     return null;
-  }, [tierLookupMap]);
+  }, [gameRankMap]);
+
+  const getGameTier = useCallback((game) => {
+    const info = getGameRankInfo(game);
+    return info ? info.tier : null;
+  }, [getGameRankInfo]);
+
+  const rankedGamesList = useMemo(() => {
+    if (!games || games.length === 0) return [];
+    return games
+      .map((game) => {
+        const info = getGameRankInfo(game);
+        return info ? { ...game, rankNumber: info.rank, rankTier: info.tier } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.rankNumber - b.rankNumber);
+  }, [games, getGameRankInfo]);
+
+  const rankedGamesByTier = useMemo(() => {
+    const tiers = { A: [], B: [], C: [], D: [] };
+    rankedGamesList.forEach((g) => {
+      if (tiers[g.rankTier]) tiers[g.rankTier].push(g);
+    });
+    return tiers;
+  }, [rankedGamesList]);
+
+  const isRankingsActive = filter === 'rankings' || filter.startsWith('tier-');
 
   const tierRankedGames = useMemo(() => {
     return gameTierOrder.map((tier) => {
       const tierGames = games.filter((game) => getGameTier(game) === tier);
-
       return {
         tier,
         games: tierGames
@@ -2537,6 +3007,13 @@ export default function App() {
         if (!isMultiplayerCategory(game.category)) return false;
       } else if (filter === 'favorites') {
         if (!favorites.includes(game.id)) return false;
+      } else if (filter === 'rankings') {
+        const info = getGameRankInfo(game);
+        if (!info) return false;
+      } else if (filter.startsWith('tier-')) {
+        const targetTier = filter.replace('tier-', '').toUpperCase();
+        const info = getGameRankInfo(game);
+        if (!info || info.tier !== targetTier) return false;
       } else if (filter === 'featured') {
         if (!game.featured) return false;
       } else if (filter === 'Emulated') {
@@ -2554,9 +3031,21 @@ export default function App() {
 
     return true;
   });
-  const totalGamePages = Math.max(1, Math.ceil(filteredGames.length / GAMES_PER_PAGE));
+
+  const sortedFilteredGames = useMemo(() => {
+    if ((filter === 'rankings' || filter.startsWith('tier-')) && normalizedSearchQuery === '') {
+      return [...filteredGames].sort((a, b) => {
+        const rA = getGameRankInfo(a)?.rank ?? 99999;
+        const rB = getGameRankInfo(b)?.rank ?? 99999;
+        return rA - rB;
+      });
+    }
+    return filteredGames;
+  }, [filter, normalizedSearchQuery, filteredGames, getGameRankInfo]);
+
+  const totalGamePages = Math.max(1, Math.ceil(sortedFilteredGames.length / GAMES_PER_PAGE));
   const safeGamePage = Math.min(currentGamePage, totalGamePages);
-  const paginatedGames = filteredGames.slice(
+  const paginatedGames = sortedFilteredGames.slice(
     (safeGamePage - 1) * GAMES_PER_PAGE,
     safeGamePage * GAMES_PER_PAGE
   );
@@ -3621,6 +4110,19 @@ export default function App() {
                 <span>Cloak</span>
               </motion.button>
 
+              {/* Built-in Refresh Page Button */}
+              <motion.button
+                whileHover={animationsEnabled ? { scale: 1.05 } : undefined}
+                whileTap={animationsEnabled ? { scale: 0.95 } : undefined}
+                onClick={handleRefreshPage}
+                className="px-3 py-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                title="Refresh Page (Safe reload for about:blank cloaking)"
+                aria-label="Refresh Page"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 text-[var(--accent-color)] ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </motion.button>
+
               {/* Open Link Button */}
               {(() => {
                 const url = filter === 'movies' ? 'https://urnperiodic.github.io/p/' : filter === 'youtube' ? 'https://urnperiodic.github.io/youtube1/' : filter === 'chat' ? 'https://grandplat2.vercel.app/' : filter === 'download' ? 'https://urnperiodic.github.io/download/' : '';
@@ -3834,6 +4336,15 @@ export default function App() {
                     }
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={handleRefreshPage}
+                    className="p-1 rounded-md text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all cursor-pointer flex items-center justify-center"
+                    title="Refresh Page (Safe reload - keeps about:blank disguise)"
+                    aria-label="Refresh Page"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                   </button>
 
                   {(() => {
@@ -4105,6 +4616,16 @@ export default function App() {
                     </div>
                   )}
                 </div>
+
+                {/* Refresh Page Button */}
+                <button
+                  onClick={handleRefreshPage}
+                  className="p-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all flex items-center justify-center cursor-pointer shadow-sm"
+                  title="Refresh Page (Safe reload - keeps about:blank disguise)"
+                  aria-label="Refresh Page"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
 
                 {/* Open Link Button */}
                 {(() => {
@@ -5022,6 +5543,79 @@ export default function App() {
               <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>All Classrooms</span>
             </motion.button>
 
+            {/* RANKING TIERS IN SIDEBAR: A Tier, B Tier, C Tier, D Tier */}
+            <div className="border-t border-[var(--card-border)]/60 my-1 pt-1.5 flex flex-col gap-1">
+              {sidebarOpen && (
+                <div className="px-2 py-0.5 text-[8.5px] font-mono tracking-wider text-[var(--text-muted)] uppercase font-bold flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[var(--accent-color)]">
+                    <Trophy className="w-3 h-3" />
+                    <span>Rankings</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setFilter('rankings'); setSelectedGame(null); }}
+                    className={`text-[8px] font-mono hover:underline cursor-pointer transition-colors ${
+                      filter === 'rankings' && !selectedGame
+                        ? 'text-[var(--accent-color)] font-bold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    All ({rankedGamesList.length})
+                  </button>
+                </div>
+              )}
+
+              {[
+                { tier: 'A', name: 'A Tier', desc: 'God Tier', count: rankedGamesByTier.A?.length || 0, badge: 'text-amber-400 border-amber-400/40 bg-amber-400/10' },
+                { tier: 'B', name: 'B Tier', desc: 'Top Tier', count: rankedGamesByTier.B?.length || 0, badge: 'text-emerald-400 border-emerald-400/40 bg-emerald-400/10' },
+                { tier: 'C', name: 'C Tier', desc: 'Solid Plays', count: rankedGamesByTier.C?.length || 0, badge: 'text-sky-400 border-sky-400/40 bg-sky-400/10' },
+                { tier: 'D', name: 'D Tier', desc: 'Retro Gems', count: rankedGamesByTier.D?.length || 0, badge: 'text-purple-400 border-purple-400/40 bg-purple-400/10' },
+              ].map(({ tier, name, count, badge }) => {
+                const isSelected = filter === `tier-${tier}` && !selectedGame;
+                return (
+                  <motion.button
+                    key={tier}
+                    whileHover={animationsEnabled ? { x: 4 } : undefined}
+                    whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+                    onClick={() => {
+                      setFilter(`tier-${tier}`);
+                      setSelectedGame(null);
+                    }}
+                    className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center justify-between text-xs font-medium transition-all duration-200 cursor-pointer ${
+                      isSelected
+                        ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                        : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-85 hover:opacity-100'
+                    }`}
+                    title={`${name} (${count} games)`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-4 h-4 rounded text-[9.5px] font-black font-mono flex items-center justify-center shrink-0 border ${
+                        isSelected
+                          ? 'bg-black/25 text-[var(--bg-color)] border-white/20'
+                          : badge
+                      }`}>
+                        {tier}
+                      </span>
+                      <span className={`transition-all duration-300 truncate font-semibold ${
+                        sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'
+                      }`}>
+                        {name}
+                      </span>
+                    </div>
+                    {sidebarOpen && (
+                      <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        isSelected
+                          ? 'bg-black/20 text-[var(--bg-color)]'
+                          : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+
             <motion.button
               whileHover={animationsEnabled ? { x: 4 } : undefined}
               whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
@@ -5555,11 +6149,76 @@ export default function App() {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col gap-6"
                 >
-              
-              <div className="flex flex-wrap items-center justify-between gap-3">
+
+                  {/* GAME RANKINGS BANNER (Shown when rankings or tier filter is active) */}
+                  {isRankingsActive && (
+                    <section aria-label="Game Rankings Leaderboard" className="flex flex-col gap-2">
+                      <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--bg-secondary)]/90 p-3 sm:p-4 shadow-sm transition-all">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-sm">
+                              <Trophy className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-[var(--text-primary)] leading-tight">
+                                  {filter === 'rankings'
+                                    ? 'Game Rankings Leaderboard'
+                                    : `Tier ${filter.replace('tier-', '')} Rankings`}
+                                </h2>
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                  {filteredGames.length} Portals
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                                Curated community rankings ordered by rank (#1 to #{rankedGamesList.length}) and tier.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tier selection tabs */}
+                        <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2.5 border-t border-[var(--card-border)]/60">
+                          <button
+                            type="button"
+                            onClick={() => setFilter('rankings')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                              filter === 'rankings'
+                                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
+                                : 'bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <Trophy className="w-3 h-3 shrink-0" />
+                            <span>All Ranked ({rankedGamesList.length})</span>
+                          </button>
+                          {[
+                            { tier: 'A', label: 'Tier A · God Tier', count: rankedGamesByTier.A?.length || 0 },
+                            { tier: 'B', label: 'Tier B · Top Tier', count: rankedGamesByTier.B?.length || 0 },
+                            { tier: 'C', label: 'Tier C · Solid Plays', count: rankedGamesByTier.C?.length || 0 },
+                            { tier: 'D', label: 'Tier D · Retro Gems', count: rankedGamesByTier.D?.length || 0 },
+                          ].map(({ tier, label, count }) => (
+                            <button
+                              key={tier}
+                              type="button"
+                              onClick={() => setFilter(`tier-${tier}`)}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                filter === `tier-${tier}`
+                                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
+                                  : 'bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                              }`}
+                            >
+                              <span>{label}</span>
+                              <span className="opacity-75 font-normal">({count})</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                 {/* Left group: Title & Subtitle + Combined Switcher & Pagination Bar */}
                 <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-                  {/* Title & Subtitle with left accent bar */}
                   <div className="border-l-[3px] border-[var(--accent-color)] pl-2.5 shrink-0 transition-colors">
                     <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-[var(--text-primary)] leading-tight">
                       {normalizedSearchQuery !== '' ? (
@@ -5568,6 +6227,11 @@ export default function App() {
                         <>
                           {filter === 'all' && (gameCatalogMode === 'original' ? 'ORIGINALS' : 'ALL PORTALS')}
                           {filter === 'favorites' && 'BOOKMARKS'}
+                          {filter === 'rankings' && 'GAME RANKINGS LEADERBOARD'}
+                          {filter === 'tier-A' && 'TIER A: GOD TIER RANKINGS'}
+                          {filter === 'tier-B' && 'TIER B: TOP TIER RANKINGS'}
+                          {filter === 'tier-C' && 'TIER C: SOLID CLASSICS'}
+                          {filter === 'tier-D' && 'TIER D: RETRO & COMMUNITY GEMS'}
                           {filter === 'featured' && 'FEATURED SHOWCASES'}
                           {filter === 'og' && 'OG CLASSICS & ORIGINALS'}
                           {filter === 'single' && 'SINGLEPLAYER PORTALS'}
@@ -5582,6 +6246,8 @@ export default function App() {
                     <p className="text-[11px] text-[var(--text-muted)] mt-0.5 font-medium">
                       {normalizedSearchQuery !== ''
                         ? `Found ${filteredGames.length} portals · Page ${safeGamePage} of ${totalGamePages}`
+                        : isRankingsActive
+                        ? `Curated community rankings · ${filteredGames.length} ranked portals · Page ${safeGamePage} of ${totalGamePages}`
                         : `Showing ${filteredGames.length} unblocked resources · Page ${safeGamePage} of ${totalGamePages}`}
                     </p>
                   </div>
@@ -5682,7 +6348,11 @@ export default function App() {
                         transition={animationsEnabled ? { duration: 0.15 } : { duration: 0 }}
                         whileHover={animationsEnabled ? { scale: 1.03, y: -4, transition: { duration: 0.2 } } : undefined}
                         whileTap={animationsEnabled ? { scale: 0.98 } : undefined}
-                        onClick={() => { setSelectedGame(game); setZoom(1); }}
+                        onClick={() => {
+                          recordRecentlyPlayed(game.id);
+                          setSelectedGame(game);
+                          setZoom(1);
+                        }}
                         className={`custom-card flex flex-col rounded-xl overflow-hidden cursor-pointer h-full ${
                           animationsEnabled ? 'transition-all duration-300' : ''
                         } ${
@@ -5719,11 +6389,34 @@ export default function App() {
                             />
                           )}
 
-                          {game.featured && (
-                            <span className="absolute top-2.5 left-2.5 text-[12px] font-black bg-black/85 text-amber-400 border border-amber-500/30 w-6 h-6 rounded-md inline-flex items-center justify-center z-10 shadow-sm font-mono">
-                              ★
-                            </span>
-                          )}
+                          {/* Rank badge on game card */}
+                          {(() => {
+                            const rankInfo = getGameRankInfo(game);
+                            if (rankInfo && (isRankingsActive || rankInfo.rank <= 10)) {
+                              return (
+                                <span className={`absolute top-2.5 left-2.5 z-10 flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md shadow-md font-mono ${
+                                  rankInfo.rank === 1
+                                    ? 'bg-amber-400 text-black border border-amber-300'
+                                    : rankInfo.rank === 2
+                                    ? 'bg-slate-200 text-slate-900 border border-slate-300'
+                                    : rankInfo.rank === 3
+                                    ? 'bg-amber-700 text-amber-100 border border-amber-600'
+                                    : 'bg-black/85 text-amber-300 border border-amber-400/40 backdrop-blur-sm'
+                                }`}>
+                                  <Trophy className="w-2.5 h-2.5 shrink-0" />
+                                  <span>#{rankInfo.rank} · TIER {rankInfo.tier}</span>
+                                </span>
+                              );
+                            }
+                            if (game.featured) {
+                              return (
+                                <span className="absolute top-2.5 left-2.5 text-[12px] font-black bg-black/85 text-amber-400 border border-amber-500/30 w-6 h-6 rounded-md inline-flex items-center justify-center z-10 shadow-sm font-mono">
+                                  ★
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
 
                           <span className="absolute top-2.5 right-2.5 text-[8px] font-bold uppercase tracking-widest bg-black/75 backdrop-blur-sm text-white border border-white/10 px-2.5 py-0.5 rounded-full inline-block z-10">
                             {game.category}
@@ -5794,7 +6487,11 @@ export default function App() {
                           <div className="flex items-center gap-2 mt-3 w-full">
                             {game.featured ? (
                               <button
-                                onClick={() => { setSelectedGame(game); setZoom(1); }}
+                                onClick={() => {
+                                  recordRecentlyPlayed(game.id);
+                                  setSelectedGame(game);
+                                  setZoom(1);
+                                }}
                                 className="flex-1 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500 hover:text-black hover:font-bold hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)] text-[11px] font-semibold tracking-wider text-amber-500 dark:text-amber-400 py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 uppercase cursor-pointer"
                               >
                                 <Play className="w-3 h-3 fill-current" />
@@ -5802,7 +6499,11 @@ export default function App() {
                               </button>
                             ) : (
                               <button
-                                onClick={() => { setSelectedGame(game); setZoom(1); }}
+                                onClick={() => {
+                                  recordRecentlyPlayed(game.id);
+                                  setSelectedGame(game);
+                                  setZoom(1);
+                                }}
                                 className="flex-1 border border-[var(--card-border)] bg-[var(--accent-color)]/5 hover:bg-[var(--accent-color)] hover:text-[var(--bg-color)] hover:font-bold hover:shadow-[0_4px_14px_var(--accent-shadow)] text-[11px] font-semibold tracking-wider text-[var(--text-primary)] py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 uppercase cursor-pointer"
                               >
                                 <Play className="w-3 h-3 fill-current" />
@@ -5814,6 +6515,7 @@ export default function App() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                recordRecentlyPlayed(game.id);
                                 openGameInAboutBlank(game);
                               }}
                               className="p-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--card-bg)] rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer"
@@ -5828,6 +6530,8 @@ export default function App() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    recordRecentlyPlayed(game.id);
+                                    setGameFrame(null);
                                     window.open(getDirectGmfilesUrl(game.url), '_blank');
                                   }}
                                   className="p-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--card-bg)] rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer"
@@ -5982,10 +6686,21 @@ export default function App() {
                       <span className="hidden sm:inline text-[10px] font-bold tracking-tight">Reload Iframe</span>
                     </button>
 
+                    {/* Refresh Page button */}
+                    <button
+                      onClick={handleRefreshPage}
+                      className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
+                      title="Refresh Entire Page (Safe reload for about:blank)"
+                    >
+                      <RotateCcw className={`w-3.5 h-3.5 text-[var(--accent-color)] ${isRefreshing ? 'animate-spin' : ''}`} />
+                      <span className="hidden sm:inline text-[10px] font-bold tracking-tight">Refresh Page</span>
+                    </button>
+
                     {/* Direct Gmfiles Link button for local public games */}
                     {selectedGame && isLocalGame(selectedGame.url) && (
                       <button
                         onClick={() => {
+                          setGameFrame(null);
                           window.open(getDirectGmfilesUrl(selectedGame.url), '_blank');
                         }}
                         className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
@@ -6129,6 +6844,47 @@ export default function App() {
                         referrerPolicy="no-referrer"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                       />
+                    ) : externalActiveGame ? (
+                      <div className="flex flex-col items-center justify-center w-full h-full text-center p-6 bg-[#080b12] text-white">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-3 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                          <Gamepad2 className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-base font-bold font-mono tracking-tight mb-1 text-[var(--text-primary)]">
+                          Game Suspended (Single Game Limit)
+                        </h3>
+                        <p className="text-[var(--text-muted)] text-xs max-w-md mb-4 leading-relaxed font-sans">
+                          Another game (<span className="text-[var(--accent-color)] font-semibold">{externalActiveGame.title}</span>) was loaded in another window or tab. Only one game can be loaded at a time to prevent high memory usage and lag.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setExternalActiveGame(null);
+                              arenaInstanceId.current = 'arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+                              broadcastGameStarted(selectedGame.id, selectedGame.title, arenaInstanceId.current);
+                              const cached = gameHtmlCache.get(selectedGame.url);
+                              if (cached) {
+                                setGameFrame(cached);
+                              } else {
+                                loadGameFrame(selectedGame.url).then((f) => {
+                                  setCachedGameHtml(selectedGame.url, f);
+                                  setGameFrame(f);
+                                });
+                              }
+                            }}
+                            className="px-4 py-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-lg text-xs font-mono font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Resume {selectedGame.title}</span>
+                          </button>
+                          <button
+                            onClick={() => openGameInAboutBlank(selectedGame)}
+                            className="px-3.5 py-2 border border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[var(--accent-color)] text-[var(--text-primary)] rounded-lg text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>Open in Blank Tab</span>
+                          </button>
+                        </div>
+                      </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center w-full h-full text-center p-6 bg-[#080b12] text-white">
                         <div className="w-12 h-12 rounded-2xl bg-[var(--accent-color)]/10 border border-[var(--accent-color)]/30 flex items-center justify-center text-[var(--accent-color)] mb-3 shadow-[0_0_20px_rgba(0,229,176,0.15)]">
@@ -6143,6 +6899,9 @@ export default function App() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
+                              setExternalActiveGame(null);
+                              arenaInstanceId.current = 'arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+                              broadcastGameStarted(selectedGame.id, selectedGame.title, arenaInstanceId.current);
                               const cached = gameHtmlCache.get(selectedGame.url);
                               if (cached) {
                                 setGameFrame(cached);
