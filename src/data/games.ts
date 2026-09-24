@@ -29,6 +29,15 @@ const legacyGameData: Game[] = [
     isOg: true
   },
   {
+    title: 'Beepbox - A song maker',
+    description: 'make cool songs',
+    url: 'https://beepbox.co',
+    thumbnail: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS31xVVI41nLNuhWVlQqLHP_P_VTH2W7THDmHUwahNaZA&s=10',
+    category: 'Idk, Solo',
+    featured: true,
+    isOg: true
+},
+  {
     title: 'The Legend of Zelda',
     description: 'The classic original NES adventure that started it all. Make sure you open in a seperate tab to play this game.',
     url: 'clloz1.html',
