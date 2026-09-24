@@ -2774,8 +2774,8 @@ export default function App() {
     ].filter((section) => section.games.length > 0);
   }, [games, isSinglePlayerCategory, isMultiplayerCategory]);
 
-  const gameTierOrder = ['A', 'B', 'C', 'D'];
-  const [selectedTier, setSelectedTier] = useState('A');
+  const gameTierOrder = ['S', 'A', 'B', 'C'];
+  const [selectedTier, setSelectedTier] = useState('S');
   const [randomRankingPool, setRandomRankingPool] = useState('all');
   const [randomPickerOpen, setRandomPickerOpen] = useState(false);
   const [excludedRandomTiers, setExcludedRandomTiers] = useState([]);
@@ -2831,10 +2831,23 @@ export default function App() {
       ['1v1 lol', '1v1 lol'],
       ['retro bowl', 'retro bowl'],
       ['super smash flash 2', 'super smash flash 2'],
+      ['zelda ocarina of time', 'legend of zelda ocarina of time'],
+      ['zelda majoras mask', 'legend of zelda majoras mask'],
+      ['zelda minish cap', 'legend of zelda minish cap'],
+      ['zelda link to the past', 'legend of zelda link to past'],
+      ['pokemon radical red', 'pokemon radical red'],
+      ['pokemon unbound', 'pokemon unbound'],
+      ['pokemon platinum version', 'pokemon platinum'],
+      ['pokemon soulsilver version', 'pokemon soulsilver'],
+      ['pokemon heartgold version', 'pokemon heartgold'],
+      ['pokemon emerald version', 'pokemon emerald'],
+      ['mario kart 64', 'mario kart 64'],
+      ['mario kart ds', 'mario kart ds'],
+      ['super mario 64 ds', 'super mario 64 ds'],
     ];
 
     aliases.forEach(([from, to]) => {
-      const targetInfo = map.get(to);
+      const targetInfo = map.get(to) || map.get(normalizeTierTitle(to));
       if (targetInfo && !map.has(from)) {
         map.set(from, targetInfo);
       }
@@ -2865,7 +2878,7 @@ export default function App() {
       const info = gameRankMap.get(normalizeTierTitle(candidateTitle)) || gameRankMap.get(normalizeLiteralTitle(candidateTitle));
       if (info) return info;
     }
-    if (['A', 'B', 'C', 'D'].includes(explicitTier)) {
+    if (['S', 'A', 'B', 'C', 'D'].includes(explicitTier)) {
       return { rank: 999, tier: explicitTier, canonicalTitle: game.title };
     }
     return null;
@@ -2888,7 +2901,7 @@ export default function App() {
   }, [games, getGameRankInfo]);
 
   const rankedGamesByTier = useMemo(() => {
-    const tiers = { A: [], B: [], C: [], D: [] };
+    const tiers = { S: [], A: [], B: [], C: [], D: [] };
     rankedGamesList.forEach((g) => {
       if (tiers[g.rankTier]) tiers[g.rankTier].push(g);
     });
@@ -5566,10 +5579,10 @@ export default function App() {
               )}
 
               {[
-                { tier: 'A', name: 'A Tier', desc: 'God Tier', count: rankedGamesByTier.A?.length || 0, badge: 'text-amber-400 border-amber-400/40 bg-amber-400/10' },
-                { tier: 'B', name: 'B Tier', desc: 'Top Tier', count: rankedGamesByTier.B?.length || 0, badge: 'text-emerald-400 border-emerald-400/40 bg-emerald-400/10' },
-                { tier: 'C', name: 'C Tier', desc: 'Solid Plays', count: rankedGamesByTier.C?.length || 0, badge: 'text-sky-400 border-sky-400/40 bg-sky-400/10' },
-                { tier: 'D', name: 'D Tier', desc: 'Retro Gems', count: rankedGamesByTier.D?.length || 0, badge: 'text-purple-400 border-purple-400/40 bg-purple-400/10' },
+                { tier: 'S', name: 'S Tier', desc: 'Masterpieces', count: rankedGamesByTier.S?.length || 0, badge: 'text-amber-300 border-amber-300/50 bg-amber-400/20' },
+                { tier: 'A', name: 'A Tier', desc: 'Great', count: rankedGamesByTier.A?.length || 0, badge: 'text-emerald-400 border-emerald-400/40 bg-emerald-400/10' },
+                { tier: 'B', name: 'B Tier', desc: 'Good', count: rankedGamesByTier.B?.length || 0, badge: 'text-sky-400 border-sky-400/40 bg-sky-400/10' },
+                { tier: 'C', name: 'C Tier', desc: 'Mid & Niche', count: rankedGamesByTier.C?.length || 0, badge: 'text-purple-400 border-purple-400/40 bg-purple-400/10' },
               ].map(({ tier, name, count, badge }) => {
                 const isSelected = filter === `tier-${tier}` && !selectedGame;
                 return (
@@ -6192,10 +6205,10 @@ export default function App() {
                             <span>All Ranked ({rankedGamesList.length})</span>
                           </button>
                           {[
-                            { tier: 'A', label: 'Tier A · God Tier', count: rankedGamesByTier.A?.length || 0 },
-                            { tier: 'B', label: 'Tier B · Top Tier', count: rankedGamesByTier.B?.length || 0 },
-                            { tier: 'C', label: 'Tier C · Solid Plays', count: rankedGamesByTier.C?.length || 0 },
-                            { tier: 'D', label: 'Tier D · Retro Gems', count: rankedGamesByTier.D?.length || 0 },
+                            { tier: 'S', label: 'Tier S · Masterpieces', count: rankedGamesByTier.S?.length || 0 },
+                            { tier: 'A', label: 'Tier A · Great', count: rankedGamesByTier.A?.length || 0 },
+                            { tier: 'B', label: 'Tier B · Good', count: rankedGamesByTier.B?.length || 0 },
+                            { tier: 'C', label: 'Tier C · Mid & Niche', count: rankedGamesByTier.C?.length || 0 },
                           ].map(({ tier, label, count }) => (
                             <button
                               key={tier}
@@ -6228,10 +6241,10 @@ export default function App() {
                           {filter === 'all' && (gameCatalogMode === 'original' ? 'ORIGINALS' : 'ALL PORTALS')}
                           {filter === 'favorites' && 'BOOKMARKS'}
                           {filter === 'rankings' && 'GAME RANKINGS LEADERBOARD'}
-                          {filter === 'tier-A' && 'TIER A: GOD TIER RANKINGS'}
-                          {filter === 'tier-B' && 'TIER B: TOP TIER RANKINGS'}
-                          {filter === 'tier-C' && 'TIER C: SOLID CLASSICS'}
-                          {filter === 'tier-D' && 'TIER D: RETRO & COMMUNITY GEMS'}
+                          {filter === 'tier-S' && 'TIER S: MASTERPIECES & ALL-TIME CLASSICS'}
+                          {filter === 'tier-A' && 'TIER A: GREAT & HUGELY POPULAR'}
+                          {filter === 'tier-B' && 'TIER B: WEB & FLASH CLASSICS'}
+                          {filter === 'tier-C' && 'TIER C: RECOGNIZABLE & NICHE'}
                           {filter === 'featured' && 'FEATURED SHOWCASES'}
                           {filter === 'og' && 'OG CLASSICS & ORIGINALS'}
                           {filter === 'single' && 'SINGLEPLAYER PORTALS'}
