@@ -270,7 +270,7 @@ const getDecoyTitle = (type, customTitles = {}) => {
   if (type === 'gmail') return "Inbox - Jersey City Public Schools";
   if (type === 'duolingo') return "Duolingo - Learn a language for free";
   if (type === 'ixl') return "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
-  return "Urnperiodic StudyTools";
+  return "StudyTools";
 };
 
 const EMULATED_PLATFORMS = [
@@ -2381,7 +2381,10 @@ export default function App() {
   // Automated trigger checks for "0609" and "2026" within the article system's search tab
   useEffect(() => {
     const q = articleSearch.trim().toLowerCase();
-    if (q === 'ttt0609') {
+    if (q === '1234') {
+      setArticleSearch('');
+      handlePasswordSubmit('1234');
+    } else if (q === 'ttt0609') {
       setArticleSearch('');
       handlePasswordSubmit('ttt0609');
     } else if (q === '2026' || q === 'tt0609') {
@@ -2433,7 +2436,7 @@ export default function App() {
         if (!panicKeysEnabled) return;
         e.preventDefault();
         try {
-          window.history.replaceState({ disguise: 'educational_workspace' }, 'Urnperiodic StudyTools', window.location.pathname || '/');
+          window.history.replaceState({ disguise: 'educational_workspace' }, 'StudyTools', window.location.pathname || '/');
         } catch (err) {}
         setViewModeAndSave('articles');
         setSelectedGame(null); // Instantly close active game to clear screen
@@ -2552,6 +2555,10 @@ export default function App() {
           }
         });
 
+        const clearFavicon = (doc) => {
+          doc.querySelectorAll("link[rel*='icon']").forEach((link) => link.remove());
+        };
+
         // Determine correct mime-type
         let typeVal = 'image/png';
         if (iconUrl.includes('.ico')) {
@@ -2598,10 +2605,17 @@ export default function App() {
     const classroomFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
 
     if (isLiteMode) {
-      setBothTitles('StudyTools');
-      updateFavicon(customStudyFavicon);
+      setBothTitles('');
+      clearFavicon(document);
+      try {
+        if (window.parent && window.parent !== window && window.parent.document) {
+          clearFavicon(window.parent.document);
+        }
+      } catch (err) {
+        // ignore cross-origin sandbox restrictions
+      }
     } else if (viewMode === 'articles') {
-      setBothTitles("Urnperiodic StudyTools");
+      setBothTitles("StudyTools");
       updateFavicon(customStudyFavicon);
     } else if (viewMode === 'games') {
       const activeTitle = getDecoyTitle(decoyType, customDecoyTitles);
@@ -2632,7 +2646,7 @@ export default function App() {
       }
     } else {
       // Default to StudyTools for locked/welcome screens
-      setBothTitles("Urnperiodic StudyTools");
+      setBothTitles("StudyTools");
       updateFavicon(customStudyFavicon);
     }
   }, [viewMode, decoyType, customDecoyTitles, isLiteMode]);
@@ -3989,7 +4003,7 @@ export default function App() {
         <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-primary)] flex flex-col xl:flex-row items-center xl:items-center justify-center p-4 md:p-8 xl:p-12 gap-8 md:gap-10 transition-colors duration-350 relative select-none">
         
         {/* Floating Controls inside Lock Screen */}
-        <div className="absolute top-4 right-4 flex items-center gap-3">
+        <div className="absolute top-4 right-4 flex items-center gap-3" hidden>
           
           {/* Theme custom capsule */}
           <div className="border border-[var(--card-border)] bg-[var(--bg-secondary)] px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
@@ -4309,7 +4323,7 @@ export default function App() {
   return (
     <MotionConfig reducedMotion={animationsEnabled ? "never" : "always"}>
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)] text-[var(--text-muted)] text-sm">Loading workspace...</div>}>
-        <div className={`min-h-screen flex flex-col transition-colors duration-300 relative overflow-x-clip ${viewMode === 'games' ? 'games-no-select select-none' : ''} ${selectedGame ? 'h-screen overflow-hidden' : ''}`}>
+        <div data-lite-mode={isLiteMode ? 'true' : undefined} className={`min-h-screen flex flex-col transition-colors duration-300 relative overflow-x-clip ${viewMode === 'games' ? 'games-no-select select-none' : ''} ${selectedGame ? 'h-screen overflow-hidden' : ''}`}>
       <CursorSpotlight active={viewMode === 'games' && animationsEnabled} />
       {/* HEADER */}
       <AnimatePresence initial={false}>
@@ -4327,6 +4341,7 @@ export default function App() {
         
         {/* Left Side: Logo & Title */}
         <div 
+          hidden={isLiteMode}
           onClick={() => { setFilter('all'); setSelectedGame(null); setSearchQuery(''); }}
           className="flex items-center gap-2 cursor-pointer select-none group shrink-0"
           title="Go to homepage"
@@ -4336,7 +4351,7 @@ export default function App() {
           </div>
           <div className="flex flex-row items-baseline gap-2 flex-wrap">
             <h1 className="font-extrabold tracking-tight text-[var(--text-primary)] leading-none group-hover:text-[var(--accent-color)] transition-colors text-left" style={{ fontSize: '12px', textAlign: 'left' }}>
-              StudyTools Portals
+              StudyTools
             </h1>
           </div>
         </div>
@@ -4443,19 +4458,6 @@ export default function App() {
                 <span>Cloak</span>
               </motion.button>
 
-              {/* Built-in Refresh Page Button */}
-              <motion.button
-                whileHover={animationsEnabled ? { scale: 1.05 } : undefined}
-                whileTap={animationsEnabled ? { scale: 0.95 } : undefined}
-                onClick={handleRefreshPage}
-                className="px-3 py-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
-                title="Refresh Page (Safe reload for about:blank cloaking)"
-                aria-label="Refresh Page"
-              >
-                <RotateCcw className={`w-3.5 h-3.5 text-[var(--accent-color)] ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
-              </motion.button>
-
               {/* Open Link Button */}
               {(() => {
                 const url = filter === 'movies' ? 'https://urnperiodic.github.io/p/' : filter === 'youtube' ? 'https://urnperiodic.github.io/youtube1/' : filter === 'chat' ? 'https://grandplat2.vercel.app/' : filter === 'download' ? 'https://urnperiodic.github.io/download/' : '';
@@ -4516,6 +4518,7 @@ export default function App() {
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 z-10">
             <div 
               ref={compactLeftRef}
+              hidden={isLiteMode}
               onClick={() => { setFilter('all'); setSelectedGame(null); setSearchQuery(''); }}
               className="flex items-center gap-2 cursor-pointer select-none group shrink-0 justify-start"
               title="Go to homepage"
@@ -4695,14 +4698,6 @@ export default function App() {
                     );
                   })()}
 
-                  <button
-                    onClick={handleRefreshPage}
-                    className="p-1 rounded-md text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all cursor-pointer flex items-center justify-center"
-                    title="Refresh Page (Safe reload - keeps about:blank disguise)"
-                    aria-label="Refresh Page"
-                  >
-                    <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  </button>
                 </div>
               </div>
             </div>
@@ -4985,16 +4980,6 @@ export default function App() {
                     </button>
                   );
                 })()}
-
-                {/* Refresh Page Button */}
-                <button
-                  onClick={handleRefreshPage}
-                  className="p-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all flex items-center justify-center cursor-pointer shadow-sm"
-                  title="Refresh Page (Safe reload - keeps about:blank disguise)"
-                  aria-label="Refresh Page"
-                >
-                  <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </button>
 
                 {showNotices && noticeStep === 3 && (
                   <div className="absolute top-full left-0 mt-3 w-80 bg-[#13111c] border-2 border-amber-500/80 text-white rounded-xl p-3.5 shadow-[0_0_30px_rgba(245,158,11,0.4)] z-[3000] animate-fade-in select-none text-left text-xs font-medium">
@@ -5374,6 +5359,7 @@ export default function App() {
               )}
 
               <button
+                hidden={isLiteMode}
                 onClick={() => setViewModeAndSave('articles')}
                 className={`p-1 rounded-md transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                   mode === 'light'
@@ -5768,6 +5754,7 @@ export default function App() {
               )}
 
               <button
+                hidden={isLiteMode}
                 onClick={() => setViewModeAndSave('articles')}
                 className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                   mode === 'light'
@@ -6977,16 +6964,6 @@ export default function App() {
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline text-[10px] font-bold tracking-tight">Reload Iframe</span>
-                    </button>
-
-                    {/* Refresh Page button */}
-                    <button
-                      onClick={handleRefreshPage}
-                      className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
-                      title="Refresh Entire Page (Safe reload for about:blank)"
-                    >
-                      <RotateCcw className={`w-3.5 h-3.5 text-[var(--accent-color)] ${isRefreshing ? 'animate-spin' : ''}`} />
-                      <span className="hidden sm:inline text-[10px] font-bold tracking-tight">Refresh Page</span>
                     </button>
 
                     {/* Direct Gmfiles Link button for local public games */}

@@ -21,6 +21,10 @@ export default defineConfig({
     },
   },
 
+  optimizeDeps: {
+    entries: ['index.html'],
+  },
+
   // Don't let Vite watch/scan the huge game collection
   server: {
     hmr: process.env.DISABLE_HMR !== 'true',

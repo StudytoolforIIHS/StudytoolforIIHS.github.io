@@ -1419,4 +1419,30 @@ body.animations-disabled .shimmer-bg,
   scrollbar-width: none;
 }
 
+[data-lite-mode='true'] {
+  --font-sans: 'Courier New', monospace;
+  --font-mono: 'Courier New', monospace;
+  --bg-color: #e8e8e8;
+  --bg-secondary: #dedede;
+  --card-bg: #f3f3f3;
+  --card-border: #b8b8b8;
+  --text-primary: #333333;
+  --text-muted: #666666;
+  --accent-color: #777777;
+  --accent-hover: #666666;
+  --accent-shadow: rgba(0, 0, 0, 0.08);
+  --input-fill: #f7f7f7;
+  --header-bg: #d6d6d6;
+  font-family: 'Courier New', monospace;
+}
+
+[data-lite-mode='true'] :is(button, input, textarea, select),
+[data-lite-mode='true'] [class*='rounded-'] {
+  border-radius: 3px !important;
+}
+
+[data-lite-mode='true'] :is(button, [class*='shadow-']) {
+  box-shadow: none !important;
+}
+
 
