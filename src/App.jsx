@@ -247,14 +247,31 @@ const copyTextToClipboard = async (text) => {
 
 const decoyOptions = [
   { value: 'classroom', label: 'Classroom', labelLong: 'Google Classroom', icon: 'https://ssl.gstatic.com/classroom/favicon.png' },
+  { value: 'drive', label: 'Drive', labelLong: 'Google Drive', icon: 'https://ssl.gstatic.com/docs/doclist/images/drive_favicon_2026_32dp.png' },
+  { value: 'docs', label: 'Docs', labelLong: 'Google Docs', icon: 'https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico' },
+  { value: 'slides', label: 'Slides', labelLong: 'Google Slides', icon: 'https://ssl.gstatic.com/docs/presentations/images/favicon-2026-v2.ico' },
   { value: 'canva', label: 'Canva', labelLong: 'Canva | Visual Suite', icon: 'https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico' },
   { value: 'clever', label: 'Clever', labelLong: 'Clever Login', icon: 'https://www.google.com/s2/favicons?sz=64&domain=clever.com' },
   { value: 'campus', label: 'Campus', labelLong: 'Infinite Campus', icon: 'https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png' },
-  { value: 'docs', label: 'Docs', labelLong: 'Google Docs', icon: 'https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico' },
   { value: 'gmail', label: 'Inbox', labelLong: 'Inbox - JCPS', icon: 'https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon_gmail_2026_v2.ico' },
   { value: 'duolingo', label: 'Lingo', labelLong: 'Duolingo', icon: 'https://www.google.com/s2/favicons?sz=64&domain=duolingo.com' },
   { value: 'ixl', label: 'IXL', labelLong: 'IXL Learning', icon: 'https://www.google.com/s2/favicons?sz=64&domain=ixl.com' }
 ];
+
+const getDecoyTitle = (type, customTitles = {}) => {
+  const custom = (customTitles && customTitles[type] ? String(customTitles[type]).trim() : '');
+  if (type === 'drive') return custom || "My Drive - Google Drive";
+  if (type === 'docs') return custom || "Google Docs";
+  if (type === 'slides') return custom || "Google Slides";
+  if (type === 'classroom') return "Home - Classroom";
+  if (type === 'canva') return "Home - Canva";
+  if (type === 'clever') return "Clever | Log in with Clever";
+  if (type === 'campus') return "Campus Student";
+  if (type === 'gmail') return "Inbox - Jersey City Public Schools";
+  if (type === 'duolingo') return "Duolingo - Learn a language for free";
+  if (type === 'ixl') return "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
+  return "Urnperiodic StudyTools";
+};
 
 const EMULATED_PLATFORMS = [
   'arcade', 'atari2600', 'atarilynx', 'bootleg', 'colecovision', 'dos',
@@ -330,7 +347,7 @@ function GoGuardianDecoyNotice({
         style={{ fontSize: '10px', lineHeight: '15px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
         className="text-[var(--text-primary)] font-bold text-center leading-relaxed"
       >
-        GoGuardian sees whatever theme you are on, and if you are using Classroom/Google Docs/clever.com decoys, the mode automatically changes to white. These platforms do not have dark mode. So to stay hidden, please use white mode when GoGuardian is on. If GoGuardian is not on, you can just swap to dark mode.
+        GoGuardian sees whatever theme you are on, and if you are using Classroom/Drive/Docs/Slides/clever.com decoys, the mode automatically changes to white. These platforms do not have dark mode. So to stay hidden, please use white mode when GoGuardian is on. If GoGuardian is not on, you can just swap to dark mode.
       </p>
     </motion.div>
   );
@@ -377,7 +394,15 @@ function CursorSpotlight({ active }) {
   );
 }
 
-function DecoyDropdown({ value, onChange, mode, compact = false, showLabel = false }) {
+function DecoyDropdown({ 
+  value, 
+  onChange, 
+  mode, 
+  compact = false, 
+  showLabel = false, 
+  customTitles = {}, 
+  onCustomTitleChange 
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -393,6 +418,7 @@ function DecoyDropdown({ value, onChange, mode, compact = false, showLabel = fal
 
   const selectedOption = decoyOptions.find(opt => opt.value === value) || decoyOptions[0];
   const isHighlighted = value !== 'none';
+  const activeCustomTitle = customTitles?.[value];
 
   return (
     <div ref={dropdownRef} className="relative inline-block text-left">
@@ -408,6 +434,7 @@ function DecoyDropdown({ value, onChange, mode, compact = false, showLabel = fal
               : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-primary)] hover:border-[var(--accent-color)]/50'
         }`}
         style={{ colorScheme: mode }}
+        title={activeCustomTitle ? `Decoy: ${selectedOption.labelLong} ("${activeCustomTitle}")` : `Decoy: ${selectedOption.labelLong}`}
       >
         {selectedOption.icon === 'school' ? (
           <School className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isHighlighted ? (mode === 'light' ? 'text-neutral-900' : 'text-[var(--accent-color)]') : 'text-neutral-400'}`} />
@@ -431,40 +458,108 @@ function DecoyDropdown({ value, onChange, mode, compact = false, showLabel = fal
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className={`absolute top-full right-0 mt-1.5 w-48 rounded-xl border p-1 shadow-2xl z-[2600] overflow-hidden select-none ${
+            className={`absolute top-full right-0 mt-1.5 w-60 sm:w-64 max-h-[420px] overflow-y-auto rounded-xl border p-1.5 shadow-2xl z-[2600] select-none scrollbar-thin ${
               mode === 'light'
                 ? 'bg-white border-neutral-200 shadow-xl'
                 : 'bg-[#12121a]/95 backdrop-blur-md border-white/10'
             }`}
           >
-            <div className="flex flex-col gap-0.5">
+            <div className="px-2 py-1 mb-1 border-b border-white/10 flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-wider">
+                Select Decoy
+              </span>
+              <span className="text-[9px] text-[var(--accent-color)] font-mono">
+                Custom Title Enabled
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
               {decoyOptions.map((opt) => {
                 const isSelected = opt.value === value;
+                const isCustomizable = ['drive', 'docs', 'slides'].includes(opt.value);
+                const customVal = customTitles?.[opt.value] || '';
+
                 return (
-                  <button
+                  <div 
                     key={opt.value}
-                    onClick={() => {
-                      onChange(opt.value);
-                      setIsOpen(false);
-                    }}
-                    className={`flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 cursor-pointer ${
+                    className={`rounded-lg transition-all ${
                       isSelected 
                         ? mode === 'light'
-                          ? 'bg-neutral-900 text-white font-bold'
-                          : 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold' 
-                        : mode === 'light'
-                          ? 'text-neutral-700 hover:text-black hover:bg-neutral-100'
-                          : 'text-neutral-300 hover:text-white hover:bg-white/5'
+                          ? 'bg-neutral-100 border border-neutral-300'
+                          : 'bg-white/10 border border-[var(--accent-color)]/40'
+                        : 'border border-transparent'
                     }`}
                   >
-                    {opt.icon === 'school' ? (
-                      <School className={`w-3.5 h-3.5 ${isSelected ? (mode === 'light' ? 'text-white' : 'text-[var(--bg-color)]') : (mode === 'light' ? 'text-neutral-900' : 'text-[var(--accent-color)]')}`} />
-                    ) : (
-                      <img src={opt.icon} className="w-3.5 h-3.5 object-contain shrink-0" referrerPolicy="no-referrer" alt="" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(opt.value);
+                        if (!isCustomizable) {
+                          setIsOpen(false);
+                        }
+                      }}
+                      className={`flex items-center gap-2 w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 cursor-pointer ${
+                        isSelected 
+                          ? mode === 'light'
+                            ? 'text-neutral-900 font-bold'
+                            : 'text-white font-bold' 
+                          : mode === 'light'
+                            ? 'text-neutral-700 hover:text-black hover:bg-neutral-100'
+                            : 'text-neutral-300 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {opt.icon === 'school' ? (
+                        <School className={`w-3.5 h-3.5 ${isSelected ? (mode === 'light' ? 'text-black' : 'text-[var(--accent-color)]') : (mode === 'light' ? 'text-neutral-900' : 'text-[var(--accent-color)]')}`} />
+                      ) : (
+                        <img src={opt.icon} className="w-3.5 h-3.5 object-contain shrink-0" referrerPolicy="no-referrer" alt="" />
+                      )}
+                      <span className="flex-1 font-sans truncate">
+                        {opt.labelLong}
+                      </span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-[var(--accent-color)] shrink-0" />}
+                    </button>
+
+                    {/* Small textbox under favicon selector for Drive, Docs, and Slides */}
+                    {isCustomizable && (
+                      <div 
+                        className="px-2 pb-1.5 pt-0.5 flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="text"
+                          placeholder={
+                            opt.value === 'drive'
+                              ? 'Custom title (e.g. My Drive - Folder)'
+                              : opt.value === 'docs'
+                              ? 'Custom title (e.g. History Essay Draft)'
+                              : 'Custom title (e.g. Chapter 4 Slides)'
+                          }
+                          value={customVal}
+                          onChange={(e) => onCustomTitleChange && onCustomTitleChange(opt.value, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              onChange(opt.value);
+                              setIsOpen(false);
+                            }
+                          }}
+                          className={`w-full text-[10px] font-mono px-2 py-1 rounded-md border outline-none transition-all placeholder:text-[9px] ${
+                            mode === 'light'
+                              ? 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900'
+                              : 'bg-black/50 border-white/20 text-white placeholder:text-neutral-500 focus:border-[var(--accent-color)]'
+                          }`}
+                        />
+                        {customVal && (
+                          <button
+                            type="button"
+                            onClick={() => onCustomTitleChange && onCustomTitleChange(opt.value, '')}
+                            className="p-1 rounded text-neutral-400 hover:text-red-400 text-[10px] cursor-pointer shrink-0"
+                            title="Clear custom title"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     )}
-                    <span className="flex-1 font-sans truncate">{opt.labelLong}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -793,18 +888,18 @@ export default function App() {
       const urlDecoy = params.get('decoy');
       if (urlDecoy === 'true') return 'classroom';
       if (urlDecoy === 'false') return 'classroom';
-      if (urlDecoy && ['classroom', 'canva', 'clever', 'campus', 'docs', 'gmail', 'duolingo', 'ixl'].includes(urlDecoy)) {
+      if (urlDecoy && ['classroom', 'canva', 'clever', 'campus', 'docs', 'drive', 'slides', 'gmail', 'duolingo', 'ixl'].includes(urlDecoy)) {
         return urlDecoy;
       }
       const cached = localStorage.getItem('study-tools-decoy-type');
-      if (cached && ['classroom', 'canva', 'clever', 'campus', 'docs', 'gmail', 'duolingo', 'ixl'].includes(cached)) {
+      if (cached && ['classroom', 'canva', 'clever', 'campus', 'docs', 'drive', 'slides', 'gmail', 'duolingo', 'ixl'].includes(cached)) {
         return cached;
       }
     }
     return 'classroom';
   });
 
-  const isWhiteDecoy = decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'clever';
+  const isWhiteDecoy = decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'drive' || decoyType === 'slides' || decoyType === 'clever';
   const [showGoGuardianNotice, setShowGoGuardianNotice] = useState(() => {
     const hasShownBefore = safeStorage.getItem('unblocked-goguardian-notice-shown');
     const initialViewMode = safeStorage.getItem('classroom-view-mode');
@@ -818,9 +913,9 @@ export default function App() {
     }
   }, [viewMode]);
 
-  // Automatically switch to white mode on classroom, google docs, and clever decoys
+  // Automatically switch to white mode on classroom, google docs, drive, slides, and clever decoys
   useEffect(() => {
-    if (decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'clever') {
+    if (decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'drive' || decoyType === 'slides' || decoyType === 'clever') {
       setMode('light');
     }
   }, [decoyType]);
@@ -830,6 +925,26 @@ export default function App() {
     localStorage.setItem('study-tools-decoy-type', decoyType);
     localStorage.setItem('study-tools-classroom-decoy', 'true');
   }, [decoyType]);
+
+  // Custom Website Titles state for Docs, Drive, and Slides
+  const [customDecoyTitles, setCustomDecoyTitles] = useState(() => {
+    try {
+      const saved = safeStorage.getItem('study-tools-custom-decoy-titles');
+      return saved ? JSON.parse(saved) : { drive: '', docs: '', slides: '' };
+    } catch {
+      return { drive: '', docs: '', slides: '' };
+    }
+  });
+
+  const handleCustomTitleChange = (decoyKey, title) => {
+    setCustomDecoyTitles((prev) => {
+      const next = { ...prev, [decoyKey]: title };
+      try {
+        safeStorage.setItem('study-tools-custom-decoy-titles', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Auto Randomize Decoy State & Controls
   const [autoRandomizeDecoy, setAutoRandomizeDecoy] = useState(() => {
@@ -854,7 +969,7 @@ export default function App() {
         }
       }
     } catch {}
-    return ['classroom', 'clever', 'campus', 'docs', 'gmail', 'duolingo', 'ixl'];
+    return ['classroom', 'drive', 'docs', 'slides', 'clever', 'campus', 'gmail', 'duolingo', 'ixl'];
   });
 
   const [randomizeCountdown, setRandomizeCountdown] = useState(randomizeInterval);
@@ -1032,6 +1147,7 @@ export default function App() {
   const restoredSavedGame = useRef(false);
 
   // Single game coordination across arena, about:blank, and other tabs/windows
+  const [aboutBlankActiveGame, setAboutBlankActiveGame] = useState(null);
   const [externalActiveGame, setExternalActiveGame] = useState(null);
   const activeAboutBlankWinRef = useRef(null);
   const arenaInstanceId = useRef('arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8));
@@ -1182,6 +1298,17 @@ export default function App() {
       return undefined;
     }
 
+    // If this game was opened in about:blank, keep the in-page arena frame unloaded
+    if (aboutBlankActiveGame === selectedGame.id) {
+      setGameFrame(null);
+      return undefined;
+    }
+
+    // If switching to a different game, clear about:blank active state
+    if (aboutBlankActiveGame && aboutBlankActiveGame !== selectedGame.id) {
+      setAboutBlankActiveGame(null);
+    }
+
     // Enforce only one game loaded: broadcast to any other windows/tabs to unload their game
     setExternalActiveGame(null);
     arenaInstanceId.current = 'arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
@@ -1206,7 +1333,7 @@ export default function App() {
       });
 
     return () => controller.abort();
-  }, [selectedGame, broadcastGameStarted]);
+  }, [selectedGame, broadcastGameStarted, aboutBlankActiveGame]);
 
   const [gameHeaderHidden, setGameHeaderHidden] = useState(false);
   const [isBootComplete, setIsBootComplete] = useState(false);
@@ -1296,64 +1423,134 @@ export default function App() {
 
     const win = window.open('about:blank', '_blank');
     if (win) {
-      let parentTitle = "Urnperiodic StudyTools";
+      let parentTitle = getDecoyTitle(decoyType, customDecoyTitles);
       let parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
       
       if (decoyType === 'classroom') {
-        parentTitle = "Home - Classroom";
         parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
+      } else if (decoyType === 'drive') {
+        parentFavicon = "https://ssl.gstatic.com/docs/doclist/images/drive_favicon_2026_32dp.png";
+      } else if (decoyType === 'docs') {
+        parentFavicon = "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico";
+      } else if (decoyType === 'slides') {
+        parentFavicon = "https://ssl.gstatic.com/docs/presentations/images/favicon-2026-v2.ico";
       } else if (decoyType === 'canva') {
-        parentTitle = "Home - Canva";
         parentFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
       } else if (decoyType === 'clever') {
-        parentTitle = "Clever | Log in with Clever";
         parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
       } else if (decoyType === 'campus') {
-        parentTitle = "Campus Student";
         parentFavicon = "https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png";
-      } else if (decoyType === 'docs') {
-        parentTitle = "Google Docs";
-        parentFavicon = "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico";
       } else if (decoyType === 'gmail') {
-        parentTitle = "Inbox - Jersey City Public Schools";
         parentFavicon = "https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon_gmail_2026_v2.ico";
       } else if (decoyType === 'duolingo') {
-        parentTitle = "Duolingo - Learn a language for free";
         parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=duolingo.com";
       } else if (decoyType === 'ixl') {
-        parentTitle = "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
         parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
       }
 
-      win.document.title = parentTitle;
-      const link1 = win.document.createElement("link"); link1.rel = "icon"; link1.href = parentFavicon;
-      const link2 = win.document.createElement("link"); link2.rel = "shortcut icon"; link2.href = parentFavicon;
-      win.document.head.appendChild(link1); win.document.head.appendChild(link2);
-      win.document.body.style.margin = "0"; win.document.body.style.padding = "0"; win.document.body.style.width = "100%"; win.document.body.style.height = "100%"; win.document.body.style.overflow = "hidden"; win.document.body.style.background = "#000";
-      const iframe = win.document.createElement("iframe"); iframe.src = url; iframe.style.width = "100vw"; iframe.style.height = "100vh"; iframe.style.border = "none"; iframe.style.display = "block"; iframe.style.margin = "0"; iframe.style.padding = "0"; iframe.setAttribute("allow", "fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation"); iframe.setAttribute("allowfullscreen", "true");
-      win.document.body.appendChild(iframe);
-
-      // Prevent about:blank tab from going permanently blank when browser refresh (F5 / Ctrl+R) is pressed
-      try {
-        win.addEventListener('keydown', function(e) {
-          if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
-            e.preventDefault();
-            try {
-              localStorage.setItem('classroom-view-mode', 'games');
-              localStorage.setItem('classroom-passcode-unlocked', 'true');
-              localStorage.setItem('unblocked-refreshing-session', 'true');
-              localStorage.setItem('unblocked-refresh-timestamp', String(Date.now()));
-            } catch (err) {}
-            try {
-              if (iframe.contentWindow) {
-                iframe.contentWindow.location.reload();
-                return;
+      win.document.open();
+      win.document.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${parentTitle}</title>
+          <link rel="icon" href="${parentFavicon}">
+          <link rel="shortcut icon" href="${parentFavicon}">
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            html, body { width: 100vw; height: 100vh; overflow: hidden; background: #080b12; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+            #cloak-frame { width: 100vw; height: 100vh; border: none; display: block; background: #080b12; }
+            #loading-overlay {
+              position: fixed;
+              inset: 0;
+              background: #080b12;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              z-index: 9999;
+              transition: opacity 0.35s ease, visibility 0.35s ease;
+            }
+            #loading-overlay.hidden {
+              opacity: 0;
+              visibility: hidden;
+              pointer-events: none;
+            }
+            .spinner-ring {
+              width: 48px;
+              height: 48px;
+              border: 3px solid rgba(0, 229, 176, 0.15);
+              border-top-color: #00e5b0;
+              border-radius: 50%;
+              animation: spin 0.8s linear infinite;
+              margin-bottom: 20px;
+            }
+            .loading-text {
+              color: #f3f4f6;
+              font-size: 15px;
+              font-weight: 600;
+              letter-spacing: -0.01em;
+              margin-bottom: 6px;
+            }
+            .loading-subtext {
+              color: #6b7280;
+              font-size: 12px;
+              font-family: monospace;
+            }
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div id="loading-overlay">
+            <div class="spinner-ring"></div>
+            <div class="loading-text">${parentTitle}</div>
+            <div class="loading-subtext">Initializing cloaked workspace...</div>
+          </div>
+          <iframe 
+            id="cloak-frame" 
+            src="${url}"
+            allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation; gamepads"
+            allowfullscreen="true"
+          ></iframe>
+          <script>
+            (function() {
+              var frame = document.getElementById('cloak-frame');
+              var loader = document.getElementById('loading-overlay');
+              function hideLoader() {
+                if (loader) loader.classList.add('hidden');
               }
-            } catch (err) {}
-            iframe.src = url;
-          }
-        });
-      } catch (e) {}
+              if (frame) {
+                frame.addEventListener('load', hideLoader);
+                setTimeout(hideLoader, 3000); // Safety fallback
+              }
+              window.addEventListener('keydown', function(e) {
+                if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+                  e.preventDefault();
+                  try {
+                    localStorage.setItem('classroom-view-mode', 'games');
+                    localStorage.setItem('classroom-passcode-unlocked', 'true');
+                    localStorage.setItem('unblocked-refreshing-session', 'true');
+                    localStorage.setItem('unblocked-refresh-timestamp', String(Date.now()));
+                  } catch (err) {}
+                  try {
+                    if (frame && frame.contentWindow) {
+                      frame.contentWindow.location.reload();
+                      return;
+                    }
+                  } catch (err) {}
+                  if (frame) frame.src = "${url}";
+                }
+              });
+            })();
+          </script>
+        </body>
+        </html>
+      `);
+      win.document.close();
     } else {
       alert("Popup blocked! Please allow popups for this site.");
     }
@@ -1409,224 +1606,205 @@ export default function App() {
     if (!gameToOpen) return;
     recordRecentlyPlayed(gameToOpen.id);
 
-    // Enforce only one game loaded: unload in-page arena frame
-    setGameFrame(null);
+    // Unload the in-page arena frame on the main website to save memory and eliminate audio overlap
     setSelectedGame(gameToOpen);
-    setExternalActiveGame(null);
-
-    // If an existing about:blank window was opened, close it so only one game is active
-    if (activeAboutBlankWinRef.current && !activeAboutBlankWinRef.current.closed) {
-      try {
-        activeAboutBlankWinRef.current.close();
-      } catch {}
-    }
+    setAboutBlankActiveGame(gameToOpen.id);
+    setGameFrame(null);
 
     const win = window.open("about:blank", "_blank");
     if (!win) {
       alert("Popup blocked. Allow popups for this site.");
       return;
     }
-    activeAboutBlankWinRef.current = win;
-
-    const aboutBlankInstId = 'ab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-    broadcastGameStarted(gameToOpen.id, gameToOpen.title, aboutBlankInstId);
 
     const classroomFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
-    let tabTitle = gameToOpen.title;
+    let tabTitle = getDecoyTitle(decoyType, customDecoyTitles);
     let tabFavicon = classroomFavicon;
     if (decoyType === 'classroom') {
-      tabTitle = "Home - Classroom";
       tabFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
+    } else if (decoyType === 'drive') {
+      tabFavicon = "https://ssl.gstatic.com/docs/doclist/images/drive_favicon_2026_32dp.png";
+    } else if (decoyType === 'docs') {
+      tabFavicon = "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico";
+    } else if (decoyType === 'slides') {
+      tabFavicon = "https://ssl.gstatic.com/docs/presentations/images/favicon-2026-v2.ico";
     } else if (decoyType === 'canva') {
-      tabTitle = "Home - Canva";
       tabFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
     } else if (decoyType === 'clever') {
-      tabTitle = "Clever | Log in with Clever";
       tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
     } else if (decoyType === 'campus') {
-      tabTitle = "Campus Student";
       tabFavicon = "https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png";
-    } else if (decoyType === 'docs') {
-      tabTitle = "Google Docs";
-      tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=docs.google.com";
     } else if (decoyType === 'gmail') {
-      tabTitle = "Inbox - Jersey City Public Schools";
-      tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=mail.google.com";
+      tabFavicon = "https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon_gmail_2026_v2.ico";
     } else if (decoyType === 'duolingo') {
-      tabTitle = "Duolingo - Learn a language for free";
       tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=duolingo.com";
     } else if (decoyType === 'ixl') {
-      tabTitle = "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
       tabFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
     }
 
+    win.document.open();
     win.document.write(`
       <!DOCTYPE html>
-      <html>
+      <html lang="en">
       <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${tabTitle}</title>
         <link rel="icon" type="image/png" href="${tabFavicon}">
         <link rel="shortcut icon" type="image/png" href="${tabFavicon}">
-        <meta charset="utf-8">
         <style>
-          html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000000; font-family: system-ui, -apple-system, sans-serif; }
-          iframe { width: 100vw; height: 100vh; border: none; display: block; }
-          #suspended-modal {
-            display: none;
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          html, body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #080b12;
+            color: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          }
+          #about-blank-game-frame {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            display: block;
+            background: #080b12;
+          }
+          #game-loader {
             position: fixed;
             inset: 0;
             background: #080b12;
-            color: #ffffff;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 24px;
-            z-index: 999999;
-          }
-          .suspended-box {
-            background: #111827;
-            border: 1px solid #1f2937;
-            padding: 28px 32px;
-            border-radius: 16px;
-            max-width: 440px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
           }
-          .suspended-btn {
+          #game-loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+          }
+          .loader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 32px;
+            max-width: 420px;
+          }
+          .spinner-wrapper {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            margin-bottom: 24px;
+          }
+          .spinner-track {
+            position: absolute;
+            inset: 0;
+            border: 3px solid rgba(0, 229, 176, 0.12);
+            border-radius: 50%;
+          }
+          .spinner-glow {
+            position: absolute;
+            inset: 0;
+            border: 3px solid transparent;
+            border-top-color: #00e5b0;
+            border-right-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.85s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+          }
+          .spinner-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
             background: #00e5b0;
-            color: #05070e;
-            border: none;
-            padding: 10px 22px;
-            border-radius: 8px;
-            font-size: 13px;
+            border-radius: 50%;
+            box-shadow: 0 0 16px #00e5b0;
+          }
+          .game-title {
+            font-size: 18px;
             font-weight: 700;
-            cursor: pointer;
-            margin-top: 16px;
+            color: #ffffff;
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
           }
-          .suspended-btn:hover { opacity: 0.9; }
+          .game-status {
+            font-size: 13px;
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: monospace;
+          }
+          .status-pulse {
+            width: 7px;
+            height: 7px;
+            background: #00e5b0;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #00e5b0;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 0.4; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.2); }
+          }
         </style>
-        <script>
-          var myInstanceId = "${aboutBlankInstId}";
-          var currentTabTitle = "${tabTitle.replace(/"/g, '\\"')}";
-          var channel = null;
-
-          function forceFavicon() {
-            var head = document.head || document.getElementsByTagName('head')[0];
-            var links = document.querySelectorAll("link[rel*='icon']");
-            for (var i = 0; i < links.length; i++) { links[i].remove(); }
-            var newLink = document.createElement('link');
-            newLink.rel = 'icon';
-            newLink.type = 'image/png';
-            newLink.href = '${tabFavicon}';
-            head.appendChild(newLink);
-            document.title = "${tabTitle.replace(/"/g, '\\"')}";
-          }
-          forceFavicon();
-          window.addEventListener('load', forceFavicon);
-
-          // Safe reload interceptor: prevents about:blank from turning blank on F5 or Ctrl+R
-          window.addEventListener('keydown', function(e) {
-            if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
-              e.preventDefault();
-              var f = document.getElementById('about-blank-game-frame');
-              if (f) {
-                try {
-                  f.contentWindow.location.reload();
-                } catch (err) {
-                  if (f.src) f.src = f.src;
-                }
-              }
-            }
-          });
-
-          // Single game coordination: listen for any other game loaded
-          try {
-            channel = new BroadcastChannel('urnperiodic_single_game_bus');
-            channel.onmessage = function(ev) {
-              if (ev.data && ev.data.type === 'GAME_LOADED' && ev.data.instanceId !== myInstanceId) {
-                // Another game was loaded! Suspend this game frame
-                var f = document.getElementById('about-blank-game-frame');
-                if (f) {
-                  if (f.src && f.src !== 'about:blank') {
-                    window._savedGameUrl = f.src;
-                  }
-                  f.src = 'about:blank';
-                  f.style.display = 'none';
-                }
-                var modal = document.getElementById('suspended-modal');
-                if (modal) {
-                  modal.style.display = 'flex';
-                  var titleEl = document.getElementById('suspended-game-title');
-                  if (titleEl && ev.data.gameTitle) titleEl.textContent = ev.data.gameTitle;
-                }
-              }
-            };
-          } catch(e) {}
-
-          window.resumeThisGame = function() {
-            myInstanceId = 'ab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-            if (channel) {
-              try {
-                channel.postMessage({
-                  type: 'GAME_LOADED',
-                  instanceId: myInstanceId,
-                  gameTitle: currentTabTitle
-                });
-              } catch(e) {}
-            }
-            try {
-              localStorage.setItem('urnperiodic_active_game_load', JSON.stringify({
-                instanceId: myInstanceId,
-                gameTitle: currentTabTitle,
-                timestamp: Date.now()
-              }));
-            } catch(e) {}
-
-            var modal = document.getElementById('suspended-modal');
-            if (modal) modal.style.display = 'none';
-            var f = document.getElementById('about-blank-game-frame');
-            if (f) {
-              f.style.display = 'block';
-              if (window._savedGameUrl) {
-                f.src = window._savedGameUrl;
-              } else if (window._reinitGame) {
-                window._reinitGame();
-              }
-            }
-          };
-
-          window.addEventListener('beforeunload', function() {
-            try {
-              if (channel) {
-                channel.postMessage({ type: 'GAME_CLOSED', instanceId: myInstanceId });
-                channel.close();
-              }
-            } catch(e) {}
-            try {
-              var f = document.getElementById('about-blank-game-frame');
-              if (f) {
-                f.src = 'about:blank';
-                f.remove();
-              }
-            } catch(e) {}
-          });
-        </script>
       </head>
       <body>
-        <iframe id="about-blank-game-frame" allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation" referrerpolicy="no-referrer"></iframe>
-        <div id="suspended-modal">
-          <div class="suspended-box">
-            <div style="font-size: 32px; margin-bottom: 12px;">🎮</div>
-            <h2 style="font-size: 18px; margin: 0 0 8px 0; font-weight: 700;">Game Suspended (Single Game Limit)</h2>
-            <p style="font-size: 13px; color: #9ca3af; margin: 0; line-height: 1.5;">
-              Another game (<span id="suspended-game-title" style="color:#00e5b0; font-weight:600;">portal</span>) was loaded. Only one game can be loaded at a time to prevent high memory usage and lag.
-            </p>
-            <button class="suspended-btn" onclick="window.resumeThisGame()">Resume This Game</button>
+        <div id="game-loader">
+          <div class="loader-container">
+            <div class="spinner-wrapper">
+              <div class="spinner-track"></div>
+              <div class="spinner-glow"></div>
+              <div class="spinner-core"></div>
+            </div>
+            <div class="game-title">${gameToOpen.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+            <div class="game-status">
+              <span class="status-pulse"></span>
+              <span>Launching Secure Portal...</span>
+            </div>
           </div>
         </div>
+        <iframe 
+          id="about-blank-game-frame" 
+          allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation; gamepads" 
+          referrerpolicy="no-referrer"
+          allowfullscreen="true"
+        ></iframe>
+        <script>
+          (function() {
+            var f = document.getElementById('about-blank-game-frame');
+            var loader = document.getElementById('game-loader');
+            function hideLoader() {
+              if (loader) loader.classList.add('hidden');
+            }
+            if (f) {
+              f.addEventListener('load', hideLoader);
+              setTimeout(hideLoader, 4000);
+            }
+            window.addEventListener('keydown', function(e) {
+              if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+                e.preventDefault();
+                if (f) {
+                  try {
+                    f.contentWindow.location.reload();
+                  } catch (err) {
+                    if (f.src) f.src = f.src;
+                  }
+                }
+              }
+            });
+          })();
+        </script>
       </body>
       </html>
     `);
@@ -1646,14 +1824,16 @@ export default function App() {
         if (!win.closed && frame) {
           if (gameFrameData.src) {
             frame.src = gameFrameData.src;
-            win._savedGameUrl = gameFrameData.src;
           } else if (gameFrameData.srcDoc) {
             try {
               const blob = new Blob([gameFrameData.srcDoc], { type: 'text/html;charset=utf-8' });
               const blobUrl = URL.createObjectURL(blob);
               frame.src = blobUrl;
-              win._savedGameUrl = blobUrl;
               frame.onload = () => {
+                try {
+                  const l = win.document.getElementById('game-loader');
+                  if (l) l.classList.add('hidden');
+                } catch {}
                 try { URL.revokeObjectURL(blobUrl); } catch {}
               };
             } catch {
@@ -1663,7 +1843,9 @@ export default function App() {
         }
       })
       .catch(() => {
-        if (!win.closed && frame) frame.srcdoc = createGameLoadErrorDocument(gameToOpen.url).srcDoc;
+        if (!win.closed && frame) {
+          frame.srcdoc = createGameLoadErrorDocument(gameToOpen.url).srcDoc;
+        }
       });
   };
 
@@ -1925,7 +2107,7 @@ export default function App() {
     if (viewMode === 'articles') {
       setMode('light');
     } else if (viewMode === 'games') {
-      if (decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'clever') {
+      if (decoyType === 'classroom' || decoyType === 'docs' || decoyType === 'drive' || decoyType === 'slides' || decoyType === 'clever') {
         setMode('light');
       } else {
         setMode('dark');
@@ -1951,34 +2133,145 @@ export default function App() {
         searchParams.set('decoyType', decoyType);
         const iframeSrc = `${window.location.origin}${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
         
-        let parentTitle = "Urnperiodic StudyTools";
+        let parentTitle = getDecoyTitle(decoyType, customDecoyTitles);
         let parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
         
         if (decoyType === 'classroom') {
-          parentTitle = "Home - Classroom";
           parentFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
+        } else if (decoyType === 'drive') {
+          parentFavicon = "https://ssl.gstatic.com/docs/doclist/images/drive_favicon_2026_32dp.png";
+        } else if (decoyType === 'docs') {
+          parentFavicon = "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico";
+        } else if (decoyType === 'slides') {
+          parentFavicon = "https://ssl.gstatic.com/docs/presentations/images/favicon-2026-v2.ico";
+        } else if (decoyType === 'canva') {
+          parentFavicon = "https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico";
         } else if (decoyType === 'clever') {
-          parentTitle = "Clever | Log in with Clever";
           parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=clever.com";
         } else if (decoyType === 'campus') {
-          parentTitle = "Campus Student";
           parentFavicon = "https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png";
-        } else if (decoyType === 'docs') {
-          parentTitle = "Google Docs";
-          parentFavicon = "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico";
         } else if (decoyType === 'gmail') {
-          parentTitle = "Inbox - Jersey City Public Schools";
           parentFavicon = "https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon_gmail_2026_v2.ico";
         } else if (decoyType === 'duolingo') {
-          parentTitle = "Duolingo - Learn a language for free";
           parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=duolingo.com";
         } else if (decoyType === 'ixl') {
-          parentTitle = "IXL | Math, Language Arts, Science, Social Studies, and Spanish";
           parentFavicon = "https://www.google.com/s2/favicons?sz=64&domain=ixl.com";
         }
 
-        win.document.write(`<html><head><title>${parentTitle}</title><link rel="icon" href="${parentFavicon}"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0c0a09;}iframe{width:100vw;height:100vh;border:none;display:block;}</style></head><body><iframe src="${iframeSrc}" allow="fullscreen"></iframe></body></html>`);
+        win.document.open();
+        win.document.write(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${parentTitle}</title>
+            <link rel="icon" href="${parentFavicon}">
+            <link rel="shortcut icon" href="${parentFavicon}">
+            <style>
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              html, body { width: 100vw; height: 100vh; overflow: hidden; background: #080b12; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+              #cloak-frame { width: 100vw; height: 100vh; border: none; display: block; background: #080b12; }
+              #loading-overlay {
+                position: fixed;
+                inset: 0;
+                background: #080b12;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                transition: opacity 0.35s ease, visibility 0.35s ease;
+              }
+              #loading-overlay.hidden {
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+              }
+              .spinner-ring {
+                width: 48px;
+                height: 48px;
+                border: 3px solid rgba(0, 229, 176, 0.15);
+                border-top-color: #00e5b0;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+                margin-bottom: 20px;
+              }
+              .loading-text {
+                color: #f3f4f6;
+                font-size: 15px;
+                font-weight: 600;
+                letter-spacing: -0.01em;
+                margin-bottom: 6px;
+              }
+              .loading-subtext {
+                color: #6b7280;
+                font-size: 12px;
+                font-family: monospace;
+              }
+              @keyframes spin {
+                to { transform: rotate(360deg); }
+              }
+            </style>
+          </head>
+          <body>
+            <div id="loading-overlay">
+              <div class="spinner-ring"></div>
+              <div class="loading-text">${parentTitle}</div>
+              <div class="loading-subtext">Initializing cloaked workspace...</div>
+            </div>
+            <iframe 
+              id="cloak-frame" 
+              src="${iframeSrc}"
+              allow="fullscreen; autoplay; encrypted-media; picture-in-picture; clipboard-write; microphone; camera; geolocation; gamepads"
+              allowfullscreen="true"
+            ></iframe>
+            <script>
+              (function() {
+                var frame = document.getElementById('cloak-frame');
+                var loader = document.getElementById('loading-overlay');
+                function hideLoader() {
+                  if (loader) loader.classList.add('hidden');
+                }
+                if (frame) {
+                  frame.addEventListener('load', hideLoader);
+                  setTimeout(hideLoader, 3000);
+                }
+                window.addEventListener('keydown', function(e) {
+                  if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+                    e.preventDefault();
+                    try {
+                      localStorage.setItem('classroom-view-mode', 'games');
+                      localStorage.setItem('classroom-passcode-unlocked', 'true');
+                      localStorage.setItem('unblocked-refreshing-session', 'true');
+                      localStorage.setItem('unblocked-refresh-timestamp', String(Date.now()));
+                    } catch (err) {}
+                    try {
+                      if (frame && frame.contentWindow) {
+                        frame.contentWindow.location.reload();
+                        return;
+                      }
+                    } catch (err) {}
+                    if (frame) frame.src = "${iframeSrc}";
+                  }
+                });
+              })();
+            </script>
+          </body>
+          </html>
+        `);
         win.document.close();
+
+        // Automatically close the unsigned / original window
+        try {
+          window.close();
+        } catch (e) {}
+        // Fallback for browsers that prevent closing unscripted opener tabs
+        setTimeout(() => {
+          try {
+            window.location.replace("https://classroom.google.com");
+          } catch (e) {}
+        }, 120);
       } else {
         alert("Popup blocked! Please allow popups to open the portals in a cloaked tab.");
       }
@@ -2285,32 +2578,30 @@ export default function App() {
       setBothTitles("Urnperiodic StudyTools");
       updateFavicon(customStudyFavicon);
     } else if (viewMode === 'games') {
+      const activeTitle = getDecoyTitle(decoyType, customDecoyTitles);
+      setBothTitles(activeTitle);
+      
       if (decoyType === 'classroom') {
-        setBothTitles("Home - Classroom");
         updateFavicon(classroomFavicon);
+      } else if (decoyType === 'drive') {
+        updateFavicon("https://ssl.gstatic.com/docs/doclist/images/drive_favicon_2026_32dp.png");
+      } else if (decoyType === 'docs') {
+        updateFavicon("https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico");
+      } else if (decoyType === 'slides') {
+        updateFavicon("https://ssl.gstatic.com/docs/presentations/images/favicon-2026-v2.ico");
       } else if (decoyType === 'canva') {
-        setBothTitles("Home - Canva");
         updateFavicon("https://static.canva.com/domain-assets/canva/static/images/favicon-1.ico");
       } else if (decoyType === 'clever') {
-        setBothTitles("Clever | Log in with Clever");
         updateFavicon("https://www.google.com/s2/favicons?sz=64&domain=clever.com");
       } else if (decoyType === 'campus') {
-        setBothTitles("Campus Student");
         updateFavicon("https://jerseycitynj.infinitecampus.org/campus/favicon-32x32.png");
-      } else if (decoyType === 'docs') {
-        setBothTitles("Google Docs");
-        updateFavicon("https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico");
       } else if (decoyType === 'gmail') {
-        setBothTitles("Inbox - Jersey City Public Schools");
         updateFavicon("https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon_gmail_2026_v2.ico");
       } else if (decoyType === 'duolingo') {
-        setBothTitles("Duolingo - Learn a language for free");
         updateFavicon("https://www.google.com/s2/favicons?sz=64&domain=duolingo.com");
       } else if (decoyType === 'ixl') {
-        setBothTitles("IXL | Math, Language Arts, Science, Social Studies, and Spanish");
         updateFavicon("https://www.google.com/s2/favicons?sz=64&domain=ixl.com");
       } else {
-        setBothTitles("Urnperiodic StudyTools");
         updateFavicon(classroomFavicon);
       }
     } else {
@@ -2318,7 +2609,7 @@ export default function App() {
       setBothTitles("Urnperiodic StudyTools");
       updateFavicon(customStudyFavicon);
     }
-  }, [viewMode, decoyType]);
+  }, [viewMode, decoyType, customDecoyTitles]);
 
   // Set LocalStorage theme and mode on change
   useEffect(() => {
@@ -4518,7 +4809,14 @@ export default function App() {
               {/* Decoy Selector & Auto Randomize */}
               <div className="relative flex items-center gap-1">
                 <div className={showNotices && noticeStep === 3 ? 'ring-2 ring-[var(--accent-color)] ring-offset-2 ring-offset-[#0d0d12] rounded-lg animate-pulse' : ''}>
-                  <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} compact={true} />
+                  <DecoyDropdown 
+                    value={decoyType} 
+                    onChange={setDecoyType} 
+                    mode={mode} 
+                    compact={true} 
+                    customTitles={customDecoyTitles}
+                    onCustomTitleChange={handleCustomTitleChange}
+                  />
                 </div>
 
                 <AutoRandomizeDecoyButton
@@ -5175,7 +5473,13 @@ export default function App() {
             {/* Decoy Mode Selector */}
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase select-none">Decoy:</span>
-              <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} />
+              <DecoyDropdown 
+                value={decoyType} 
+                onChange={setDecoyType} 
+                mode={mode} 
+                customTitles={customDecoyTitles}
+                onCustomTitleChange={handleCustomTitleChange}
+              />
               <AutoRandomizeDecoyButton
                 autoRandomize={autoRandomizeDecoy}
                 setAutoRandomize={setAutoRandomizeDecoy}
@@ -6791,63 +7095,125 @@ export default function App() {
                         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                       />
                     ) : externalActiveGame ? (
-                      <div className="flex flex-col items-center justify-center w-full h-full text-center p-6 bg-[#080b12] text-white">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-3 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                          <Gamepad2 className="w-6 h-6" />
+                      <div className="flex flex-col items-center justify-center w-full h-full text-center p-4 bg-[#080b12] text-white select-none">
+                        {/* Compact Dark Card matching popout design */}
+                        <div className="max-w-[380px] w-full bg-[#0b1019] border border-[#1b2636] shadow-2xl rounded-2xl p-6 flex flex-col items-center text-center">
+                          
+                          {/* Top Square Green/Amber Icon Badge */}
+                          <div className="w-11 h-11 rounded-xl bg-[#0a231b] border border-[#00c875]/40 flex items-center justify-center text-[#00c875] mb-3.5 shadow-sm">
+                            <ExternalLink className="w-5 h-5 text-[#00c875]" />
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-1 font-sans">
+                            {selectedGame.title} is active in another tab
+                          </h3>
+
+                          {/* Subtitle Description */}
+                          <p className="text-slate-400 text-xs sm:text-sm leading-normal mb-5 font-sans max-w-[300px]">
+                            In-arena frame is paused to avoid lag and duplicate audio.
+                          </p>
+
+                          {/* Side-by-Side Action Buttons */}
+                          <div className="flex flex-row items-center gap-2.5 w-full">
+                            <button
+                              onClick={() => {
+                                setExternalActiveGame(null);
+                                arenaInstanceId.current = 'arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+                                broadcastGameStarted(selectedGame.id, selectedGame.title, arenaInstanceId.current);
+                                const cached = gameHtmlCache.get(selectedGame.url);
+                                if (cached) {
+                                  setGameFrame(cached);
+                                } else {
+                                  loadGameFrame(selectedGame.url).then((f) => {
+                                    setCachedGameHtml(selectedGame.url, f);
+                                    setGameFrame(f);
+                                  });
+                                }
+                              }}
+                              className="flex-1 py-2 px-3 rounded-xl bg-[#00c875] hover:bg-[#00b268] text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-[#00c875]/20 active:scale-[0.98]"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 text-slate-950" />
+                              <span>Resume Here</span>
+                            </button>
+                            <button
+                              onClick={() => openGameInAboutBlank(selectedGame)}
+                              className="flex-1 py-2 px-3 rounded-xl bg-[#242f40] hover:bg-[#2c3a4f] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-white/5 active:scale-[0.98]"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
+                              <span>Re-open Tab</span>
+                            </button>
+                          </div>
+
                         </div>
-                        <h3 className="text-base font-bold font-mono tracking-tight mb-1 text-[var(--text-primary)]">
-                          Game Suspended (Single Game Limit)
-                        </h3>
-                        <p className="text-[var(--text-muted)] text-xs max-w-md mb-4 leading-relaxed font-sans">
-                          Another game (<span className="text-[var(--accent-color)] font-semibold">{externalActiveGame.title}</span>) was loaded in another window or tab. Only one game can be loaded at a time to prevent high memory usage and lag.
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setExternalActiveGame(null);
-                              arenaInstanceId.current = 'arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-                              broadcastGameStarted(selectedGame.id, selectedGame.title, arenaInstanceId.current);
-                              const cached = gameHtmlCache.get(selectedGame.url);
-                              if (cached) {
-                                setGameFrame(cached);
-                              } else {
-                                loadGameFrame(selectedGame.url).then((f) => {
-                                  setCachedGameHtml(selectedGame.url, f);
-                                  setGameFrame(f);
-                                });
-                              }
-                            }}
-                            className="px-4 py-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-lg text-xs font-mono font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span>Resume {selectedGame.title}</span>
-                          </button>
-                          <button
-                            onClick={() => openGameInAboutBlank(selectedGame)}
-                            className="px-3.5 py-2 border border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[var(--accent-color)] text-[var(--text-primary)] rounded-lg text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            <span>Open in Blank Tab</span>
-                          </button>
+                      </div>
+                    ) : aboutBlankActiveGame === selectedGame.id ? (
+                      <div className="flex flex-col items-center justify-center w-full h-full text-center p-4 bg-[#080b12] text-white select-none">
+                        {/* Compact Dark Card matching popout design */}
+                        <div className="max-w-[380px] w-full bg-[#0b1019] border border-[#1b2636] shadow-2xl rounded-2xl p-6 flex flex-col items-center text-center">
+                          
+                          {/* Top Square Green Icon Badge */}
+                          <div className="w-11 h-11 rounded-xl bg-[#0a231b] border border-[#00c875]/40 flex items-center justify-center text-[#00c875] mb-3.5 shadow-sm">
+                            <ExternalLink className="w-5 h-5 text-[#00c875]" />
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-1 font-sans">
+                            {selectedGame.title} is open in a popout tab
+                          </h3>
+
+                          {/* Subtitle Description */}
+                          <p className="text-slate-400 text-xs sm:text-sm leading-normal mb-5 font-sans max-w-[300px]">
+                            In-arena frame is paused to avoid lag and duplicate audio.
+                          </p>
+
+                          {/* Side-by-Side Action Buttons */}
+                          <div className="flex flex-row items-center gap-2.5 w-full">
+                            <button
+                              onClick={() => {
+                                setAboutBlankActiveGame(null);
+                                const cached = gameHtmlCache.get(selectedGame.url);
+                                if (cached) {
+                                  setGameFrame(cached);
+                                } else {
+                                  loadGameFrame(selectedGame.url).then((f) => {
+                                    setCachedGameHtml(selectedGame.url, f);
+                                    setGameFrame(f);
+                                  });
+                                }
+                              }}
+                              className="flex-1 py-2 px-3 rounded-xl bg-[#00c875] hover:bg-[#00b268] text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-[#00c875]/20 active:scale-[0.98]"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 text-slate-950" />
+                              <span>Resume Here</span>
+                            </button>
+                            <button
+                              onClick={() => openGameInAboutBlank(selectedGame)}
+                              className="flex-1 py-2 px-3 rounded-xl bg-[#242f40] hover:bg-[#2c3a4f] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-white/5 active:scale-[0.98]"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
+                              <span>Re-open Tab</span>
+                            </button>
+                          </div>
+
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center w-full h-full text-center p-6 bg-[#080b12] text-white">
-                        <div className="w-12 h-12 rounded-2xl bg-[var(--accent-color)]/10 border border-[var(--accent-color)]/30 flex items-center justify-center text-[var(--accent-color)] mb-3 shadow-[0_0_20px_rgba(0,229,176,0.15)]">
-                          <ExternalLink className="w-6 h-6" />
+                      <div className="flex flex-col items-center justify-center w-full h-full text-center p-6 bg-[#080b12] text-white relative select-none">
+                        <div className="relative w-14 h-14 mb-4 flex items-center justify-center">
+                          <div className="absolute inset-0 rounded-full border-2 border-[var(--accent-color)]/20"></div>
+                          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[var(--accent-color)] animate-spin"></div>
+                          <Gamepad2 className="w-6 h-6 text-[var(--accent-color)]" />
                         </div>
-                        <h3 className="text-base font-bold font-mono tracking-tight mb-1 text-[var(--text-primary)]">
-                          Game Active in Blank Tab
+                        <h3 className="text-lg font-bold font-mono tracking-tight mb-1 text-white">
+                          Loading {selectedGame.title}...
                         </h3>
-                        <p className="text-[var(--text-muted)] text-xs max-w-md mb-4 leading-relaxed font-sans">
-                          This game is running in an external <code className="bg-white/10 text-white px-1.5 py-0.5 rounded text-[11px] font-mono">about:blank</code> tab. The in-arena frame has been unloaded to prevent high memory usage and lagging.
+                        <p className="text-gray-400 text-xs max-w-md mb-5 leading-relaxed font-sans">
+                          Preparing game resources and assets for the portal arena.
                         </p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                           <button
                             onClick={() => {
-                              setExternalActiveGame(null);
-                              arenaInstanceId.current = 'arena_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-                              broadcastGameStarted(selectedGame.id, selectedGame.title, arenaInstanceId.current);
                               const cached = gameHtmlCache.get(selectedGame.url);
                               if (cached) {
                                 setGameFrame(cached);
@@ -6858,17 +7224,17 @@ export default function App() {
                                 });
                               }
                             }}
-                            className="px-4 py-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-lg text-xs font-mono font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
+                            className="px-4 py-2 bg-[var(--accent-color)] text-[var(--bg-color)] rounded-xl text-xs font-mono font-bold hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
-                            <span>Resume in Arena</span>
+                            <span>Reload Portal</span>
                           </button>
                           <button
                             onClick={() => openGameInAboutBlank(selectedGame)}
-                            className="px-3.5 py-2 border border-[var(--card-border)] bg-[var(--card-bg)] hover:border-[var(--accent-color)] text-[var(--text-primary)] rounded-lg text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5"
+                            className="px-4 py-2 border border-white/20 bg-white/10 hover:border-[var(--accent-color)] text-white rounded-xl text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            <span>Re-open Blank Tab</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-[var(--accent-color)]" />
+                            <span>Open in Blank Tab</span>
                           </button>
                         </div>
                       </div>
