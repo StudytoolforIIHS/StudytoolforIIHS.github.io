@@ -874,6 +874,7 @@ export default function App() {
     if (saved === 'games') return 'games';
     return 'articles'; // Innocent educational syllabus base is shown on first startup
   });
+  const [isLiteMode, setIsLiteMode] = useState(() => safeStorage.getItem('unblocked-lite-mode') === 'true');
 
   const isPasscodeUnlocked = viewMode === 'games';
 
@@ -1015,7 +1016,7 @@ export default function App() {
 
   // Timer loop for auto-randomization
   useEffect(() => {
-    if (!autoRandomizeDecoy || viewMode !== 'games') {
+    if (isLiteMode || !autoRandomizeDecoy || viewMode !== 'games') {
       return;
     }
 
@@ -1037,7 +1038,7 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [autoRandomizeDecoy, randomizeInterval, randomizePool, viewMode]);
+  }, [autoRandomizeDecoy, randomizeInterval, randomizePool, viewMode, isLiteMode]);
   const [filter, setFilter] = useState(() => {
     try {
       const hasVisited = safeStorage.getItem('has-visited-before');
@@ -1397,6 +1398,7 @@ export default function App() {
   });
 
   const openWorkspaceInAboutBlank = (currentFilter) => {
+    if (isLiteMode) return;
     let url = "";
     if (currentFilter === 'movies') {
       url = window.location.origin + '?filter=movies&view=games';
@@ -1603,7 +1605,7 @@ export default function App() {
   }, []);
 
   const openGameInAboutBlank = (gameToOpen) => {
-    if (!gameToOpen) return;
+    if (isLiteMode || !gameToOpen) return;
     recordRecentlyPlayed(gameToOpen.id);
 
     // Unload the in-page arena frame on the main website to save memory and eliminate audio overlap
@@ -1900,6 +1902,8 @@ export default function App() {
     safeSessionStorage.setItem('classroom-view-mode', mode);
     safeSessionStorage.setItem('classroom-passcode-unlocked', mode === 'games' ? 'true' : 'false');
     if (mode === 'articles') {
+      setIsLiteMode(false);
+      safeStorage.removeItem('unblocked-lite-mode');
       safeStorage.removeItem('unblocked-refreshing-session');
       safeStorage.removeItem('unblocked-refresh-timestamp');
     }
@@ -2119,6 +2123,16 @@ export default function App() {
     const inputPass = (customPass !== undefined ? customPass : passcode).trim().toLowerCase();
     if (!inputPass) return;
 
+    if (inputPass === '1234') {
+      setIsLiteMode(true);
+      safeStorage.setItem('unblocked-lite-mode', 'true');
+      setFilter('all');
+      setSelectedGame(null);
+      setViewModeAndSave('games');
+      setPasscode('');
+      return;
+    }
+
     if (inputPass === 'ttt0609') {
       const win = window.open("about:blank", "_blank");
       if (win) {
@@ -2313,7 +2327,9 @@ export default function App() {
     setPasscode(nextPasscode);
 
     // Instant matching for rapid-pins (2026, 0609, 1212, 1111)
-    if (nextPasscode === '2026') {
+    if (nextPasscode === '1234') {
+      setTimeout(() => handlePasswordSubmit(nextPasscode), 150);
+    } else if (nextPasscode === '2026') {
       setTimeout(() => {
         setViewModeAndSave('games');
         setPasscode('');
@@ -2463,6 +2479,7 @@ export default function App() {
   }, [panicKeysEnabled]);
 
   const downloadEntireWebsite = () => {
+    if (isLiteMode) return;
     const downloadUrl = `${window.location.origin}/WebsiteUpdated.html`;
 
     try {
@@ -2505,6 +2522,12 @@ export default function App() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (isLiteMode && ['chat', 'lobbychat', 'movies', 'download', 'info'].includes(filter)) {
+      setFilter('all');
+    }
+  }, [isLiteMode, filter]);
 
   // Set dynamic browser tab title & favicon based on current section & decoy toggle
   useEffect(() => {
@@ -2574,7 +2597,10 @@ export default function App() {
     const customStudyFavicon = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZy1ncmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjM0I4MkY2Ii8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMUQ0RUQ4Ii8+PC9saW5lYXJHcmFkaWVudD48ZmlsdGVyIGlkPSJzaGFkb3ciIHg9Ii0xMCUiIHk9Ii0xMCUiIHdpZHRoPSIxMzAlIiBoZWlnaHQ9IjEzMCUiPjxmZURyb3BTaGFkb3cgZHg9IjAiIGR5PSI0IiBzdGREZXZpYXRpb249IjQiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz48L2ZpbHRlcj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxMjgiIHJ4PSIyOCIgZmlsbD0idXJsKCNiZy1ncmFkKSIvPjxjaXJjbGUgY3g9IjY0IiBjeT0iNjQiIHI9IjUwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTY0IDQyIEM2NCA0MiwgNTQgMzQsIDM0IDM0IEwzNCA4MiBDNTQgODIsIDY0IDkwLCA2NCA5MCBDNjQgOTAsIDc0IDgyLCA5NCA4MiBMOTQgMzQgQzc0IDM0LCA2NCA0MiwgNjQgNDIgWiIgZmlsbD0iI0ZGRkZGRiIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz48cGF0aCBkPSJNNjQgNDIgTDY0IDkwIiBzdHJva2U9IiMxRDFFRDgiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTY0IDI0IEw2NiAyOSBMNzEgMjkgTDY3IDMyIEw2OSAzNyBMNjQgMzQgTDU5IDM3IEw2MSAzMiBMNTcgMjkgTDYyIDI5IFoiIGZpbGw9IiNGQkJGMjQiLz48L3N2Zz4=";
     const classroomFavicon = "https://ssl.gstatic.com/classroom/favicon.png";
 
-    if (viewMode === 'articles') {
+    if (isLiteMode) {
+      setBothTitles('StudyTools');
+      updateFavicon(customStudyFavicon);
+    } else if (viewMode === 'articles') {
       setBothTitles("Urnperiodic StudyTools");
       updateFavicon(customStudyFavicon);
     } else if (viewMode === 'games') {
@@ -2609,7 +2635,7 @@ export default function App() {
       setBothTitles("Urnperiodic StudyTools");
       updateFavicon(customStudyFavicon);
     }
-  }, [viewMode, decoyType, customDecoyTitles]);
+  }, [viewMode, decoyType, customDecoyTitles, isLiteMode]);
 
   // Set LocalStorage theme and mode on change
   useEffect(() => {
@@ -4322,6 +4348,7 @@ export default function App() {
           <div className="flex flex-wrap items-center gap-1.5 shrink min-w-0 justify-start">
             {/* Movies Button */}
             <motion.button
+              hidden={isLiteMode}
               whileHover={animationsEnabled ? { scale: 1.05 } : undefined}
               whileTap={animationsEnabled ? { scale: 0.95 } : undefined}
               onClick={() => { setFilter(filter === 'movies' ? 'all' : 'movies'); setSelectedGame(null); }}
@@ -4338,6 +4365,7 @@ export default function App() {
 
             {/* Lobby Chat Button */}
             <motion.button
+              hidden={isLiteMode}
               whileHover={animationsEnabled ? { scale: 1.05 } : undefined}
               whileTap={animationsEnabled ? { scale: 0.95 } : undefined}
               onClick={() => { setFilter(filter === 'lobbychat' ? 'all' : 'lobbychat'); setSelectedGame(null); }}
@@ -4374,10 +4402,10 @@ export default function App() {
 
             {/* Decoy Selector */}
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase select-none">Decoy:</span>
-              <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} />
+              {!isLiteMode && <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase select-none">Decoy:</span>}
+              {!isLiteMode && <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} />}
 
-              <AutoRandomizeDecoyButton
+              {!isLiteMode && <AutoRandomizeDecoyButton
                 autoRandomize={autoRandomizeDecoy}
                 setAutoRandomize={setAutoRandomizeDecoy}
                 interval={randomizeInterval}
@@ -4389,10 +4417,11 @@ export default function App() {
                 onRandomizeNow={triggerManualRandomize}
                 currentDecoy={decoyType}
                 mode={mode}
-              />
+              />}
 
               {/* Cloak / About:blank Button (to the right of shuffle button) */}
               <motion.button
+                hidden={isLiteMode}
                 whileHover={animationsEnabled && filter !== 'lobbychat' ? { scale: 1.05 } : undefined}
                 whileTap={animationsEnabled && filter !== 'lobbychat' ? { scale: 0.95 } : undefined}
                 onClick={() => { if (filter !== 'lobbychat') openWorkspaceInAboutBlank(filter); }}
@@ -4433,9 +4462,10 @@ export default function App() {
                 const hasUrl = !!url;
                 return (
                   <motion.button
+                    hidden={isLiteMode}
                     whileHover={animationsEnabled && hasUrl ? { scale: 1.05 } : undefined}
                     whileTap={animationsEnabled && hasUrl ? { scale: 0.95 } : undefined}
-                    onClick={() => { if (hasUrl) window.open(url, '_blank'); }}
+                    onClick={() => { if (!isLiteMode && hasUrl) window.open(url, '_blank'); }}
                     className={`px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold transition-all ${
                       hasUrl 
                         ? 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 cursor-pointer shadow-[0_0_8px_rgba(0,0,0,0)] hover:shadow-[0_0_8px_var(--accent-color)]'
@@ -4494,7 +4524,7 @@ export default function App() {
                 <School className="w-3.5 h-3.5" style={{ fontFamily: 'Verdana', fontWeight: 'normal' }} />
               </div>
               <div className="flex flex-col items-start justify-center">
-                <span className="text-left whitespace-nowrap flex flex-col justify-center select-none">
+                <span className="text-left whitespace-nowrap flex flex-col justify-center select-none" hidden={isLiteMode}>
                   <span 
                     className="text-[8px] leading-[11px] tracking-tight flex items-center gap-1 transition-colors"
                     style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
@@ -4549,6 +4579,7 @@ export default function App() {
             {/* Quick Sections with backgrounds for mobile/tablet wrapped cleanly */}
             <div className="flex md:hidden items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--card-border)]/50 p-0.5 rounded-lg shadow-sm shrink-0">
               <button
+                hidden={isLiteMode}
                 onClick={() => { setFilter(filter === 'movies' ? 'all' : 'movies'); setSelectedGame(null); }}
                 className={`relative p-1 rounded-md text-xs transition-all duration-200 ${
                   filter === 'movies'
@@ -4561,6 +4592,7 @@ export default function App() {
               </button>
 
               <button
+                hidden={isLiteMode}
                 onClick={() => { setFilter(filter === 'chat' ? 'all' : 'chat'); setSelectedGame(null); }}
                 className={`p-1 px-1.5 rounded-md text-xs font-sans font-black transition-all duration-200 flex items-center justify-center ${
                   filter === 'chat'
@@ -4575,6 +4607,7 @@ export default function App() {
               </button>
 
               <button
+                hidden={isLiteMode}
                 onClick={() => { setFilter(filter === 'lobbychat' ? 'all' : 'lobbychat'); setSelectedGame(null); }}
                 className={`p-1 rounded-md text-xs transition-all duration-200 ${
                   filter === 'lobbychat'
@@ -4604,9 +4637,9 @@ export default function App() {
 
               {/* Decoy Selector & Auto Randomize */}
               <div className="flex items-center gap-1">
-                <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} compact={true} />
+                {!isLiteMode && <DecoyDropdown value={decoyType} onChange={setDecoyType} mode={mode} compact={true} />}
 
-                <AutoRandomizeDecoyButton
+                {!isLiteMode && <AutoRandomizeDecoyButton
                   autoRandomize={autoRandomizeDecoy}
                   setAutoRandomize={setAutoRandomizeDecoy}
                   interval={randomizeInterval}
@@ -4619,11 +4652,12 @@ export default function App() {
                   currentDecoy={decoyType}
                   mode={mode}
                   compact={true}
-                />
+                />}
 
                 {/* Cloak & Open Link & Refresh Buttons */}
                 <div className="flex items-center gap-0.5">
                   <button
+                    hidden={isLiteMode}
                     onClick={() => { if (filter !== 'lobbychat') openWorkspaceInAboutBlank(filter); }}
                     className={`p-1 rounded-md transition-all ${
                       filter !== 'lobbychat'
@@ -4647,7 +4681,8 @@ export default function App() {
                     const hasUrl = !!url;
                     return (
                       <button
-                        onClick={() => { if (hasUrl) window.open(url, '_blank'); }}
+                        hidden={isLiteMode}
+                        onClick={() => { if (!isLiteMode && hasUrl) window.open(url, '_blank'); }}
                         className={`p-1 rounded-md transition-all ${
                           hasUrl
                             ? 'text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 cursor-pointer shadow-[0_0_8px_rgba(0,0,0,0)] hover:shadow-[0_0_8px_var(--accent-color)]'
@@ -4675,7 +4710,7 @@ export default function App() {
             {/* Middle: Section Icons with Background (Visible on medium+ screens) */}
             <div className="hidden md:flex items-center gap-1.5 bg-[var(--bg-secondary)] border border-[var(--card-border)]/50 p-1 rounded-xl shadow-sm">
               {/* Movies Button */}
-              <div className="relative">
+              <div className="relative" hidden={isLiteMode}>
                 <button
                   onClick={() => { setFilter(filter === 'movies' ? 'all' : 'movies'); setSelectedGame(null); }}
                   className={`p-1.5 rounded-lg border text-xs font-mono font-bold flex items-center justify-center cursor-pointer transition-all duration-200 ${
@@ -4763,6 +4798,7 @@ export default function App() {
 
               {/* Socratic Tutor Button */}
               <button
+                hidden={isLiteMode}
                 onClick={() => { setFilter(filter === 'chat' ? 'all' : 'chat'); setSelectedGame(null); }}
                 className={`p-1.5 px-2.5 rounded-lg border text-xs font-sans font-black flex items-center justify-center cursor-pointer transition-all duration-200 ${
                   filter === 'chat'
@@ -4778,6 +4814,7 @@ export default function App() {
 
               {/* Lobby Chat Button */}
               <button
+                hidden={isLiteMode}
                 onClick={() => { setFilter(filter === 'lobbychat' ? 'all' : 'lobbychat'); setSelectedGame(null); }}
                 className={`relative p-1.5 rounded-lg border text-xs font-mono font-bold flex items-center justify-center cursor-pointer transition-all duration-200 ${
                   filter === 'lobbychat'
@@ -4809,17 +4846,17 @@ export default function App() {
               {/* Decoy Selector & Auto Randomize */}
               <div className="relative flex items-center gap-1">
                 <div className={showNotices && noticeStep === 3 ? 'ring-2 ring-[var(--accent-color)] ring-offset-2 ring-offset-[#0d0d12] rounded-lg animate-pulse' : ''}>
-                  <DecoyDropdown 
+                  {!isLiteMode && <DecoyDropdown
                     value={decoyType} 
                     onChange={setDecoyType} 
                     mode={mode} 
                     compact={true} 
                     customTitles={customDecoyTitles}
                     onCustomTitleChange={handleCustomTitleChange}
-                  />
+                  />}
                 </div>
 
-                <AutoRandomizeDecoyButton
+                {!isLiteMode && <AutoRandomizeDecoyButton
                   autoRandomize={autoRandomizeDecoy}
                   setAutoRandomize={setAutoRandomizeDecoy}
                   interval={randomizeInterval}
@@ -4832,11 +4869,12 @@ export default function App() {
                   currentDecoy={decoyType}
                   mode={mode}
                   compact={true}
-                />
+                />}
 
                 {/* Cloak / About:blank Button (to the right of shuffle button) */}
                 <div className="relative">
                   <button
+                    hidden={isLiteMode}
                     onClick={() => { if (filter !== 'lobbychat') openWorkspaceInAboutBlank(filter); }}
                     className={`p-1.5 rounded-lg border flex items-center justify-center transition-all ${
                       filter !== 'lobbychat'
@@ -4940,6 +4978,7 @@ export default function App() {
                           ? 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 cursor-pointer shadow-[0_0_8px_rgba(0,0,0,0)] hover:shadow-[0_0_8px_var(--accent-color)]'
                           : 'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] opacity-40 cursor-not-allowed'
                       }`}
+                      hidden={isLiteMode}
                       title={hasUrl ? "Open Workspace in new tab" : "No external link available"}
                     >
                       <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
@@ -5103,6 +5142,7 @@ export default function App() {
               {/* Download website button */}
               <div className="relative">
                 <button
+                  hidden={isLiteMode}
                   onClick={downloadEntireWebsite}
                   className={`p-1 rounded-md transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                     mode === 'light'
@@ -5187,14 +5227,12 @@ export default function App() {
               {isGlobalSettingsOpen && (
                 <div className="absolute top-full right-0 mt-2 w-72 max-h-[85vh] overflow-y-auto bg-[#12121a] border border-white/10 rounded-xl p-4 shadow-2xl z-[99999] select-none text-left animate-fade-in no-scrollbar">
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
                       <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">System Settings</span>
                       <button onClick={() => setIsGlobalSettingsOpen(false)} className="text-neutral-400 hover:text-white cursor-pointer">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <span className="text-xs font-bold text-white">Sign Out On Close</span>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] text-neutral-400 leading-normal max-w-[150px]">
                           Automatically lock workspace when tab or window is closed.
@@ -5300,6 +5338,7 @@ export default function App() {
                     {/* Download & Notification options */}
                     <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
                       <button
+                        hidden={isLiteMode}
                         onClick={() => {
                           setFilter('info');
                           setSelectedGame(null);
@@ -5316,6 +5355,7 @@ export default function App() {
                       </button>
 
                       <button
+                        hidden={isLiteMode}
                         onClick={() => {
                           downloadEntireWebsite();
                           setIsGlobalSettingsOpen(false);
@@ -5330,7 +5370,6 @@ export default function App() {
                       </button>
                     </div>
 
-                  </div>
                 </div>
               )}
 
@@ -5349,7 +5388,7 @@ export default function App() {
               <div className="w-[1px] h-3 bg-[var(--card-border)]/80" />
 
               {/* Colors picker dots */}
-              <div className="flex items-center gap-1 px-0.5">
+              <div className="flex items-center gap-1 px-0.5" hidden={isLiteMode}>
                 {[
                   { key: 'cyborg', color: 'bg-green-500 border-green-300 shadow-[0_0_5px_green]', tooltip: 'Cyborg Theme' },
                   { key: 'sunset', color: 'bg-amber-500 border-amber-300', tooltip: 'Sunset Theme' },
@@ -5375,7 +5414,7 @@ export default function App() {
               <div className="w-[1px] h-3 bg-[var(--card-border)]/80" />
 
               {/* Light/Dark slider with GoGuardian Decoy notice (Joined with color palette bar) */}
-              <div className="relative flex items-center gap-1">
+              <div className="relative flex items-center gap-1" hidden={isLiteMode}>
                 {isWhiteDecoy && (
                   <button
                     type="button"
@@ -5564,6 +5603,7 @@ export default function App() {
               {/* Download website button */}
               <div className="relative">
                 <button
+                  hidden={isLiteMode}
                   onClick={downloadEntireWebsite}
                   className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                     filter === 'download' 
@@ -5580,7 +5620,6 @@ export default function App() {
               {isGlobalSettingsOpen && (
                 <div className="absolute top-full right-0 mt-2 w-72 max-h-[85vh] overflow-y-auto bg-[#12121a] border border-white/10 rounded-xl p-4 shadow-2xl z-[99999] select-none text-left animate-fade-in no-scrollbar">
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
                       <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">System Settings</span>
                       <button onClick={() => setIsGlobalSettingsOpen(false)} className="text-neutral-400 hover:text-white cursor-pointer">
                         <X className="w-3" style={{ height: '12px' }} />
@@ -5693,6 +5732,7 @@ export default function App() {
                     {/* Download & Notification options */}
                     <div className="pt-2 border-t border-white/5 flex flex-col gap-1.5">
                       <button
+                        hidden={isLiteMode}
                         onClick={() => {
                           setFilter('info');
                           setSelectedGame(null);
@@ -5709,6 +5749,7 @@ export default function App() {
                       </button>
 
                       <button
+                        hidden={isLiteMode}
                         onClick={() => {
                           downloadEntireWebsite();
                           setIsGlobalSettingsOpen(false);
@@ -5723,7 +5764,6 @@ export default function App() {
                       </button>
                     </div>
 
-                  </div>
                 </div>
               )}
 
@@ -5742,7 +5782,7 @@ export default function App() {
               <div className="w-[1px] h-3.5 bg-[var(--card-border)]/80" />
 
               {/* Colors picker dots */}
-              <div className="flex items-center gap-1 px-0.5">
+              <div className="flex items-center gap-1 px-0.5" hidden={isLiteMode}>
                 {[
                   { key: 'cyborg', color: 'bg-green-500 border-green-300 shadow-[0_0_5px_green]', tooltip: 'Cyborg Theme' },
                   { key: 'sunset', color: 'bg-amber-500 border-amber-300', tooltip: 'Sunset Theme' },
@@ -5784,6 +5824,7 @@ export default function App() {
               <div 
                 onClick={() => setMode(prev => prev === 'light' ? 'dark' : 'light')}
                 className="relative w-[38px] h-5 bg-[var(--input-fill)] border border-[var(--card-border)] rounded-full cursor-pointer flex items-center p-0.5 select-none transition-all duration-300"
+                hidden={isLiteMode}
                 title="Slide to change Mode"
               >
                 <div 
@@ -6672,7 +6713,7 @@ export default function App() {
                             {game.category}
                           </span>
 
-                          {game.isAiGenerated && (
+                          {!isLiteMode && game.isAiGenerated && (
                             <span className="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-[8px] font-extrabold tracking-wider bg-black/85 backdrop-blur-sm text-white border border-white/20 px-2 py-0.5 rounded-full inline-flex z-10 shadow-sm font-mono uppercase">
                               <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="currentColor" />
@@ -6692,7 +6733,7 @@ export default function App() {
                                 : 'text-[var(--text-primary)] group-hover:text-[var(--accent-color)]'
                             }`}>
                               <span className="min-w-0 flex-1 truncate">{game.title}</span>
-                              {game.isAiGenerated && (
+                              {!isLiteMode && game.isAiGenerated && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-[var(--accent-color)]/10 border border-[var(--card-border)] text-[var(--text-primary)]" title="Gemini AI Generated">
                                   <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="currentColor" />
@@ -6763,6 +6804,7 @@ export default function App() {
 
                             <button
                               type="button"
+                              hidden={isLiteMode}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 recordRecentlyPlayed(game.id);
@@ -6775,7 +6817,7 @@ export default function App() {
                               <ExternalLink className="w-4 h-4" />
                             </button>
 
-                            {isLocalGame(game.url) && (
+                            {!isLiteMode && isLocalGame(game.url) && (
                               <>
                                 <button
                                   onClick={(e) => {
@@ -6804,6 +6846,7 @@ export default function App() {
                                     document.body.removeChild(link);
                                   }}
                                   className="p-2 border border-[var(--card-border)] hover:border-[var(--accent-color)] text-[var(--text-primary)] hover:text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--card-bg)] rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                                  hidden={isLiteMode}
                                   title="Download Offline Piece (.html)"
                                 >
                                   <Download className="w-4 h-4" />
@@ -6882,7 +6925,7 @@ export default function App() {
                       <span className="text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded border border-[var(--card-border)] bg-[var(--bg-color)] text-[var(--accent-color)]">
                         {selectedGame.category}
                       </span>
-                      {selectedGame.isAiGenerated && (
+                      {!isLiteMode && selectedGame.isAiGenerated && (
                         <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded border border-[var(--card-border)] bg-[var(--accent-color)]/10 text-[var(--text-primary)]">
                           <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="currentColor" />
@@ -6947,7 +6990,7 @@ export default function App() {
                     </button>
 
                     {/* Direct Gmfiles Link button for local public games */}
-                    {selectedGame && isLocalGame(selectedGame.url) && (
+                    {!isLiteMode && selectedGame && isLocalGame(selectedGame.url) && (
                       <button
                         onClick={() => {
                           setGameFrame(null);
@@ -6964,7 +7007,7 @@ export default function App() {
                     )}
 
                     {/* Download button for local public games */}
-                    {selectedGame && isLocalGame(selectedGame.url) && (
+                    {!isLiteMode && selectedGame && isLocalGame(selectedGame.url) && (
                       <button
                         onClick={() => {
                           const link = document.createElement('a');
@@ -7016,6 +7059,7 @@ export default function App() {
 
                   {/* Open in New Tab (Blank) button */}
                   <button
+                    hidden={isLiteMode}
                     onClick={() => openGameInAboutBlank(selectedGame)}
                     className="flex items-center gap-1.5 border border-[var(--card-border)] hover:border-[var(--accent-color)] bg-[var(--bg-color)] py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono text-[var(--text-primary)] font-medium transition-all cursor-pointer"
                     title="Open in Blank (about:blank)"
@@ -7026,6 +7070,7 @@ export default function App() {
 
                   {/* Lobby Chat (Slideout Chat) Toggle Button */}
                   <button
+                    hidden={isLiteMode}
                     onClick={() => setDockedChatCollapsed(!dockedChatCollapsed)}
                     className={`flex items-center gap-1.5 border py-1.5 px-2.5 sm:px-3 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
                       !dockedChatCollapsed 
@@ -7137,6 +7182,7 @@ export default function App() {
                               <span>Resume Here</span>
                             </button>
                             <button
+                              hidden={isLiteMode}
                               onClick={() => openGameInAboutBlank(selectedGame)}
                               className="flex-1 py-2 px-3 rounded-xl bg-[#242f40] hover:bg-[#2c3a4f] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-white/5 active:scale-[0.98]"
                             >
@@ -7188,6 +7234,7 @@ export default function App() {
                               <span>Resume Here</span>
                             </button>
                             <button
+                              hidden={isLiteMode}
                               onClick={() => openGameInAboutBlank(selectedGame)}
                               className="flex-1 py-2 px-3 rounded-xl bg-[#242f40] hover:bg-[#2c3a4f] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-white/5 active:scale-[0.98]"
                             >
@@ -7230,6 +7277,7 @@ export default function App() {
                             <span>Reload Portal</span>
                           </button>
                           <button
+                            hidden={isLiteMode}
                             onClick={() => openGameInAboutBlank(selectedGame)}
                             className="px-4 py-2 border border-white/20 bg-white/10 hover:border-[var(--accent-color)] text-white rounded-xl text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5"
                           >
@@ -7243,7 +7291,7 @@ export default function App() {
                 </div>
 
                 {/* DOCKED LIVE LOBBY CHAT */}
-                {!dockedChatCollapsed && (
+                {!isLiteMode && !dockedChatCollapsed && (
                   <div 
                     style={{ width: window.innerWidth >= 1024 ? '235px' : '100%' }}
                     className="w-full lg:h-full h-[320px] shrink-0 flex flex-col bg-[#070a11] border-t lg:border-t-0 lg:border-l border-[var(--card-border)]/50 rounded-none overflow-hidden"
