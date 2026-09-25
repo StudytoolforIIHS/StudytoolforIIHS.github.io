@@ -713,7 +713,7 @@ const gameData: Game[] = [
     title: '10 Minutes Till Dawn',
     description: '10-minutes-till-dawn_1x1.jpeg',
     url: 'cl10minutestildawn.html',
-    thumbnail: '',
+    thumbnail: '10-minutes-till-dawn_1x1.jpeg',
     category: 'Solo',
     featured: false
   },
