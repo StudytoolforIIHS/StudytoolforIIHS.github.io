@@ -715,7 +715,7 @@ const gameData: Game[] = [
     url: 'cl10minutestildawn.html',
     thumbnail: '10-minutes-till-dawn_1x1.jpeg',
     category: 'Solo',
-    featured: false
+    featured: true
   },
   {
     title: '10-103 Null Kevin',
