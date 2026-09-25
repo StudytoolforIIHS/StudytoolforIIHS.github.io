@@ -4330,7 +4330,7 @@ export default function App() {
                   compact={true}
                 />
 
-                {/* Cloak & Open Link Buttons */}
+                {/* Cloak & Open Link & Refresh Buttons */}
                 <div className="flex items-center gap-0.5">
                   <button
                     onClick={() => { if (filter !== 'lobbychat') openWorkspaceInAboutBlank(filter); }}
@@ -4351,15 +4351,6 @@ export default function App() {
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
 
-                  <button
-                    onClick={handleRefreshPage}
-                    className="p-1 rounded-md text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all cursor-pointer flex items-center justify-center"
-                    title="Refresh Page (Safe reload - keeps about:blank disguise)"
-                    aria-label="Refresh Page"
-                  >
-                    <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  </button>
-
                   {(() => {
                     const url = filter === 'movies' ? 'https://urnperiodic.github.io/p/' : filter === 'youtube' ? 'https://urnperiodic.github.io/youtube1/' : filter === 'chat' ? 'https://grandplat2.vercel.app/' : filter === 'download' ? 'https://urnperiodic.github.io/download/' : '';
                     const hasUrl = !!url;
@@ -4377,6 +4368,15 @@ export default function App() {
                       </button>
                     );
                   })()}
+
+                  <button
+                    onClick={handleRefreshPage}
+                    className="p-1 rounded-md text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all cursor-pointer flex items-center justify-center"
+                    title="Refresh Page (Safe reload - keeps about:blank disguise)"
+                    aria-label="Refresh Page"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -4630,16 +4630,6 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Refresh Page Button */}
-                <button
-                  onClick={handleRefreshPage}
-                  className="p-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all flex items-center justify-center cursor-pointer shadow-sm"
-                  title="Refresh Page (Safe reload - keeps about:blank disguise)"
-                  aria-label="Refresh Page"
-                >
-                  <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </button>
-
                 {/* Open Link Button */}
                 {(() => {
                   const url = filter === 'movies' ? 'https://urnperiodic.github.io/p/' : filter === 'youtube' ? 'https://urnperiodic.github.io/youtube1/' : filter === 'chat' ? 'https://grandplat2.vercel.app/' : filter === 'download' ? 'https://urnperiodic.github.io/download/' : '';
@@ -4658,6 +4648,16 @@ export default function App() {
                     </button>
                   );
                 })()}
+
+                {/* Refresh Page Button */}
+                <button
+                  onClick={handleRefreshPage}
+                  className="p-1.5 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-all flex items-center justify-center cursor-pointer shadow-sm"
+                  title="Refresh Page (Safe reload - keeps about:blank disguise)"
+                  aria-label="Refresh Page"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
 
                 {showNotices && noticeStep === 3 && (
                   <div className="absolute top-full left-0 mt-3 w-80 bg-[#13111c] border-2 border-amber-500/80 text-white rounded-xl p-3.5 shadow-[0_0_30px_rgba(245,158,11,0.4)] z-[3000] animate-fade-in select-none text-left text-xs font-medium">
@@ -5556,79 +5556,6 @@ export default function App() {
               <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>All Classrooms</span>
             </motion.button>
 
-            {/* RANKING TIERS IN SIDEBAR: A Tier, B Tier, C Tier, D Tier */}
-            <div className="border-t border-[var(--card-border)]/60 my-1 pt-1.5 flex flex-col gap-1">
-              {sidebarOpen && (
-                <div className="px-2 py-0.5 text-[8.5px] font-mono tracking-wider text-[var(--text-muted)] uppercase font-bold flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[var(--accent-color)]">
-                    <Trophy className="w-3 h-3" />
-                    <span>Rankings</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => { setFilter('rankings'); setSelectedGame(null); }}
-                    className={`text-[8px] font-mono hover:underline cursor-pointer transition-colors ${
-                      filter === 'rankings' && !selectedGame
-                        ? 'text-[var(--accent-color)] font-bold'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    All ({rankedGamesList.length})
-                  </button>
-                </div>
-              )}
-
-              {[
-                { tier: 'S', name: 'S Tier', desc: 'Masterpieces', count: rankedGamesByTier.S?.length || 0, badge: 'text-amber-300 border-amber-300/50 bg-amber-400/20' },
-                { tier: 'A', name: 'A Tier', desc: 'Great', count: rankedGamesByTier.A?.length || 0, badge: 'text-emerald-400 border-emerald-400/40 bg-emerald-400/10' },
-                { tier: 'B', name: 'B Tier', desc: 'Good', count: rankedGamesByTier.B?.length || 0, badge: 'text-sky-400 border-sky-400/40 bg-sky-400/10' },
-                { tier: 'C', name: 'C Tier', desc: 'Mid & Niche', count: rankedGamesByTier.C?.length || 0, badge: 'text-purple-400 border-purple-400/40 bg-purple-400/10' },
-              ].map(({ tier, name, count, badge }) => {
-                const isSelected = filter === `tier-${tier}` && !selectedGame;
-                return (
-                  <motion.button
-                    key={tier}
-                    whileHover={animationsEnabled ? { x: 4 } : undefined}
-                    whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
-                    onClick={() => {
-                      setFilter(`tier-${tier}`);
-                      setSelectedGame(null);
-                    }}
-                    className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center justify-between text-xs font-medium transition-all duration-200 cursor-pointer ${
-                      isSelected
-                        ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
-                        : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-85 hover:opacity-100'
-                    }`}
-                    title={`${name} (${count} games)`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className={`w-4 h-4 rounded text-[9.5px] font-black font-mono flex items-center justify-center shrink-0 border ${
-                        isSelected
-                          ? 'bg-black/25 text-[var(--bg-color)] border-white/20'
-                          : badge
-                      }`}>
-                        {tier}
-                      </span>
-                      <span className={`transition-all duration-300 truncate font-semibold ${
-                        sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'
-                      }`}>
-                        {name}
-                      </span>
-                    </div>
-                    {sidebarOpen && (
-                      <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        isSelected
-                          ? 'bg-black/20 text-[var(--bg-color)]'
-                          : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
-                      }`}>
-                        {count}
-                      </span>
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
-
             <motion.button
               whileHover={animationsEnabled ? { x: 4 } : undefined}
               whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
@@ -5703,7 +5630,7 @@ export default function App() {
                 )}
               </motion.button>
 
-              {/* CUSTOM DROPDOWN - DROPS DOWN BENEATH EMULATED (ALL ITEMS VISIBLE, NO SCROLLBAR / NO SCROLL WHEEL) */}
+              {/* CUSTOM DROPDOWN - DROPS DOWN BENEATH EMULATED */}
               <AnimatePresence>
                 {sidebarOpen && emulatedDropdownOpen && (
                   <motion.div
@@ -5744,7 +5671,7 @@ export default function App() {
 
                       <div className="h-px bg-[var(--card-border)] my-0.5" />
 
-                      {/* Major systems (>= 10 games) and combined Other (< 10 games) - ALL VISIBLE, NO SCROLL WHEEL */}
+                      {/* Major systems and combined Other */}
                       <div className="space-y-0.5">
                         {emulatedMajorTags.map((tag) => {
                           const isSelected = filter === tag && !selectedGame;
@@ -5783,7 +5710,7 @@ export default function App() {
                           );
                         })}
 
-                        {/* Combined Other entry (< 10 games) */}
+                        {/* Combined Other entry */}
                         {emulatedOtherTags.length > 0 && (
                           <button
                             type="button"
@@ -5798,7 +5725,7 @@ export default function App() {
                                 ? 'bg-[var(--accent-color)] text-[var(--bg-color)] font-bold shadow-sm'
                                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--card-bg)]'
                             }`}
-                            title="Other systems with less than 10 games (Lynx, Saturn, WonderSwan, ColecoVision, Neo Geo Pocket, etc.)"
+                            title="Other systems with less than 10 games"
                           >
                             <div className="flex items-center gap-1.5 truncate mr-1">
                               {filter === 'emulated-other' && !selectedGame && <Check className="w-2.5 h-2.5 shrink-0" />}
@@ -5861,6 +5788,79 @@ export default function App() {
               <Users className="w-3.5 h-3.5 shrink-0" />
               <span className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'}`}>Multiplayer</span>
             </motion.button>
+
+            {/* RANKING TIERS IN SIDEBAR (Below Multiplayer): S Tier, A Tier, B Tier, C Tier */}
+            <div className="border-t border-[var(--card-border)]/60 my-1 pt-1.5 flex flex-col gap-1">
+              {sidebarOpen && (
+                <div className="px-2 py-0.5 text-[8.5px] font-mono tracking-wider text-[var(--text-muted)] uppercase font-bold flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[var(--accent-color)]">
+                    <Trophy className="w-3 h-3" />
+                    <span>Rankings</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setFilter('rankings'); setSelectedGame(null); }}
+                    className={`text-[8px] font-mono hover:underline cursor-pointer transition-colors ${
+                      filter === 'rankings' && !selectedGame
+                        ? 'text-[var(--accent-color)] font-bold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    All ({rankedGamesList.length})
+                  </button>
+                </div>
+              )}
+
+              {[
+                { tier: 'S', name: 'S Tier', desc: 'Masterpieces', count: rankedGamesByTier.S?.length || 0, badge: 'text-amber-300 border-amber-300/50 bg-amber-400/20' },
+                { tier: 'A', name: 'A Tier', desc: 'Great', count: rankedGamesByTier.A?.length || 0, badge: 'text-emerald-400 border-emerald-400/40 bg-emerald-400/10' },
+                { tier: 'B', name: 'B Tier', desc: 'Good', count: rankedGamesByTier.B?.length || 0, badge: 'text-sky-400 border-sky-400/40 bg-sky-400/10' },
+                { tier: 'C', name: 'C Tier', desc: 'Mid & Niche', count: rankedGamesByTier.C?.length || 0, badge: 'text-purple-400 border-purple-400/40 bg-purple-400/10' },
+              ].map(({ tier, name, count, badge }) => {
+                const isSelected = filter === `tier-${tier}` && !selectedGame;
+                return (
+                  <motion.button
+                    key={tier}
+                    whileHover={animationsEnabled ? { x: 4 } : undefined}
+                    whileTap={animationsEnabled ? { scale: 0.97 } : undefined}
+                    onClick={() => {
+                      setFilter(`tier-${tier}`);
+                      setSelectedGame(null);
+                    }}
+                    className={`w-full text-left py-1.5 px-2.5 rounded-lg flex items-center justify-between text-xs font-medium transition-all duration-200 cursor-pointer ${
+                      isSelected
+                        ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-[0_4px_12px_var(--accent-shadow)] font-bold'
+                        : 'hover:bg-[var(--card-bg)] text-[var(--text-primary)] opacity-85 hover:opacity-100'
+                    }`}
+                    title={`${name} (${count} games)`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-4 h-4 rounded text-[9.5px] font-black font-mono flex items-center justify-center shrink-0 border ${
+                        isSelected
+                          ? 'bg-black/25 text-[var(--bg-color)] border-white/20'
+                          : badge
+                      }`}>
+                        {tier}
+                      </span>
+                      <span className={`transition-all duration-300 truncate font-semibold ${
+                        sidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none md:hidden'
+                      }`}>
+                        {name}
+                      </span>
+                    </div>
+                    {sidebarOpen && (
+                      <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        isSelected
+                          ? 'bg-black/20 text-[var(--bg-color)]'
+                          : 'bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--card-border)]'
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
 
           <div className="border-t border-solid border-[var(--card-border)] mt-2 pt-2.5 relative">
             <div className="flex items-center justify-between gap-1 pb-2">
@@ -6162,73 +6162,6 @@ export default function App() {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col gap-6"
                 >
-
-                  {/* GAME RANKINGS BANNER (Shown when rankings or tier filter is active) */}
-                  {isRankingsActive && (
-                    <section aria-label="Game Rankings Leaderboard" className="flex flex-col gap-2">
-                      <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--bg-secondary)]/90 p-3 sm:p-4 shadow-sm transition-all">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-sm">
-                              <Trophy className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-[var(--text-primary)] leading-tight">
-                                  {filter === 'rankings'
-                                    ? 'Game Rankings Leaderboard'
-                                    : `Tier ${filter.replace('tier-', '')} Rankings`}
-                                </h2>
-                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                  {filteredGames.length} Portals
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                                Curated community rankings ordered by rank (#1 to #{rankedGamesList.length}) and tier.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Tier selection tabs */}
-                        <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2.5 border-t border-[var(--card-border)]/60">
-                          <button
-                            type="button"
-                            onClick={() => setFilter('rankings')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                              filter === 'rankings'
-                                ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
-                                : 'bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                            }`}
-                          >
-                            <Trophy className="w-3 h-3 shrink-0" />
-                            <span>All Ranked ({rankedGamesList.length})</span>
-                          </button>
-                          {[
-                            { tier: 'S', label: 'Tier S · Masterpieces', count: rankedGamesByTier.S?.length || 0 },
-                            { tier: 'A', label: 'Tier A · Great', count: rankedGamesByTier.A?.length || 0 },
-                            { tier: 'B', label: 'Tier B · Good', count: rankedGamesByTier.B?.length || 0 },
-                            { tier: 'C', label: 'Tier C · Mid & Niche', count: rankedGamesByTier.C?.length || 0 },
-                          ].map(({ tier, label, count }) => (
-                            <button
-                              key={tier}
-                              type="button"
-                              onClick={() => setFilter(`tier-${tier}`)}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                                filter === `tier-${tier}`
-                                  ? 'bg-[var(--accent-color)] text-[var(--bg-color)] shadow-sm'
-                                  : 'bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                              }`}
-                            >
-                              <span>{label}</span>
-                              <span className="opacity-75 font-normal">({count})</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </section>
-                  )}
-
                   <div className="flex flex-wrap items-center justify-between gap-3">
                 {/* Left group: Title & Subtitle + Combined Switcher & Pagination Bar */}
                 <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
