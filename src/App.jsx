@@ -838,6 +838,7 @@ export default function App() {
   });
 
   const [viewMode, setViewMode] = useState(() => {
+    if (safeStorage.getItem('unblocked-lite-mode') === 'true') return 'games';
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('unlocked') === 'true' || params.get('view') === 'games') {
@@ -872,7 +873,7 @@ export default function App() {
 
     const saved = safeStorage.getItem('classroom-view-mode');
     if (saved === 'games') return 'games';
-    return 'articles'; // Innocent educational syllabus base is shown on first startup
+    return 'locked';
   });
   const [isLiteMode, setIsLiteMode] = useState(() => safeStorage.getItem('unblocked-lite-mode') === 'true');
 
@@ -1896,11 +1897,13 @@ export default function App() {
   });
 
   const setViewModeAndSave = (mode) => {
-    setViewMode(mode);
-    safeStorage.setItem('classroom-view-mode', mode);
-    safeStorage.setItem('classroom-passcode-unlocked', mode === 'games' ? 'true' : 'false');
-    safeSessionStorage.setItem('classroom-view-mode', mode);
-    safeSessionStorage.setItem('classroom-passcode-unlocked', mode === 'games' ? 'true' : 'false');
+    if (isLiteMode && mode !== 'games') return;
+    const nextMode = mode === 'articles' ? 'locked' : mode;
+    setViewMode(nextMode);
+    safeStorage.setItem('classroom-view-mode', nextMode);
+    safeStorage.setItem('classroom-passcode-unlocked', nextMode === 'games' ? 'true' : 'false');
+    safeSessionStorage.setItem('classroom-view-mode', nextMode);
+    safeSessionStorage.setItem('classroom-passcode-unlocked', nextMode === 'games' ? 'true' : 'false');
     if (mode === 'articles') {
       setIsLiteMode(false);
       safeStorage.removeItem('unblocked-lite-mode');
