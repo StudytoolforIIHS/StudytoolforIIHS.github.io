@@ -2545,6 +2545,10 @@ export default function App() {
       }
     };
 
+    const clearFavicon = (doc) => {
+      doc.querySelectorAll("link[rel*='icon']").forEach((link) => link.remove());
+    };
+
     const updateFavicon = (href) => {
       const applyIcon = (doc, iconUrl) => {
         // Remove ALL existing favicon links to avoid browser caching or conflict issues
@@ -2554,10 +2558,6 @@ export default function App() {
             link.parentNode.removeChild(link);
           }
         });
-
-        const clearFavicon = (doc) => {
-          doc.querySelectorAll("link[rel*='icon']").forEach((link) => link.remove());
-        };
 
         // Determine correct mime-type
         let typeVal = 'image/png';
