@@ -242,21 +242,12 @@ const gameData: Game[] = [
     isOg: true
   },
   {
-    title: 'The Final Earth 2 New',
+    title: 'The Final Earth 2',
     description: 'I love this game bro. Actually best game out there, please try atleast once!',
     url: 'https://urnperiodic.github.io/the-final-earth-2-2/',
     thumbnail: 'https://i.ytimg.com/vi/9lZ9dCxejp0/hqdefault.jpg',
     category: 'Solo',
     featured: true
-  },
-  {
-    title: 'The Final Earth 2 Original',
-    description: 'Original standalone version of the classic Final Earth 2 experience.',
-    url: 'The_Final_Earth_2_Standalone.html',
-    thumbnail: 'The Final Earth 2.jpeg',
-    category: 'Solo',
-    featured: true,
-    isOg: true
   },
   {
     title: 'The Final Earth 2',
